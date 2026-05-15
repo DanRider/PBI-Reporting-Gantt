@@ -87,22 +87,8 @@
         },
         "milestones": {
             "displayName": "Milestones",
-            "description": "Marker + label controls. One subgroup per distinct Milestone Type value with color/symbol/size/visibility, plus shared label-styling controls.",
+            "description": "Marker + label controls. Max 2 milestone types (cap-2). First 2 distinct values from data bind to slots 1 and 2; displayNames in Format pane show actual type names. Data with 3+ types drops the extras.",
             "properties": {
-                "fill":           { "displayName": "Color",       "type": { "fill": { "solid": { "color": true } } } },
-                "symbol": {
-                    "displayName": "Symbol",
-                    "type": { "enumeration": [
-                        { "value": "star",     "displayName": "Star" },
-                        { "value": "circle",   "displayName": "Circle" },
-                        { "value": "triangle", "displayName": "Triangle" },
-                        { "value": "square",   "displayName": "Square" },
-                        { "value": "diamond",  "displayName": "Diamond" }
-                    ]}
-                },
-                "size":           { "displayName": "Size (px)",    "type": { "numeric": true } },
-                "showMarker":     { "displayName": "Show markers", "type": { "bool": true } },
-                "showLabel":      { "displayName": "Show labels",  "type": { "bool": true } },
                 "hoverExpansion": { "displayName": "Hover target expansion (%)", "type": { "numeric": true } },
                 "labelOverflow":  { "displayName": "Label overflow", "type": { "enumeration": [
                     { "value": "truncate", "displayName": "Truncate with …" },
@@ -114,7 +100,29 @@
                 "labelFontSize":   { "displayName": "Label size",        "type": { "formatting": { "fontSize": true } } },
                 "labelBold":       { "displayName": "Label bold",        "type": { "bool": true } },
                 "labelItalic":     { "displayName": "Label italic",      "type": { "bool": true } },
-                "labelUnderline":  { "displayName": "Label underline",   "type": { "bool": true } }
+                "labelUnderline":  { "displayName": "Label underline",   "type": { "bool": true } },
+                "type1Color":      { "displayName": "Type 1 color",     "type": { "fill": { "solid": { "color": true } } } },
+                "type1Symbol":     { "displayName": "Type 1 symbol",    "type": { "enumeration": [
+                    { "value": "star",     "displayName": "Star" },
+                    { "value": "circle",   "displayName": "Circle" },
+                    { "value": "triangle", "displayName": "Triangle" },
+                    { "value": "square",   "displayName": "Square" },
+                    { "value": "diamond",  "displayName": "Diamond" }
+                ]}},
+                "type1Size":       { "displayName": "Type 1 size (px)",  "type": { "numeric": true } },
+                "type1ShowMarker": { "displayName": "Type 1 show markers","type": { "bool": true } },
+                "type1ShowLabel":  { "displayName": "Type 1 show labels", "type": { "bool": true } },
+                "type2Color":      { "displayName": "Type 2 color",     "type": { "fill": { "solid": { "color": true } } } },
+                "type2Symbol":     { "displayName": "Type 2 symbol",    "type": { "enumeration": [
+                    { "value": "star",     "displayName": "Star" },
+                    { "value": "circle",   "displayName": "Circle" },
+                    { "value": "triangle", "displayName": "Triangle" },
+                    { "value": "square",   "displayName": "Square" },
+                    { "value": "diamond",  "displayName": "Diamond" }
+                ]}},
+                "type2Size":       { "displayName": "Type 2 size (px)",  "type": { "numeric": true } },
+                "type2ShowMarker": { "displayName": "Type 2 show markers","type": { "bool": true } },
+                "type2ShowLabel":  { "displayName": "Type 2 show labels", "type": { "bool": true } }
             }
         },
         "activityLabels": {

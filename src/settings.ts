@@ -46,9 +46,10 @@ class TitleCard extends FormattingSettingsCard {
     ];
 }
 
-// Milestones card — merged with what was previously MilestoneLabelsCard.
-// Static slices: hoverExpansion + label-styling (overflow/color/font).
-// Dynamic per-type slices appended in visual.ts getFormattingModel().
+// Milestones card — cap-2 with STATIC slot properties. Dynamic-N didn't work for
+// Format-pane persistence (see INF-3530). DisplayNames are overridden at runtime
+// from typeBindings so users see actual type names ("Capability Enabler — color")
+// while the underlying property name stays static (type1Color).
 export class MilestonesCard extends FormattingSettingsCard {
     hoverExpansion = new formattingSettings.NumUpDown({
         name: "hoverExpansion", displayName: "Hover target expansion (% past marker edge)", value: 50,
@@ -71,17 +72,53 @@ export class MilestonesCard extends FormattingSettingsCard {
     labelItalic = new formattingSettings.ToggleSwitch({ name: "labelItalic", displayName: "Label italic", value: false });
     labelUnderline = new formattingSettings.ToggleSwitch({ name: "labelUnderline", displayName: "Label underline", value: false });
 
+    // Slot 1 (first distinct type from data)
+    type1Color = new formattingSettings.ColorPicker({
+        name: "type1Color", displayName: "Type 1 color", value: { value: "#FFC000" },
+    });
+    type1Symbol = new formattingSettings.ItemDropdown({
+        name: "type1Symbol", displayName: "Type 1 symbol",
+        items: SYMBOL_DROPDOWN_ITEMS,
+        value: SYMBOL_DROPDOWN_ITEMS[0],   // star
+    });
+    type1Size = new formattingSettings.NumUpDown({
+        name: "type1Size", displayName: "Type 1 size (px)", value: 8,
+    });
+    type1ShowMarker = new formattingSettings.ToggleSwitch({
+        name: "type1ShowMarker", displayName: "Type 1 show markers", value: true,
+    });
+    type1ShowLabel = new formattingSettings.ToggleSwitch({
+        name: "type1ShowLabel", displayName: "Type 1 show labels", value: true,
+    });
+
+    // Slot 2 (second distinct type from data)
+    type2Color = new formattingSettings.ColorPicker({
+        name: "type2Color", displayName: "Type 2 color", value: { value: "#000000" },
+    });
+    type2Symbol = new formattingSettings.ItemDropdown({
+        name: "type2Symbol", displayName: "Type 2 symbol",
+        items: SYMBOL_DROPDOWN_ITEMS,
+        value: SYMBOL_DROPDOWN_ITEMS[0],   // star (was circle in v1.4.0; user wanted black star)
+    });
+    type2Size = new formattingSettings.NumUpDown({
+        name: "type2Size", displayName: "Type 2 size (px)", value: 8,
+    });
+    type2ShowMarker = new formattingSettings.ToggleSwitch({
+        name: "type2ShowMarker", displayName: "Type 2 show markers", value: true,
+    });
+    type2ShowLabel = new formattingSettings.ToggleSwitch({
+        name: "type2ShowLabel", displayName: "Type 2 show labels", value: true,
+    });
+
     name: string = "milestones";
     displayName: string = "Milestones";
     slices: Array<FormattingSettingsSlice> = [
         this.hoverExpansion,
-        this.labelOverflow,
-        this.labelColor,
-        this.labelFontFamily,
-        this.labelFontSize,
-        this.labelBold,
-        this.labelItalic,
-        this.labelUnderline,
+        this.labelOverflow, this.labelColor,
+        this.labelFontFamily, this.labelFontSize,
+        this.labelBold, this.labelItalic, this.labelUnderline,
+        this.type1Color, this.type1Symbol, this.type1Size, this.type1ShowMarker, this.type1ShowLabel,
+        this.type2Color, this.type2Symbol, this.type2Size, this.type2ShowMarker, this.type2ShowLabel,
     ];
 }
 

@@ -14,6 +14,18 @@ export type LabelPos = "L" | "R" | "none";
 // in PBI's relationship cross-join. They never render. Generic PBI workaround, not domain-specific.
 export const PHANTOM_TYPE = "__phantom";
 
+// Cap on distinct milestone types rendered. The first N distinct types in source-row
+// order bind to slot1/slot2/... PBI's formattingSettings framework can't round-trip
+// dynamic-N per-instance slices for Format-pane edits, so we cap at fixed slot count
+// and use STATIC properties in the MilestonesCard. Data with more types drops the
+// rest with a console warning. See INF-3530 for the failure analysis.
+export const MAX_MILESTONE_TYPES = 2;
+
+export interface MilestoneTypeBinding {
+    typeName: string;
+    slotIndex: 0 | 1;
+}
+
 export interface Activity {
     name: string;
     area: Area;
@@ -43,7 +55,8 @@ export interface RoadmapViewModel {
     milestones: Milestone[];
     areaGroups: AreaGroup[];
     distinctAreas: string[];
-    distinctTypes: string[];     // first-seen-in-data order, no cap (was: typeBindings capped at 2)
+    distinctTypes: string[];     // all first-seen types (cap NOT applied here)
+    typeBindings: MilestoneTypeBinding[];  // first 2 types bound to slots 0/1 (cap-2)
     dateExtent: [Date, Date];
 }
 
@@ -53,6 +66,7 @@ export const EMPTY_VIEWMODEL: RoadmapViewModel = {
     areaGroups: [],
     distinctAreas: [],
     distinctTypes: [],
+    typeBindings: [],
     dateExtent: [new Date(), new Date()],
 };
 
@@ -146,12 +160,29 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
     const dateExtent = computeExtent(activities, deduped);
     const areaGroups = computeAreaGroups(activities);
 
+    // Cap milestone types at MAX_MILESTONE_TYPES — drop milestones whose type isn't bound.
+    const boundTypes = typeFirstSeen.slice(0, MAX_MILESTONE_TYPES);
+    const boundTypeSet = new Set(boundTypes);
+    const filteredDeduped = deduped.filter(m => boundTypeSet.has(m.type));
+    if (typeFirstSeen.length > MAX_MILESTONE_TYPES && typeof console !== "undefined") {
+        console.warn(
+            `[Reporting Gantt] Data has ${typeFirstSeen.length} distinct milestone types; ` +
+            `only the first ${MAX_MILESTONE_TYPES} render. Bound: [${boundTypes.join(", ")}]. ` +
+            `Dropped: [${typeFirstSeen.slice(MAX_MILESTONE_TYPES).join(", ")}].`
+        );
+    }
+    const typeBindings: MilestoneTypeBinding[] = boundTypes.map((typeName, i) => ({
+        typeName,
+        slotIndex: i as 0 | 1,
+    }));
+
     return {
         activities,
-        milestones: deduped,
+        milestones: filteredDeduped,
         areaGroups,
         distinctAreas: areaFirstSeen,
         distinctTypes: typeFirstSeen,
+        typeBindings,
         dateExtent,
     };
 }

@@ -22,7 +22,6 @@ import {
     buildMilestoneConfigMap,
     buildColorContext,
     readSwimLaneColorOverrides,
-    readMilestoneOverrides,
     ColorContext,
     MilestoneTypeConfig,
 } from "./utils/colors";
@@ -179,9 +178,45 @@ export class Visual implements IVisual {
 
         const persistedAreaOverrides = readSwimLaneColorOverrides(dataView);
         const areaColorMap = buildAreaColorMap(vm.distinctAreas, persistedAreaOverrides);
-        const persistedMilestoneOverrides = readMilestoneOverrides(dataView);
-        const milestoneConfig = buildMilestoneConfigMap(vm.distinctTypes, persistedMilestoneOverrides);
+        const milestoneConfig = buildMilestoneConfigMap(vm.typeBindings, this.settings.milestones);
         const colors: ColorContext = buildColorContext(areaColorMap, milestoneConfig);
+
+        // Override milestone slot displayNames from bound type names so the Format pane
+        // shows actual data values ("Capability Enabler — color") instead of "Type 1 color".
+        // Hide unused slots so users don't see empty controls when their data has fewer types.
+        const mc = this.settings.milestones;
+        const slot1Type = vm.typeBindings[0]?.typeName;
+        const slot2Type = vm.typeBindings[1]?.typeName;
+        const setSlot1 = (visible: boolean, name?: string) => {
+            mc.type1Color.visible = visible;
+            mc.type1Symbol.visible = visible;
+            mc.type1Size.visible = visible;
+            mc.type1ShowMarker.visible = visible;
+            mc.type1ShowLabel.visible = visible;
+            if (visible && name) {
+                mc.type1Color.displayName = `${name} — color`;
+                mc.type1Symbol.displayName = `${name} — symbol`;
+                mc.type1Size.displayName = `${name} — size (px)`;
+                mc.type1ShowMarker.displayName = `${name} — show markers`;
+                mc.type1ShowLabel.displayName = `${name} — show labels`;
+            }
+        };
+        const setSlot2 = (visible: boolean, name?: string) => {
+            mc.type2Color.visible = visible;
+            mc.type2Symbol.visible = visible;
+            mc.type2Size.visible = visible;
+            mc.type2ShowMarker.visible = visible;
+            mc.type2ShowLabel.visible = visible;
+            if (visible && name) {
+                mc.type2Color.displayName = `${name} — color`;
+                mc.type2Symbol.displayName = `${name} — symbol`;
+                mc.type2Size.displayName = `${name} — size (px)`;
+                mc.type2ShowMarker.displayName = `${name} — show markers`;
+                mc.type2ShowLabel.displayName = `${name} — show labels`;
+            }
+        };
+        setSlot1(slot1Type != null, slot1Type);
+        setSlot2(slot2Type != null, slot2Type);
 
         this.lastDistinctAreas = vm.distinctAreas;
         this.lastAreaColorMap = areaColorMap;
@@ -412,47 +447,10 @@ export class Visual implements IVisual {
         );
         this.settings.swimlanes.slices = [...swimlaneStaticSlices, ...swimlaneColorSlices];
 
-        // Milestones — static label-styling + dynamic per-type slices
-        const milestoneStaticSlices: formattingSettings.Slice[] = [
-            this.settings.milestones.hoverExpansion,
-            this.settings.milestones.labelOverflow,
-            this.settings.milestones.labelColor,
-            this.settings.milestones.labelFontFamily,
-            this.settings.milestones.labelFontSize,
-            this.settings.milestones.labelBold,
-            this.settings.milestones.labelItalic,
-            this.settings.milestones.labelUnderline,
-        ];
-        const perTypeSlices: formattingSettings.Slice[] = [];
-        for (const typeName of this.lastDistinctTypes) {
-            const cfg = this.lastMilestoneConfig[typeName];
-            if (!cfg) continue;
-            const sel = { id: typeName } as powerbi.data.Selector;
-            const symbolItem = SYMBOL_DROPDOWN_ITEMS.find(i => i.value === cfg.symbol) ?? SYMBOL_DROPDOWN_ITEMS[0];
-            perTypeSlices.push(
-                new formattingSettings.ColorPicker({
-                    name: "fill", displayName: `${typeName} — color`, selector: sel,
-                    value: { value: cfg.color },
-                }),
-                new formattingSettings.ItemDropdown({
-                    name: "symbol", displayName: `${typeName} — symbol`,
-                    items: SYMBOL_DROPDOWN_ITEMS, value: symbolItem, selector: sel,
-                }),
-                new formattingSettings.NumUpDown({
-                    name: "size", displayName: `${typeName} — size (px)`,
-                    value: cfg.size, selector: sel,
-                }),
-                new formattingSettings.ToggleSwitch({
-                    name: "showMarker", displayName: `${typeName} — show markers`,
-                    value: cfg.showMarker, selector: sel,
-                }),
-                new formattingSettings.ToggleSwitch({
-                    name: "showLabel", displayName: `${typeName} — show labels`,
-                    value: cfg.showLabel, selector: sel,
-                }),
-            );
-        }
-        this.settings.milestones.slices = [...milestoneStaticSlices, ...perTypeSlices];
+        // Milestones — static slot properties (cap-2). DisplayNames set in update() from
+        // bound type names. No dynamic slice generation here; slices stay as declared
+        // in MilestonesCard so Format-pane changes round-trip cleanly through
+        // populateFormattingSettingsModel.
 
         return this.settingsService.buildFormattingModel(this.settings);
     }
