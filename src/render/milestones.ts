@@ -125,10 +125,9 @@ export function computeVisibleLabels(
     const fontSize = font.fontSize;
     const candidates = milestones.filter(m => {
         if (m.parentRowIndex === -1) return false;
-        if (m.labelPos === "none") return false;
+        if (m.labelPos === "none") return false;          // per-row hide (single source of truth)
         if (m.label == null || m.label.length === 0) return false;
-        if (m.labelVisible === false) return false;   // per-row hide override
-        // Per-type showLabel removed in v1.7.0.0; hiding markers compounds (label requires marker visibility)
+        // Hiding markers compounds — label requires marker visibility
         const cfg = colors.milestoneConfig[m.type];
         return cfg !== undefined && cfg.showMarker;
     });

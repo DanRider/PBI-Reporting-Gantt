@@ -52,13 +52,7 @@
             "name": "labelPosition",
             "displayName": "Label Position",
             "kind": "Grouping",
-            "description": "L | R | none. Author-controlled position of the label relative to the marker."
-        },
-        {
-            "name": "labelVisible",
-            "displayName": "Label Visible",
-            "kind": "Grouping",
-            "description": "Optional bool per milestone — true/yes/1 shows the label, false/no/0 hides it. Composes with the per-type 'Show labels' toggle (both must be true to render). Unbound or null = visible (default)."
+            "description": "L | R | none. Author-controlled position of the label relative to the marker. Use 'none' to hide a single milestone's label without affecting others (per-row hide mechanism)."
         }
     ],
     "objects": {
@@ -235,8 +229,7 @@
                     "milestoneDate":     { "max": 1 },
                     "milestoneType":     { "max": 1 },
                     "milestoneLabel":    { "max": 1 },
-                    "labelPosition":     { "max": 1 },
-                    "labelVisible":      { "max": 1 }
+                    "labelPosition":     { "max": 1 }
                 }
             ],
             "table": {
@@ -250,8 +243,7 @@
                         { "for": { "in": "milestoneDate" } },
                         { "for": { "in": "milestoneType" } },
                         { "for": { "in": "milestoneLabel" } },
-                        { "for": { "in": "labelPosition" } },
-                        { "for": { "in": "labelVisible" } }
+                        { "for": { "in": "labelPosition" } }
                     ],
                     "dataReductionAlgorithm": {
                         "top": { "count": 5000 }
