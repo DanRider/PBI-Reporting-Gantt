@@ -1,0 +1,29 @@
+{
+  "version": "2.8.0.0",
+  "author": {
+    "name": "Daniel Rider",
+    "email": "drider1@humana.com"
+  },
+  "resources": [
+    {
+      "resourceId": "rId0",
+      "sourceType": 5,
+      "file": "resources/humanaJiraReportingGantt535F0231E6AF40498870E652AF36F69E.pbiviz.json"
+    }
+  ],
+  "visual": {
+    "name": "humanaJiraReportingGantt",
+    "displayName": "Humana Jira Reporting Gantt",
+    "guid": "humanaJiraReportingGantt535F0231E6AF40498870E652AF36F69E",
+    "visualClassName": "Visual",
+    "version": "2.8.0.0",
+    "description": "Humana Jira Reporting Gantt — high-level roadmap visual sourced from Jira. Renders activity swim lanes, chevron time axis, and milestone stars with conditional left/right labels.",
+    "supportUrl": "https://humana.com",
+    "gitHubUrl": ""
+  },
+  "metadata": {
+    "pbivizjson": {
+      "resourceId": "rId0"
+    }
+  }
+}

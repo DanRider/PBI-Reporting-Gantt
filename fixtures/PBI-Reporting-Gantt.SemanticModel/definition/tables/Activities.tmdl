@@ -1,0 +1,71 @@
+table Activities
+	lineageTag: 216db749-d1bf-4a94-aee4-048371a96fa5
+
+	column Activity
+		dataType: string
+		lineageTag: a3ca0e68-e78f-431e-b284-da0ee4f2ee1b
+		summarizeBy: none
+		sourceColumn: Activity
+		sortByColumn: SortOrder
+
+		annotation SummarizationSetBy = Automatic
+
+	column Area
+		dataType: string
+		lineageTag: c2b18403-2b70-4a15-9c93-8f59c7438c94
+		summarizeBy: none
+		sourceColumn: Area
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Start Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 33aca762-7dd2-431f-be22-c71c4a7d3726
+		summarizeBy: none
+		sourceColumn: Start Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'End Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 45db653f-e4b4-419e-9080-47134a173fc7
+		summarizeBy: none
+		sourceColumn: End Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column SortOrder
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: c896700a-b550-43cf-bb29-3ec19f6d0ffb
+		summarizeBy: none
+		sourceColumn: SortOrder
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Activities-26e3e969-f225-4e9d-a275-a5ce3a299a19 = m
+		mode: import
+		source =
+				let
+				    Source = Excel.Workbook(File.Contents("C:\\CORTEX\\projects\\Reporting-Gantt\\fixtures\\Demo-Roadmap-Source.xlsx"), null, true),
+				    Activities_Sheet = Source{[Item="Activities",Kind="Sheet"]}[Data],
+				    PromotedHeaders = Table.PromoteHeaders(Activities_Sheet, [PromoteAllScalars=true]),
+				    ChangedType = Table.TransformColumnTypes(PromotedHeaders,{
+				        {"Activity", type text},
+				        {"Area", type text},
+				        {"Start Date", type date},
+				        {"End Date", type date},
+				        {"SortOrder", Int64.Type}
+				    })
+				in
+				    ChangedType
+
+	annotation PBI_ResultType = Table
+

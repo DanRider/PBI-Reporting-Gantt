@@ -1,0 +1,65 @@
+table Milestones
+	lineageTag: 934cc277-d89f-4a28-a9eb-c9e4ce1f1822
+
+	column Activity
+		dataType: string
+		lineageTag: e2f6381f-d242-4f1d-b3db-11ae2dfbf6ad
+		summarizeBy: none
+		sourceColumn: Activity
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Milestone Date'
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 6886b112-6370-4709-980b-2f2cd24781e4
+		summarizeBy: none
+		sourceColumn: Milestone Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Milestone Type'
+		dataType: string
+		lineageTag: c0e13bf6-b313-4712-8577-06905eb55395
+		summarizeBy: none
+		sourceColumn: Milestone Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Milestone Label'
+		dataType: string
+		lineageTag: 081280e1-7cdf-4b97-9522-b3c7f6428866
+		summarizeBy: none
+		sourceColumn: Milestone Label
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Label Position'
+		dataType: string
+		lineageTag: 27731100-29cc-462b-8795-fc1634f59089
+		summarizeBy: none
+		sourceColumn: Label Position
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Milestones-8f2a6180-e056-4455-80c8-0e3d1e0f0a5e = m
+		mode: import
+		source =
+				let
+				    Source = Excel.Workbook(File.Contents("C:\\CORTEX\\projects\\Reporting-Gantt\\fixtures\\Demo-Roadmap-Source.xlsx"), null, true),
+				    Milestones_Sheet = Source{[Item="Milestones",Kind="Sheet"]}[Data],
+				    PromotedHeaders = Table.PromoteHeaders(Milestones_Sheet, [PromoteAllScalars=true]),
+				    ChangedType = Table.TransformColumnTypes(PromotedHeaders,{
+				        {"Activity", type text},
+				        {"Milestone Date", type date},
+				        {"Milestone Type", type text},
+				        {"Milestone Label", type text},
+				        {"Label Position", type text}
+				    })
+				in
+				    ChangedType
+
+	annotation PBI_ResultType = Table
+

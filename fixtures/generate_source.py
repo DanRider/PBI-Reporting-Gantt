@@ -1,13 +1,17 @@
 """Generate a generic project-tracking demo dataset for the Reporting Gantt visual.
 
+Scenario: a 2.5-year operational modernization program at a mid-size industrial
+equipment manufacturer — production lines, OT networks, ISO 9001 recertification,
+supplier consolidation, fleet refresh. Industry-flavored content makes the demo
+concrete; the visual itself works against any project-portfolio dataset.
+
 Outputs Demo-Roadmap-Source.xlsx with:
-  - 3 swim lanes (Engineering / Product / Operations)
-  - 24 activities total (9 / 4 / 11 distribution)
-  - 64 milestones across 2 types (Major / Minor)
-  - Date range Q4 2025 → Q4 2027 (matches the original fixture so existing .pbip
-    files render with the same time axis layout)
-  - Includes phantom milestone rows for activities without real milestones
-    (PBI relationship cross-join workaround)
+  - 3 swim lanes: Production (9) / Product Development (4) / Supply Chain (11)
+  - 24 activities total
+  - 64 real milestones across 2 types (Major / Minor)
+  - 2 phantom rows (Warehouse Move, Inventory Audit Cycle) to keep
+    activity-without-milestones rows visible through PBI's relationship cross-join
+  - Date range Q4 2025 -> Q4 2027
 
 Run:
     python fixtures/generate_source.py
@@ -32,128 +36,128 @@ def Q(year: int, q: int, *, end: bool = False) -> date:
 
 # (Activity, Area, Start, End)
 ACTIVITIES: list[tuple[str, str, date, date]] = [
-    # Engineering (9)
-    ("Auth Service v2",            "Engineering", Q(2026, 1),        Q(2026, 3, end=True)),
-    ("API Gateway Migration",      "Engineering", Q(2025, 4),        Q(2026, 4, end=True)),
-    ("Data Pipeline Refactor",     "Engineering", Q(2026, 1),        Q(2027, 1, end=True)),
-    ("Mobile SDK 3.0",             "Engineering", Q(2026, 2),        Q(2027, 2, end=True)),
-    ("Search Indexing",            "Engineering", Q(2026, 3),        Q(2027, 1, end=True)),
-    ("Logging Pipeline",           "Engineering", Q(2025, 4),        Q(2026, 3, end=True)),
-    ("Cache Layer Redesign",       "Engineering", Q(2026, 2),        Q(2026, 4, end=True)),
-    ("Service Mesh Adoption",      "Engineering", Q(2026, 3),        Q(2027, 4, end=True)),
-    ("Database Sharding",          "Engineering", Q(2026, 1),        Q(2027, 3, end=True)),
-    # Product (4)
-    ("Onboarding Redesign",        "Product",     Q(2026, 1),        Q(2026, 2, end=True)),
-    ("Pricing Page A/B",           "Product",     Q(2026, 2),        Q(2026, 3, end=True)),
-    ("Self-Serve Trial Flow",      "Product",     Q(2026, 2),        Q(2027, 1, end=True)),
-    ("Settings Console Refresh",   "Product",     Q(2026, 4),        Q(2027, 2, end=True)),
-    # Operations (11)
-    ("SOC2 Type II Audit",         "Operations",  Q(2026, 1),        Q(2026, 4, end=True)),
-    ("Vendor Consolidation",       "Operations",  Q(2026, 2),        Q(2027, 1, end=True)),
-    ("Office Move",                "Operations",  Q(2026, 3),        Q(2027, 1, end=True)),    # phantom
-    ("Equipment Refresh",          "Operations",  Q(2026, 4),        Q(2027, 2, end=True)),
-    ("Procurement Workflow",       "Operations",  Q(2026, 1),        Q(2026, 4, end=True)),
-    ("Compliance Training",        "Operations",  Q(2025, 4),        Q(2026, 2, end=True)),
-    ("Disaster Recovery Plan",     "Operations",  Q(2026, 2),        Q(2027, 1, end=True)),
-    ("Incident Response Playbook", "Operations",  Q(2026, 3),        Q(2027, 1, end=True)),
-    ("Security Hardening",         "Operations",  Q(2026, 1),        Q(2027, 4, end=True)),
-    ("Vendor SLA Renegotiation",   "Operations",  Q(2026, 4),        Q(2027, 2, end=True)),
-    ("Performance Review Cycle",   "Operations",  Q(2025, 4),        Q(2026, 1, end=True)),    # phantom
+    # Production (9)
+    ("Line 3 Automation",            "Production",          Q(2026, 1), Q(2026, 3, end=True)),
+    ("Plant 2 Expansion",            "Production",          Q(2025, 4), Q(2026, 4, end=True)),
+    ("MES Pipeline Refresh",         "Production",          Q(2026, 1), Q(2027, 1, end=True)),
+    ("Mobile Operator Console",      "Production",          Q(2026, 2), Q(2027, 2, end=True)),
+    ("Vision Inspection Rollout",    "Production",          Q(2026, 3), Q(2027, 1, end=True)),
+    ("Sensor Telemetry Rollout",     "Production",          Q(2025, 4), Q(2026, 3, end=True)),
+    ("Edge Compute Buildout",        "Production",          Q(2026, 2), Q(2026, 4, end=True)),
+    ("Robotics Cell Network",        "Production",          Q(2026, 3), Q(2027, 4, end=True)),
+    ("Plant Historian Migration",    "Production",          Q(2026, 1), Q(2027, 3, end=True)),
+    # Product Development (4)
+    ("Compact Series Redesign",      "Product Development", Q(2026, 1), Q(2026, 2, end=True)),
+    ("Heavy-Duty Variant Launch",    "Product Development", Q(2026, 2), Q(2026, 3, end=True)),
+    ("Sustainable Materials Program","Product Development", Q(2026, 2), Q(2027, 1, end=True)),
+    ("CAD System Migration",         "Product Development", Q(2026, 4), Q(2027, 2, end=True)),
+    # Supply Chain (11)
+    ("ISO 9001 Recertification",     "Supply Chain",        Q(2026, 1), Q(2026, 4, end=True)),
+    ("Supplier Consolidation",       "Supply Chain",        Q(2026, 2), Q(2027, 1, end=True)),
+    ("Warehouse Move",               "Supply Chain",        Q(2026, 3), Q(2027, 1, end=True)),    # phantom
+    ("Fleet Refresh",                "Supply Chain",        Q(2026, 4), Q(2027, 2, end=True)),
+    ("Procurement Workflow",         "Supply Chain",        Q(2026, 1), Q(2026, 4, end=True)),
+    ("Safety Training Refresh",      "Supply Chain",        Q(2025, 4), Q(2026, 2, end=True)),
+    ("Business Continuity Program",  "Supply Chain",        Q(2026, 2), Q(2027, 1, end=True)),
+    ("Plant Incident Response",      "Supply Chain",        Q(2026, 3), Q(2027, 1, end=True)),
+    ("OT Network Segmentation",      "Supply Chain",        Q(2026, 1), Q(2027, 4, end=True)),
+    ("3PL Renegotiation",            "Supply Chain",        Q(2026, 4), Q(2027, 2, end=True)),
+    ("Inventory Audit Cycle",        "Supply Chain",        Q(2025, 4), Q(2026, 1, end=True)),    # phantom
 ]
 
 # (Activity, Date, Type, Label, LabelPos)
 MILESTONES: list[tuple[str, date, str, str | None, str]] = [
-    # Auth Service v2 (3)
-    ("Auth Service v2",            date(2026, 2, 15), "Major", "Design review",          "R"),
-    ("Auth Service v2",            date(2026, 3, 10), "Minor", "Code freeze",            "L"),
-    ("Auth Service v2",            date(2026, 3, 28), "Major", "GA",                      "R"),
-    # API Gateway Migration (4)
-    ("API Gateway Migration",      date(2026, 1, 15), "Minor", "Canary 10%",              "R"),
-    ("API Gateway Migration",      date(2026, 5, 20), "Major", "50% traffic",             "R"),
-    ("API Gateway Migration",      date(2026, 9, 15), "Major", "100% traffic",            "R"),
-    ("API Gateway Migration",      date(2026, 12, 20),"Minor", "Legacy off",              "L"),
-    # Data Pipeline Refactor (3)
-    ("Data Pipeline Refactor",     date(2026, 2, 28), "Minor", "Schema lock",             "R"),
-    ("Data Pipeline Refactor",     date(2026, 6, 15), "Major", "Cutover",                 "R"),
-    ("Data Pipeline Refactor",     date(2026, 11, 30),"Major", "Decommission old",        "L"),
-    # Mobile SDK 3.0 (3)
-    ("Mobile SDK 3.0",             date(2026, 9, 10), "Minor", "Beta release",            "R"),
-    ("Mobile SDK 3.0",             date(2026, 12, 1), "Major", "GA",                      "R"),
-    ("Mobile SDK 3.0",             date(2027, 4, 20), "Major", "Adoption target met",     "R"),
-    # Search Indexing (2)
-    ("Search Indexing",            date(2026, 10, 15),"Major", "Index built",             "R"),
-    ("Search Indexing",            date(2027, 1, 30), "Major", "Production",              "R"),
-    # Logging Pipeline (3)
-    ("Logging Pipeline",           date(2026, 1, 10), "Minor", "Schema design",           "R"),
-    ("Logging Pipeline",           date(2026, 4, 15), "Major", "Live",                    "R"),
-    ("Logging Pipeline",           date(2026, 8, 20), "Major", "Volume target met",       "R"),
-    # Cache Layer Redesign (2)
-    ("Cache Layer Redesign",       date(2026, 7, 1),  "Minor", "Architecture review",     "R"),
-    ("Cache Layer Redesign",       date(2026, 11, 15),"Major", "Live",                    "R"),
-    # Service Mesh Adoption (4)
-    ("Service Mesh Adoption",      date(2026, 11, 1), "Minor", "POC complete",            "R"),
-    ("Service Mesh Adoption",      date(2027, 3, 1),  "Major", "First service migrated",  "R"),
-    ("Service Mesh Adoption",      date(2027, 8, 15), "Major", "50% services",            "R"),
-    ("Service Mesh Adoption",      date(2027, 12, 1), "Major", "100% services",           "R"),
-    # Database Sharding (3)
-    ("Database Sharding",          date(2026, 5, 1),  "Minor", "Shard key chosen",        "R"),
-    ("Database Sharding",          date(2026, 11, 1), "Major", "Shard 1 live",            "R"),
-    ("Database Sharding",          date(2027, 6, 1),  "Major", "All shards migrated",     "R"),
-    # Onboarding Redesign (3)
-    ("Onboarding Redesign",        date(2026, 1, 25), "Minor", "Mockups",                 "R"),
-    ("Onboarding Redesign",        date(2026, 3, 1),  "Major", "Live to 100%",            "R"),
-    ("Onboarding Redesign",        date(2026, 5, 15), "Minor", "Iteration 2",             "R"),
-    # Pricing Page A/B (2)
-    ("Pricing Page A/B",           date(2026, 5, 1),  "Minor", "Variant launched",        "R"),
-    ("Pricing Page A/B",           date(2026, 8, 5),  "Major", "Winner declared",         "R"),
-    # Self-Serve Trial Flow (4)
-    ("Self-Serve Trial Flow",      date(2026, 5, 20), "Minor", "Design freeze",           "R"),
-    ("Self-Serve Trial Flow",      date(2026, 7, 20), "Minor", "MVP",                     "R"),
-    ("Self-Serve Trial Flow",      date(2026, 12, 10),"Major", "Public launch",           "R"),
-    ("Self-Serve Trial Flow",      date(2027, 2, 28), "Major", "Conversion target met",   "L"),
-    # Settings Console Refresh (2)
-    ("Settings Console Refresh",   date(2026, 12, 15),"Minor", "Phase 1",                 "R"),
-    ("Settings Console Refresh",   date(2027, 5, 1),  "Major", "Phase 2 GA",              "R"),
-    # SOC2 Type II Audit (3)
-    ("SOC2 Type II Audit",         date(2026, 4, 1),  "Minor", "Evidence collection",     "R"),
-    ("SOC2 Type II Audit",         date(2026, 8, 1),  "Minor", "Auditor on-site",         "R"),
-    ("SOC2 Type II Audit",         date(2026, 11, 15),"Major", "Report received",         "R"),
-    # Vendor Consolidation (3)
-    ("Vendor Consolidation",       date(2026, 6, 1),  "Minor", "Vendor list approved",    "R"),
-    ("Vendor Consolidation",       date(2026, 10, 1), "Major", "First 5 consolidated",    "R"),
-    ("Vendor Consolidation",       date(2027, 1, 15), "Major", "Final wave complete",     "R"),
-    # Equipment Refresh (2)
-    ("Equipment Refresh",          date(2027, 1, 15), "Minor", "PO approved",             "R"),
-    ("Equipment Refresh",          date(2027, 5, 1),  "Major", "Rollout complete",        "R"),
+    # Line 3 Automation (3)
+    ("Line 3 Automation",            date(2026, 2, 15), "Major", "Cell design review",          "R"),
+    ("Line 3 Automation",            date(2026, 3, 10), "Minor", "Equipment delivered",         "L"),
+    ("Line 3 Automation",            date(2026, 3, 28), "Major", "Line live",                   "R"),
+    # Plant 2 Expansion (4)
+    ("Plant 2 Expansion",            date(2026, 1, 15), "Minor", "Groundbreaking",              "R"),
+    ("Plant 2 Expansion",            date(2026, 5, 20), "Major", "Foundation poured",           "R"),
+    ("Plant 2 Expansion",            date(2026, 9, 15), "Major", "Equipment installed",         "R"),
+    ("Plant 2 Expansion",            date(2026, 12, 20),"Minor", "Commissioning",               "L"),
+    # MES Pipeline Refresh (3)
+    ("MES Pipeline Refresh",         date(2026, 2, 28), "Minor", "Schema lock",                 "R"),
+    ("MES Pipeline Refresh",         date(2026, 6, 15), "Major", "MES cutover",                 "R"),
+    ("MES Pipeline Refresh",         date(2026, 11, 30),"Major", "Legacy SCADA off",            "L"),
+    # Mobile Operator Console (3)
+    ("Mobile Operator Console",      date(2026, 9, 10), "Minor", "Pilot floor rollout",         "R"),
+    ("Mobile Operator Console",      date(2026, 12, 1), "Major", "Full deployment",             "R"),
+    ("Mobile Operator Console",      date(2027, 4, 20), "Major", "Adoption target met",         "R"),
+    # Vision Inspection Rollout (2)
+    ("Vision Inspection Rollout",    date(2026, 10, 15),"Major", "Cameras installed",           "R"),
+    ("Vision Inspection Rollout",    date(2027, 1, 30), "Major", "Inspection live",             "R"),
+    # Sensor Telemetry Rollout (3)
+    ("Sensor Telemetry Rollout",     date(2026, 1, 10), "Minor", "Tag mapping complete",        "R"),
+    ("Sensor Telemetry Rollout",     date(2026, 4, 15), "Major", "Telemetry live",              "R"),
+    ("Sensor Telemetry Rollout",     date(2026, 8, 20), "Major", "Coverage target met",         "R"),
+    # Edge Compute Buildout (2)
+    ("Edge Compute Buildout",        date(2026, 7, 1),  "Minor", "Reference architecture",      "R"),
+    ("Edge Compute Buildout",        date(2026, 11, 15),"Major", "Edge nodes live",             "R"),
+    # Robotics Cell Network (4)
+    ("Robotics Cell Network",        date(2026, 11, 1), "Minor", "POC cell complete",           "R"),
+    ("Robotics Cell Network",        date(2027, 3, 1),  "Major", "First cell migrated",         "R"),
+    ("Robotics Cell Network",        date(2027, 8, 15), "Major", "50% cells migrated",          "R"),
+    ("Robotics Cell Network",        date(2027, 12, 1), "Major", "All cells migrated",          "R"),
+    # Plant Historian Migration (3)
+    ("Plant Historian Migration",    date(2026, 5, 1),  "Minor", "Plant 1 tag mapping",         "R"),
+    ("Plant Historian Migration",    date(2026, 11, 1), "Major", "Plant 1 cut over",            "R"),
+    ("Plant Historian Migration",    date(2027, 6, 1),  "Major", "All plants migrated",         "R"),
+    # Compact Series Redesign (3)
+    ("Compact Series Redesign",      date(2026, 1, 25), "Minor", "Concept review",              "R"),
+    ("Compact Series Redesign",      date(2026, 3, 1),  "Major", "Pilot production run",        "R"),
+    ("Compact Series Redesign",      date(2026, 5, 15), "Minor", "V2 spec released",            "R"),
+    # Heavy-Duty Variant Launch (2)
+    ("Heavy-Duty Variant Launch",    date(2026, 5, 1),  "Minor", "Prototype A complete",        "R"),
+    ("Heavy-Duty Variant Launch",    date(2026, 8, 5),  "Major", "Launch approved",             "R"),
+    # Sustainable Materials Program (4)
+    ("Sustainable Materials Program",date(2026, 5, 20), "Minor", "Material spec frozen",        "R"),
+    ("Sustainable Materials Program",date(2026, 7, 20), "Minor", "First test batch",            "R"),
+    ("Sustainable Materials Program",date(2026, 12, 10),"Major", "Customer shipments begin",    "R"),
+    ("Sustainable Materials Program",date(2027, 2, 28), "Major", "Adoption target met",         "L"),
+    # CAD System Migration (2)
+    ("CAD System Migration",         date(2026, 12, 15),"Minor", "Engineering pilot",           "R"),
+    ("CAD System Migration",         date(2027, 5, 1),  "Major", "Org-wide rollout",            "R"),
+    # ISO 9001 Recertification (3)
+    ("ISO 9001 Recertification",     date(2026, 4, 1),  "Minor", "Internal audit complete",     "R"),
+    ("ISO 9001 Recertification",     date(2026, 8, 1),  "Minor", "External auditor on-site",    "R"),
+    ("ISO 9001 Recertification",     date(2026, 11, 15),"Major", "Certificate received",        "R"),
+    # Supplier Consolidation (3)
+    ("Supplier Consolidation",       date(2026, 6, 1),  "Minor", "Supplier list approved",      "R"),
+    ("Supplier Consolidation",       date(2026, 10, 1), "Major", "First 5 consolidated",        "R"),
+    ("Supplier Consolidation",       date(2027, 1, 15), "Major", "Final wave complete",         "R"),
+    # Fleet Refresh (2)
+    ("Fleet Refresh",                date(2027, 1, 15), "Minor", "PO approved",                 "R"),
+    ("Fleet Refresh",                date(2027, 5, 1),  "Major", "Fleet replacement complete",  "R"),
     # Procurement Workflow (3)
-    ("Procurement Workflow",       date(2026, 3, 15), "Minor", "Process designed",        "R"),
-    ("Procurement Workflow",       date(2026, 7, 1),  "Major", "Live in 1 BU",            "R"),
-    ("Procurement Workflow",       date(2026, 11, 30),"Major", "Org-wide rollout",        "R"),
-    # Compliance Training (2)
-    ("Compliance Training",        date(2025, 12, 15),"Minor", "Curriculum approved",     "R"),
-    ("Compliance Training",        date(2026, 6, 1),  "Major", "100% completion",         "R"),
-    # Disaster Recovery Plan (3)
-    ("Disaster Recovery Plan",     date(2026, 5, 1),  "Minor", "Tabletop exercise",       "R"),
-    ("Disaster Recovery Plan",     date(2026, 10, 1), "Major", "Live failover test",      "R"),
-    ("Disaster Recovery Plan",     date(2027, 1, 1),  "Major", "Cert renewal",            "L"),
-    # Incident Response Playbook (3)
-    ("Incident Response Playbook", date(2026, 9, 1),  "Minor", "v1 draft",                "R"),
-    ("Incident Response Playbook", date(2026, 12, 1), "Major", "v1 ratified",             "R"),
-    ("Incident Response Playbook", date(2027, 3, 15), "Major", "Drill executed",          "R"),
-    # Security Hardening (5)
-    ("Security Hardening",         date(2026, 3, 1),  "Minor", "Baseline scan",           "R"),
-    ("Security Hardening",         date(2026, 7, 15), "Major", "Phase 1 complete",        "R"),
-    ("Security Hardening",         date(2026, 11, 1), "Minor", "Pentest engaged",         "R"),
-    ("Security Hardening",         date(2027, 5, 1),  "Major", "Phase 2 complete",        "R"),
-    ("Security Hardening",         date(2027, 11, 30),"Major", "Pentest pass",            "R"),
-    # Vendor SLA Renegotiation (2)
-    ("Vendor SLA Renegotiation",   date(2027, 1, 15), "Minor", "Initial terms",           "R"),
-    ("Vendor SLA Renegotiation",   date(2027, 5, 1),  "Major", "Contracts signed",        "R"),
+    ("Procurement Workflow",         date(2026, 3, 15), "Minor", "Process designed",            "R"),
+    ("Procurement Workflow",         date(2026, 7, 1),  "Major", "Pilot site live",             "R"),
+    ("Procurement Workflow",         date(2026, 11, 30),"Major", "Org-wide rollout",            "R"),
+    # Safety Training Refresh (2)
+    ("Safety Training Refresh",      date(2025, 12, 15),"Minor", "Curriculum approved",         "R"),
+    ("Safety Training Refresh",      date(2026, 6, 1),  "Major", "100% completion",             "R"),
+    # Business Continuity Program (3)
+    ("Business Continuity Program",  date(2026, 5, 1),  "Minor", "Tabletop exercise",           "R"),
+    ("Business Continuity Program",  date(2026, 10, 1), "Major", "Plant failover test",         "R"),
+    ("Business Continuity Program",  date(2027, 1, 1),  "Major", "Recertification complete",    "L"),
+    # Plant Incident Response (3)
+    ("Plant Incident Response",      date(2026, 9, 1),  "Minor", "v1 draft",                    "R"),
+    ("Plant Incident Response",      date(2026, 12, 1), "Major", "v1 ratified",                 "R"),
+    ("Plant Incident Response",      date(2027, 3, 15), "Major", "Cross-plant drill",           "R"),
+    # OT Network Segmentation (5)
+    ("OT Network Segmentation",      date(2026, 3, 1),  "Minor", "Baseline scan",               "R"),
+    ("OT Network Segmentation",      date(2026, 7, 15), "Major", "Plant 1 segmented",           "R"),
+    ("OT Network Segmentation",      date(2026, 11, 1), "Minor", "Pentest engaged",             "R"),
+    ("OT Network Segmentation",      date(2027, 5, 1),  "Major", "All plants segmented",        "R"),
+    ("OT Network Segmentation",      date(2027, 11, 30),"Major", "Pentest pass",                "R"),
+    # 3PL Renegotiation (2)
+    ("3PL Renegotiation",            date(2027, 1, 15), "Minor", "Initial terms",               "R"),
+    ("3PL Renegotiation",            date(2027, 5, 1),  "Major", "Contracts signed",            "R"),
 ]
 
 # Activities without real milestones — need phantom rows so PBI's relationship
 # cross-join doesn't drop them. The viewmodel filters Milestone Type === "__phantom".
-PHANTOM_ACTIVITIES = ["Office Move", "Performance Review Cycle"]
+PHANTOM_ACTIVITIES = ["Warehouse Move", "Inventory Audit Cycle"]
 
 
 def main() -> None:

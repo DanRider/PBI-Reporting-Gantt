@@ -1,0 +1,378 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.2.0/schema.json",
+  "name": "285244ca6371466ca4f7",
+  "position": {
+    "x": 0,
+    "y": 0,
+    "z": 0,
+    "height": 700,
+    "width": 1260
+  },
+  "visual": {
+    "visualType": "reportingGantt7C9F3E5A1B2D4F8E6A0C3B5D7E9F1A2C",
+    "query": {
+      "queryState": {
+        "activity": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Activities"
+                    }
+                  },
+                  "Property": "Activity"
+                }
+              },
+              "queryRef": "Activities.Activity",
+              "nativeQueryRef": "Activity"
+            }
+          ]
+        },
+        "startDate": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Activities"
+                    }
+                  },
+                  "Property": "Start Date"
+                }
+              },
+              "queryRef": "Activities.Start Date",
+              "nativeQueryRef": "Start Date"
+            }
+          ]
+        },
+        "endDate": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Activities"
+                    }
+                  },
+                  "Property": "End Date"
+                }
+              },
+              "queryRef": "Activities.End Date",
+              "nativeQueryRef": "End Date"
+            }
+          ]
+        },
+        "milestoneActivity": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Milestones"
+                    }
+                  },
+                  "Property": "Activity"
+                }
+              },
+              "queryRef": "Milestones.Activity",
+              "nativeQueryRef": "Milestones.Activity"
+            }
+          ]
+        },
+        "milestoneDate": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Milestones"
+                    }
+                  },
+                  "Property": "Milestone Date"
+                }
+              },
+              "queryRef": "Milestones.Milestone Date",
+              "nativeQueryRef": "Milestone Date"
+            }
+          ]
+        },
+        "milestoneType": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Milestones"
+                    }
+                  },
+                  "Property": "Milestone Type"
+                }
+              },
+              "queryRef": "Milestones.Milestone Type",
+              "nativeQueryRef": "Milestone Type"
+            }
+          ]
+        },
+        "milestoneLabel": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Milestones"
+                    }
+                  },
+                  "Property": "Milestone Label"
+                }
+              },
+              "queryRef": "Milestones.Milestone Label",
+              "nativeQueryRef": "Milestone Label"
+            }
+          ]
+        },
+        "labelPosition": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Milestones"
+                    }
+                  },
+                  "Property": "Label Position"
+                }
+              },
+              "queryRef": "Milestones.Label Position",
+              "nativeQueryRef": "Label Position"
+            }
+          ]
+        },
+        "area": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Activities"
+                    }
+                  },
+                  "Property": "Area"
+                }
+              },
+              "queryRef": "Activities.Area",
+              "nativeQueryRef": "Area"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "swimlanes": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "12D"
+                }
+              }
+            },
+            "swimLaneWidthPercent": {
+              "expr": {
+                "Literal": {
+                  "Value": "10D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "layout": [
+        {
+          "properties": {}
+        }
+      ],
+      "timeAxis": [
+        {
+          "properties": {
+            "showTodayLine": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "showTodayLabel": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "pastShadingOpacityPct": {
+              "expr": {
+                "Literal": {
+                  "Value": "16D"
+                }
+              }
+            },
+            "showYear": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "showQuarter": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "3e6b1ea0ac09bc3d8c26",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Activities"
+              }
+            },
+            "Property": "Activity"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "1758a43dead996e2c30e",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Activities"
+              }
+            },
+            "Property": "Start Date"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "325d6ca903cbfb53ebc4",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Activities"
+              }
+            },
+            "Property": "End Date"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "43ef0663ac058056f88d",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Milestones"
+              }
+            },
+            "Property": "Activity"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "86888638235d83c28a4b",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Milestones"
+              }
+            },
+            "Property": "Milestone Date"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "ad79a157c85e5fc617b1",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Milestones"
+              }
+            },
+            "Property": "Milestone Type"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "7f28f1240be0892c73f0",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Milestones"
+              }
+            },
+            "Property": "Milestone Label"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "67ef7ce3630d75bb7b27",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Milestones"
+              }
+            },
+            "Property": "Label Position"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "962f432092831489eec6",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Activities"
+              }
+            },
+            "Property": "Area"
+          }
+        },
+        "type": "Categorical"
+      }
+    ]
+  }
+}
