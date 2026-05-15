@@ -39,17 +39,6 @@
       ]
     },
     {
-      "name": "humanaJiraReportingGantt535F0231E6AF40498870E652AF36F69E",
-      "type": "CustomVisual",
-      "items": [
-        {
-          "name": "humanaJiraReportingGantt535F0231E6AF40498870E652AF36F69E.pbiviz.json",
-          "path": "humanaJiraReportingGantt535F0231E6AF40498870E652AF36F69E.pbiviz.json",
-          "type": "CustomVisualMetadata"
-        }
-      ]
-    },
-    {
       "name": "reportingGantt7C9F3E5A1B2D4F8E6A0C3B5D7E9F1A2C",
       "type": "CustomVisual",
       "items": [
