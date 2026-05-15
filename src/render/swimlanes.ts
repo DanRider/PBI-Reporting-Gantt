@@ -71,15 +71,40 @@ export function renderSwimlanes(
         const totalH = lines.length * lineHeight;
         const startY = yCenter - totalH / 2 + lineHeight / 2;
 
-        // Render order matters for "center" alignment — rail FIRST so the label
-        // text on top reads cleanly across the rail line.
-        g.append("line")
-            .attr("class", "swimlane-rail")
-            .attr("x1", railLineX).attr("x2", railLineX)
-            .attr("y1", yTop).attr("y2", yBottom)
-            .attr("stroke", railColor)
-            .attr("stroke-width", RAIL_STROKE_WIDTH)
-            .attr("stroke-linecap", "round");
+        // For "center" alignment, BREAK the rail line above + below the text block
+        // (with a small padding) — much cleaner than slashing through the label.
+        // For "left"/"right" alignments, single rail line spans yTop to yBottom.
+        if (opts.railAlignment === "center") {
+            const textPadding = 4;
+            const textTopY = yCenter - totalH / 2 - textPadding;
+            const textBottomY = yCenter + totalH / 2 + textPadding;
+            if (textTopY > yTop) {
+                g.append("line")
+                    .attr("class", "swimlane-rail")
+                    .attr("x1", railLineX).attr("x2", railLineX)
+                    .attr("y1", yTop).attr("y2", textTopY)
+                    .attr("stroke", railColor)
+                    .attr("stroke-width", RAIL_STROKE_WIDTH)
+                    .attr("stroke-linecap", "round");
+            }
+            if (textBottomY < yBottom) {
+                g.append("line")
+                    .attr("class", "swimlane-rail")
+                    .attr("x1", railLineX).attr("x2", railLineX)
+                    .attr("y1", textBottomY).attr("y2", yBottom)
+                    .attr("stroke", railColor)
+                    .attr("stroke-width", RAIL_STROKE_WIDTH)
+                    .attr("stroke-linecap", "round");
+            }
+        } else {
+            g.append("line")
+                .attr("class", "swimlane-rail")
+                .attr("x1", railLineX).attr("x2", railLineX)
+                .attr("y1", yTop).attr("y2", yBottom)
+                .attr("stroke", railColor)
+                .attr("stroke-width", RAIL_STROKE_WIDTH)
+                .attr("stroke-linecap", "round");
+        }
 
         g.append("circle")
             .attr("cx", railLineX).attr("cy", yTop)
