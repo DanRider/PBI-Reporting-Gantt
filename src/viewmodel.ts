@@ -14,16 +14,22 @@ export type LabelPos = "L" | "R" | "none";
 // in PBI's relationship cross-join. They never render. Generic PBI workaround, not domain-specific.
 export const PHANTOM_TYPE = "__phantom";
 
-// Cap on distinct milestone types rendered. The first N distinct types in source-row
-// order bind to slot1/slot2/... PBI's formattingSettings framework can't round-trip
-// dynamic-N per-instance slices for Format-pane edits, so we cap at fixed slot count
-// and use STATIC properties in the MilestonesCard. Data with more types drops the
-// rest with a console warning. See INF-3530 for the failure analysis.
+// Cap on distinct milestone types rendered. The first N in source-row order bind to
+// slot1/slot2/... PBI's formattingSettings framework can't round-trip dynamic-N
+// per-instance slices for Format-pane edits, so we cap at fixed slot count and use
+// STATIC properties. Data with more types drops the rest with a console warning.
+// See INF-3530.
 export const MAX_MILESTONE_TYPES = 2;
+export const MAX_SWIM_LANES = 8;
 
 export interface MilestoneTypeBinding {
     typeName: string;
     slotIndex: 0 | 1;
+}
+
+export interface AreaBinding {
+    areaName: string;
+    slotIndex: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 }
 
 export interface Activity {
@@ -55,8 +61,9 @@ export interface RoadmapViewModel {
     milestones: Milestone[];
     areaGroups: AreaGroup[];
     distinctAreas: string[];
-    distinctTypes: string[];     // all first-seen types (cap NOT applied here)
+    distinctTypes: string[];
     typeBindings: MilestoneTypeBinding[];  // first 2 types bound to slots 0/1 (cap-2)
+    areaBindings: AreaBinding[];           // first 8 areas bound to slots 0..7 (cap-8)
     dateExtent: [Date, Date];
 }
 
@@ -67,6 +74,7 @@ export const EMPTY_VIEWMODEL: RoadmapViewModel = {
     distinctAreas: [],
     distinctTypes: [],
     typeBindings: [],
+    areaBindings: [],
     dateExtent: [new Date(), new Date()],
 };
 
@@ -176,6 +184,20 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
         slotIndex: i as 0 | 1,
     }));
 
+    // Cap swim lanes at MAX_SWIM_LANES with the same pattern.
+    const boundAreas = areaFirstSeen.slice(0, MAX_SWIM_LANES);
+    if (areaFirstSeen.length > MAX_SWIM_LANES && typeof console !== "undefined") {
+        console.warn(
+            `[Reporting Gantt] Data has ${areaFirstSeen.length} distinct Swim Lane values; ` +
+            `only the first ${MAX_SWIM_LANES} render. Bound: [${boundAreas.join(", ")}]. ` +
+            `Dropped: [${areaFirstSeen.slice(MAX_SWIM_LANES).join(", ")}].`
+        );
+    }
+    const areaBindings: AreaBinding[] = boundAreas.map((areaName, i) => ({
+        areaName,
+        slotIndex: i as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7,
+    }));
+
     return {
         activities,
         milestones: filteredDeduped,
@@ -183,6 +205,7 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
         distinctAreas: areaFirstSeen,
         distinctTypes: typeFirstSeen,
         typeBindings,
+        areaBindings,
         dateExtent,
     };
 }

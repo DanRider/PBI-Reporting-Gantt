@@ -1,10 +1,7 @@
 "use strict";
 
-import powerbi from "powerbi-visuals-api";
-import DataView = powerbi.DataView;
-
 import { SymbolKind, isSymbolKind } from "./symbols";
-import { MilestoneTypeBinding } from "../viewmodel";
+import { MilestoneTypeBinding, AreaBinding } from "../viewmodel";
 
 export interface MilestoneTypeConfig {
     color: string;
@@ -13,6 +10,13 @@ export interface MilestoneTypeConfig {
     showMarker: boolean;
     showLabel: boolean;
 }
+
+export interface ColorContext {
+    areaColors: Record<string, string>;
+    milestoneConfig: Record<string, MilestoneTypeConfig>;
+}
+
+const FALLBACK_COLOR = "#888888";
 
 // Settings shape required to derive per-type milestone config (cap-2 with static slots).
 export interface MilestonesSettingsShape {
@@ -28,71 +32,37 @@ export interface MilestonesSettingsShape {
     type2ShowLabel:  { value: boolean };
 }
 
-export interface ColorContext {
-    areaColors: Record<string, string>;                       // area name → hex (dynamic count, from data)
-    milestoneConfig: Record<string, MilestoneTypeConfig>;     // type name → full config (dynamic-N from data)
+// Settings shape required to derive per-area color map (cap-8 with static slots).
+export interface SwimlanesSettingsShape {
+    slot1Color: { value: { value: string } };
+    slot2Color: { value: { value: string } };
+    slot3Color: { value: { value: string } };
+    slot4Color: { value: { value: string } };
+    slot5Color: { value: { value: string } };
+    slot6Color: { value: { value: string } };
+    slot7Color: { value: { value: string } };
+    slot8Color: { value: { value: string } };
 }
 
-const FALLBACK_COLOR = "#888888";
-
-// Built-in palettes — theme-independent so colors stay consistent across reports/themes.
-// Index-based assignment: the N-th distinct value in source-row order receives PALETTE[N % len].
-// This means: any 3-area dataset gets [green, pink, blue]; any 2-milestone-type dataset gets
-// [gold, black] — matching the consultant-grade brand defaults out-of-the-box without any
-// per-value overrides or .pbip pre-persist needed.
-//
-// AREA + MILESTONE palettes are SEPARATE so areas and milestones never collide on the same
-// color (with one shared palette, 3 areas + 2 milestones at indexes 0,1,2,0,1 would put
-// green stars on green bars — visually broken).
-
-const AREA_PALETTE = [
-    "#5C8A1C",  // green   — Humana Tech Modernization signature
-    "#C1004F",  // pink    — Humana Transformation Office signature
-    "#00A0DC",  // blue    — Humana Priority Investments signature
-    "#9467BD",  // purple
-    "#8C564B",  // brown
-    "#E377C2",  // pink-light
-    "#7F7F7F",  // grey
-    "#BCBD22",  // olive
-    "#17BECF",  // cyan
-    "#FF7F0E",  // orange
-];
-
-const MILESTONE_PALETTE = [
-    "#FFC000",  // gold     — Humana Traceable Value signature
-    "#000000",  // black    — Humana Capability Enabler signature
-    "#1F77B4",  // blue
-    "#D62728",  // red
-    "#2CA02C",  // green-darker
-    "#9467BD",  // purple
-    "#FF7F0E",  // orange
-    "#17BECF",  // cyan
-];
-
-export function defaultAreaColorFor(_name: string, index: number): string {
-    return AREA_PALETTE[index % AREA_PALETTE.length];
-}
-
-export function defaultMilestoneColorFor(_name: string, index: number): string {
-    return MILESTONE_PALETTE[index % MILESTONE_PALETTE.length];
-}
-
-// Build the per-area color map: persisted overrides win, else AREA_PALETTE default by source-order index.
+// Build the per-area color map from the bound-slot STATIC settings.
+// Each areaBinding maps to its slot's static color property (slot1Color..slot8Color).
+// Returns a map keyed by areaName so render code can look up by activity.area.
 export function buildAreaColorMap(
-    distinctAreas: string[],
-    persistedOverrides: Record<string, string>
+    areaBindings: AreaBinding[],
+    settings: SwimlanesSettingsShape
 ): Record<string, string> {
     const out: Record<string, string> = {};
-    for (let i = 0; i < distinctAreas.length; i++) {
-        const area = distinctAreas[i];
-        out[area] = persistedOverrides[area] ?? defaultAreaColorFor(area, i);
+    const slotProps = [
+        settings.slot1Color, settings.slot2Color, settings.slot3Color, settings.slot4Color,
+        settings.slot5Color, settings.slot6Color, settings.slot7Color, settings.slot8Color,
+    ];
+    for (const b of areaBindings) {
+        out[b.areaName] = slotProps[b.slotIndex].value.value;
     }
     return out;
 }
 
 // Build per-type milestone config from the bound-slot STATIC settings.
-// Each typeBinding maps to its slot's static properties (type1* or type2*).
-// Returns a map keyed by typeName so render code can look up by milestone.type.
 export function buildMilestoneConfigMap(
     typeBindings: MilestoneTypeBinding[],
     settings: MilestonesSettingsShape
@@ -111,34 +81,6 @@ export function buildMilestoneConfigMap(
     }
     return out;
 }
-
-// Read user-set per-swim-lane color overrides from the persisted dataView objects bag.
-// Shape: dataView.metadata.objects.swimlanes[swimLaneName].fill.solid.color = "#RRGGBB"
-// (Swim Lane Colors card was consolidated into Swim Lanes card in v1.2.0.0.)
-// Static swim-lane properties (show, wrapText, useAreaColor, etc.) are filtered out.
-const SWIMLANE_STATIC_KEYS = new Set([
-    "show", "wrapText", "useAreaColor", "labelColor",
-    "swimLaneWidthPercent", "fontFamily", "fontSize", "bold", "italic", "underline",
-]);
-
-export function readSwimLaneColorOverrides(dataView: DataView | undefined): Record<string, string> {
-    const out: Record<string, string> = {};
-    const objs = dataView?.metadata?.objects?.swimlanes as Record<string, unknown> | undefined;
-    if (!objs) return out;
-    for (const key of Object.keys(objs)) {
-        if (SWIMLANE_STATIC_KEYS.has(key)) continue;
-        const inst = objs[key] as { fill?: { solid?: { color?: string } } } | undefined;
-        const color = inst?.fill?.solid?.color;
-        if (typeof color === "string" && color.length > 0) {
-            out[key] = color;
-        }
-    }
-    return out;
-}
-
-// readMilestoneOverrides removed in v1.4.2 — per-type milestone config now comes
-// directly from static settings.milestones.typeN* properties (cap-2 with dynamic
-// displayName override). See INF-3530 for the dynamic-N persistence failure analysis.
 
 export function buildColorContext(
     areaColors: Record<string, string>,

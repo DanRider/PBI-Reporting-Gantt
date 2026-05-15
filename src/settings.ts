@@ -20,31 +20,9 @@ const LINE_STYLE_ITEMS = [
     { value: "dotted", displayName: "Dotted" },
 ];
 
-class TitleCard extends FormattingSettingsCard {
-    show = new formattingSettings.ToggleSwitch({ name: "show", displayName: "Show", value: false });
-    text = new formattingSettings.TextInput({ name: "text", displayName: "Text", value: "", placeholder: "Roadmap title" });
-    fontFamily = new formattingSettings.FontPicker({ name: "fontFamily", displayName: "Font", value: "Segoe UI" });
-    fontSize = new formattingSettings.NumUpDown({ name: "fontSize", displayName: "Size", value: 18 });
-    bold = new formattingSettings.ToggleSwitch({ name: "bold", displayName: "Bold", value: true });
-    italic = new formattingSettings.ToggleSwitch({ name: "italic", displayName: "Italic", value: false });
-    underline = new formattingSettings.ToggleSwitch({ name: "underline", displayName: "Underline", value: false });
-    color = new formattingSettings.ColorPicker({ name: "color", displayName: "Color", value: { value: "#222222" } });
-    alignment = new formattingSettings.ItemDropdown({
-        name: "alignment", displayName: "Alignment",
-        items: [
-            { value: "left",   displayName: "Left" },
-            { value: "center", displayName: "Center" },
-            { value: "right",  displayName: "Right" },
-        ],
-        value: { value: "center", displayName: "Center" },
-    });
-    name: string = "title";
-    displayName: string = "Title";
-    slices: Array<FormattingSettingsSlice> = [
-        this.show, this.text, this.fontFamily, this.fontSize,
-        this.bold, this.italic, this.underline, this.color, this.alignment,
-    ];
-}
+// Title card removed in v1.5.0.0 — PBI's native title (General → Title) handles
+// the same job. Two title surfaces was redundant. User sets title text once in
+// Format pane → General → Title (overrides the auto-generated data-role-name list).
 
 // Milestones card — cap-2 with STATIC slot properties. Dynamic-N didn't work for
 // Format-pane persistence (see INF-3530). DisplayNames are overridden at runtime
@@ -182,12 +160,24 @@ export class SwimlanesCard extends FormattingSettingsCard {
     bold = new formattingSettings.ToggleSwitch({ name: "bold", displayName: "Bold", value: true });
     italic = new formattingSettings.ToggleSwitch({ name: "italic", displayName: "Italic", value: false });
     underline = new formattingSettings.ToggleSwitch({ name: "underline", displayName: "Underline", value: false });
+    // Cap-8 swim-lane colors. DisplayNames overridden at runtime from areaBindings;
+    // unused slots hidden via visible:false in visual.ts update().
+    slot1Color = new formattingSettings.ColorPicker({ name: "slot1Color", displayName: "Slot 1 color", value: { value: "#5C8A1C" } });
+    slot2Color = new formattingSettings.ColorPicker({ name: "slot2Color", displayName: "Slot 2 color", value: { value: "#C1004F" } });
+    slot3Color = new formattingSettings.ColorPicker({ name: "slot3Color", displayName: "Slot 3 color", value: { value: "#00A0DC" } });
+    slot4Color = new formattingSettings.ColorPicker({ name: "slot4Color", displayName: "Slot 4 color", value: { value: "#9467BD" } });
+    slot5Color = new formattingSettings.ColorPicker({ name: "slot5Color", displayName: "Slot 5 color", value: { value: "#8C564B" } });
+    slot6Color = new formattingSettings.ColorPicker({ name: "slot6Color", displayName: "Slot 6 color", value: { value: "#E377C2" } });
+    slot7Color = new formattingSettings.ColorPicker({ name: "slot7Color", displayName: "Slot 7 color", value: { value: "#7F7F7F" } });
+    slot8Color = new formattingSettings.ColorPicker({ name: "slot8Color", displayName: "Slot 8 color", value: { value: "#BCBD22" } });
     name: string = "swimlanes";
     displayName: string = "Swim Lanes";
     slices: Array<FormattingSettingsSlice> = [
         this.show, this.swimLaneWidthPercent, this.railAlignment, this.wrapText,
         this.useAreaColor, this.labelColor,
         this.fontFamily, this.fontSize, this.bold, this.italic, this.underline,
+        this.slot1Color, this.slot2Color, this.slot3Color, this.slot4Color,
+        this.slot5Color, this.slot6Color, this.slot7Color, this.slot8Color,
     ];
 }
 
@@ -293,7 +283,6 @@ class TimeAxisCard extends FormattingSettingsCard {
 }
 
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
-    title = new TitleCard();
     layout = new LayoutCard();
     milestones = new MilestonesCard();
     activityLabels = new ActivityLabelsCard();
@@ -302,7 +291,6 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     timeAxis = new TimeAxisCard();
 
     cards = [
-        this.title,
         this.layout,
         this.swimlanes,
         this.activityLabels,

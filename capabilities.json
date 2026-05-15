@@ -56,25 +56,6 @@
         }
     ],
     "objects": {
-        "title": {
-            "displayName": "Title",
-            "description": "Custom visual title rendered at the top of the chart. Disable PBI's native title (in General formatting) when using this.",
-            "properties": {
-                "show":       { "displayName": "Show",       "type": { "bool": true } },
-                "text":       { "displayName": "Text",       "type": { "text": true } },
-                "fontFamily": { "displayName": "Font",       "type": { "formatting": { "fontFamily": true } } },
-                "fontSize":   { "displayName": "Size",       "type": { "formatting": { "fontSize": true } } },
-                "bold":       { "displayName": "Bold",       "type": { "bool": true } },
-                "italic":     { "displayName": "Italic",     "type": { "bool": true } },
-                "underline":  { "displayName": "Underline",  "type": { "bool": true } },
-                "color":      { "displayName": "Color",      "type": { "fill": { "solid": { "color": true } } } },
-                "alignment":  { "displayName": "Alignment", "type": { "enumeration": [
-                    { "value": "left",   "displayName": "Left" },
-                    { "value": "center", "displayName": "Center" },
-                    { "value": "right",  "displayName": "Right" }
-                ]}}
-            }
-        },
         "layout": {
             "displayName": "Layout",
             "description": "Outer margins around the chart, as percentages of viewport.",
@@ -170,7 +151,14 @@
                 "bold":                  { "displayName": "Bold",                "type": { "bool": true } },
                 "italic":                { "displayName": "Italic",              "type": { "bool": true } },
                 "underline":             { "displayName": "Underline",           "type": { "bool": true } },
-                "fill":                  { "displayName": "Color",               "type": { "fill": { "solid": { "color": true } } } }
+                "slot1Color":            { "displayName": "Slot 1 color",        "type": { "fill": { "solid": { "color": true } } } },
+                "slot2Color":            { "displayName": "Slot 2 color",        "type": { "fill": { "solid": { "color": true } } } },
+                "slot3Color":            { "displayName": "Slot 3 color",        "type": { "fill": { "solid": { "color": true } } } },
+                "slot4Color":            { "displayName": "Slot 4 color",        "type": { "fill": { "solid": { "color": true } } } },
+                "slot5Color":            { "displayName": "Slot 5 color",        "type": { "fill": { "solid": { "color": true } } } },
+                "slot6Color":            { "displayName": "Slot 6 color",        "type": { "fill": { "solid": { "color": true } } } },
+                "slot7Color":            { "displayName": "Slot 7 color",        "type": { "fill": { "solid": { "color": true } } } },
+                "slot8Color":            { "displayName": "Slot 8 color",        "type": { "fill": { "solid": { "color": true } } } }
             }
         },
         "legend": {

@@ -10,22 +10,20 @@ import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 import VisualTooltipDataItem = powerbi.extensibility.VisualTooltipDataItem;
 
-import { formattingSettings, FormattingSettingsService } from "powerbi-visuals-utils-formattingmodel";
+import { FormattingSettingsService } from "powerbi-visuals-utils-formattingmodel";
 import {
     createTooltipServiceWrapper,
     ITooltipServiceWrapper,
 } from "powerbi-visuals-utils-tooltiputils";
 
-import { VisualFormattingSettingsModel, SYMBOL_DROPDOWN_ITEMS } from "./settings";
+import { VisualFormattingSettingsModel } from "./settings";
 import {
     buildAreaColorMap,
     buildMilestoneConfigMap,
     buildColorContext,
-    readSwimLaneColorOverrides,
     ColorContext,
-    MilestoneTypeConfig,
 } from "./utils/colors";
-import { FontStyle, applyFont } from "./utils/font";
+import { FontStyle } from "./utils/font";
 
 import { convertDataView, RoadmapViewModel, Activity, Milestone } from "./viewmodel";
 import { buildScale, quarterAlignedExtent } from "./utils/dateScale";
@@ -40,8 +38,6 @@ import {
 } from "./render/activityLabels";
 import { renderLegend, LEGEND_HEIGHT } from "./render/legend";
 import { renderTimeNow, GridlineStyle } from "./render/timeNow";
-
-const TITLE_BOTTOM_GAP = 4;
 
 const SWIM_LANE_MIN = 100;
 const SWIM_LANE_MAX = 200;
@@ -96,8 +92,6 @@ function fontFromCard(card: {
     };
 }
 
-// Build a FontStyle from the milestones-card label* properties (label font is
-// distinct from the marker config, lives on the same card after v1.3.0.0 merge).
 function milestoneLabelFont(card: {
     labelFontFamily: { value: string };
     labelFontSize:   { value: number };
@@ -119,7 +113,6 @@ export class Visual implements IVisual {
     private root: HTMLElement;
     private svg: d3Selection<SVGSVGElement, unknown, null, undefined>;
     private bgG: d3Selection<SVGGElement, unknown, null, undefined>;
-    private titleG: d3Selection<SVGGElement, unknown, null, undefined>;
     private axisG: d3Selection<SVGGElement, unknown, null, undefined>;
     private railG: d3Selection<SVGGElement, unknown, null, undefined>;
     private activityLabelsG: d3Selection<SVGGElement, unknown, null, undefined>;
@@ -129,11 +122,6 @@ export class Visual implements IVisual {
     private tooltipService: ITooltipServiceWrapper;
     private settingsService: FormattingSettingsService;
     private settings: VisualFormattingSettingsModel;
-
-    private lastDistinctAreas: string[] = [];
-    private lastAreaColorMap: Record<string, string> = {};
-    private lastDistinctTypes: string[] = [];
-    private lastMilestoneConfig: Record<string, MilestoneTypeConfig> = {};
 
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
@@ -152,7 +140,6 @@ export class Visual implements IVisual {
         );
 
         this.bgG = this.svg.append("g").attr("class", "background-layer");
-        this.titleG = this.svg.append("g").attr("class", "visual-title");
         this.axisG = this.svg.append("g").attr("class", "time-axis");
         this.railG = this.svg.append("g").attr("class", "swimlane-rail-group");
         this.activityLabelsG = this.svg.append("g").attr("class", "activity-labels");
@@ -176,14 +163,27 @@ export class Visual implements IVisual {
 
         const vm: RoadmapViewModel = convertDataView(dataView);
 
-        const persistedAreaOverrides = readSwimLaneColorOverrides(dataView);
-        const areaColorMap = buildAreaColorMap(vm.distinctAreas, persistedAreaOverrides);
+        const areaColorMap = buildAreaColorMap(vm.areaBindings, this.settings.swimlanes);
         const milestoneConfig = buildMilestoneConfigMap(vm.typeBindings, this.settings.milestones);
         const colors: ColorContext = buildColorContext(areaColorMap, milestoneConfig);
 
-        // Override milestone slot displayNames from bound type names so the Format pane
-        // shows actual data values ("Capability Enabler — color") instead of "Type 1 color".
-        // Hide unused slots so users don't see empty controls when their data has fewer types.
+        // Override SwimlanesCard slot color displayNames from bound area names so the
+        // Format pane shows actual data values ("Tech Modernization" not "Slot 1 color").
+        // Hide unused slot color pickers (visible: false) so Format pane stays tidy.
+        const sw = this.settings.swimlanes;
+        const swSlots = [sw.slot1Color, sw.slot2Color, sw.slot3Color, sw.slot4Color,
+                         sw.slot5Color, sw.slot6Color, sw.slot7Color, sw.slot8Color];
+        for (let i = 0; i < swSlots.length; i++) {
+            const binding = vm.areaBindings[i];
+            if (binding) {
+                swSlots[i].visible = true;
+                swSlots[i].displayName = binding.areaName;
+            } else {
+                swSlots[i].visible = false;
+            }
+        }
+
+        // Override MilestonesCard type1/type2 slot displayNames from bound type names.
         const mc = this.settings.milestones;
         const slot1Type = vm.typeBindings[0]?.typeName;
         const slot2Type = vm.typeBindings[1]?.typeName;
@@ -218,44 +218,13 @@ export class Visual implements IVisual {
         setSlot1(slot1Type != null, slot1Type);
         setSlot2(slot2Type != null, slot2Type);
 
-        this.lastDistinctAreas = vm.distinctAreas;
-        this.lastAreaColorMap = areaColorMap;
-        this.lastDistinctTypes = vm.distinctTypes;
-        this.lastMilestoneConfig = milestoneConfig;
-
         // ── Outer margins ─────────────────────────────────────────────────────
         const topMarginPx    = clamp(width * (this.settings.layout.topMarginPercent.value    / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
         const bottomMarginPx = clamp(width * (this.settings.layout.bottomMarginPercent.value / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
         const leftMarginPx   = clamp(width * (this.settings.layout.leftMarginPercent.value   / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
         const rightMarginPx  = clamp(width * (this.settings.layout.rightMarginPercent.value  / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
 
-        // ── Title ──────────────────────────────────────────────────────────────
-        const titleSettings = this.settings.title;
-        const titleFont = fontFromCard(titleSettings);
-        const titleText = titleSettings.text.value || "";
-        const titleShown = titleSettings.show.value && titleText.length > 0;
-        let titleHeight = 0;
-        this.titleG.selectAll("*").remove();
-        if (titleShown) {
-            titleHeight = Math.max(titleFont.fontSize * 1.6, 28);
-            const alignment = titleSettings.alignment.value.value as "left" | "center" | "right";
-            const textAnchor = alignment === "left" ? "start" : alignment === "right" ? "end" : "middle";
-            const innerLeft = leftMarginPx + 6;
-            const innerRight = width - rightMarginPx - 6;
-            const titleX = alignment === "left" ? innerLeft : alignment === "right" ? innerRight : (innerLeft + innerRight) / 2;
-            const titleY = topMarginPx + titleHeight / 2;
-            const tSel = this.titleG.append("text")
-                .attr("class", "visual-title-text")
-                .attr("x", titleX)
-                .attr("y", titleY)
-                .attr("text-anchor", textAnchor)
-                .attr("dominant-baseline", "central")
-                .attr("fill", titleSettings.color.value.value)
-                .text(titleText);
-            applyFont(tSel, titleFont);
-        }
-        const titleBlockH = titleShown ? titleHeight + TITLE_BOTTOM_GAP : 0;
-        const headerOffset = topMarginPx + titleBlockH;
+        const headerOffset = topMarginPx;
 
         // ── No-data state ─────────────────────────────────────────────────────
         if (vm.activities.length === 0 && vm.milestones.length === 0) {
@@ -312,7 +281,7 @@ export class Visual implements IVisual {
         const todayLineColor = tAxis.todayLabelColor.value.value;
         const axisFont = fontFromCard(tAxis);
 
-        // ── Time axis (renders into axisG; returns the same layout for confirmation) ──
+        // ── Time axis ─────────────────────────────────────────────────────────
         this.axisG.attr("transform", `translate(0, ${headerOffset})`);
         const now = (tAxis.showTodayLine.value || tAxis.showTodayLabel.value) ? new Date() : null;
         renderTimeAxis(this.axisG, xScale, domain, now, {
@@ -330,8 +299,6 @@ export class Visual implements IVisual {
         const bodyY = headerOffset + axisH;
 
         // ── Background: gridlines + past/future shading + TODAY line ─────────
-        // Gridlines extend from the BOTTOM of the year band (or top of axis if no year)
-        // through the chart body, so they visually anchor to the chevron tick boundaries.
         const bgY = headerOffset + (axisLayout.yearY >= 0 ? axisLayout.yearH : 0);
         const bgH = (axisH - (axisLayout.yearY >= 0 ? axisLayout.yearH : 0)) + bodyH;
         this.bgG.attr("transform", `translate(0, ${bgY})`);
@@ -358,7 +325,7 @@ export class Visual implements IVisual {
             },
         });
 
-        // ── Legend (upper-left) ───────────────────────────────────────────────
+        // ── Legend (upper-left corner of header band) ─────────────────────────
         this.legendG.attr("transform", `translate(${leftMarginPx}, ${headerOffset})`);
         renderLegend(
             this.legendG,
@@ -424,34 +391,9 @@ export class Visual implements IVisual {
     }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {
-        // Swim Lanes — static slices + per-swim-lane ColorPickers
-        const swimlaneStaticSlices: formattingSettings.Slice[] = [
-            this.settings.swimlanes.show,
-            this.settings.swimlanes.swimLaneWidthPercent,
-            this.settings.swimlanes.wrapText,
-            this.settings.swimlanes.useAreaColor,
-            this.settings.swimlanes.labelColor,
-            this.settings.swimlanes.fontFamily,
-            this.settings.swimlanes.fontSize,
-            this.settings.swimlanes.bold,
-            this.settings.swimlanes.italic,
-            this.settings.swimlanes.underline,
-        ];
-        const swimlaneColorSlices: formattingSettings.Slice[] = this.lastDistinctAreas.map(area =>
-            new formattingSettings.ColorPicker({
-                name: "fill",
-                displayName: area,
-                selector: { id: area } as powerbi.data.Selector,
-                value: { value: this.lastAreaColorMap[area] ?? "#888888" },
-            })
-        );
-        this.settings.swimlanes.slices = [...swimlaneStaticSlices, ...swimlaneColorSlices];
-
-        // Milestones — static slot properties (cap-2). DisplayNames set in update() from
-        // bound type names. No dynamic slice generation here; slices stay as declared
-        // in MilestonesCard so Format-pane changes round-trip cleanly through
-        // populateFormattingSettingsModel.
-
+        // All slots use static declared properties — Format-pane edits round-trip
+        // cleanly through populateFormattingSettingsModel. DisplayNames are
+        // updated in update() from data bindings; no dynamic slice generation here.
         return this.settingsService.buildFormattingModel(this.settings);
     }
 }
