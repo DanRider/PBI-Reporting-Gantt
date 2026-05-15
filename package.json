@@ -1,0 +1,32 @@
+{
+  "name": "reporting-gantt",
+  "description": "Reporting Gantt — generic timeline visual for Power BI. Activity swim lanes, chevron time axis, milestone markers with conditional labels. Data-driven (any area names, any milestone types).",
+  "version": "1.0.0.0",
+  "author": {
+    "name": "Daniel Rider",
+    "email": "daniel.j.rider@gmail.com"
+  },
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "pbiviz": "pbiviz",
+    "start": "pbiviz start",
+    "package": "pbiviz package",
+    "lint": "npx eslint ."
+  },
+  "dependencies": {
+    "@types/d3": "7.4.3",
+    "d3": "7.9.0",
+    "powerbi-visuals-api": "5.11.0",
+    "powerbi-visuals-utils-formattingmodel": "6.0.4",
+    "powerbi-visuals-utils-tooltiputils": "^6.0.4"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.8.0",
+    "eslint": "^9.11.1",
+    "eslint-plugin-powerbi-visuals": "^1.0.0",
+    "powerbi-visuals-tools": "^6.2.0",
+    "ts-loader": "^9.5.7",
+    "typescript": "5.5.4"
+  }
+}

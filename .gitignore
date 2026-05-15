@@ -1,0 +1,16 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# pbiviz build artifacts (intermediate)
+.tmp/
+webpack.statistics.prod.html
+
+# PBI Desktop per-user state inside any fixtures
+**/.pbi/cache.abf
+**/.pbi/localSettings.json
+**/.pbi/editorSettings.json
+
+# Sandbox / IDE
+.vscode/
+*.DS_Store

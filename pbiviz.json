@@ -1,0 +1,26 @@
+{
+  "visual": {
+    "name": "reportingGantt",
+    "displayName": "Reporting Gantt",
+    "guid": "reportingGantt7C9F3E5A1B2D4F8E6A0C3B5D7E9F1A2C",
+    "visualClassName": "Visual",
+    "version": "1.0.0.0",
+    "description": "Reporting Gantt — generic timeline visual for Power BI. Activity swim lanes, chevron time axis, and milestone markers with conditional left/right labels. Data-driven: any area names, any milestone-type names (capped at 2). Per-area color overrides; per-type symbol/size/color/visibility controls.",
+    "supportUrl": "https://nas.cortex.lan/reporting-gantt",
+    "gitHubUrl": ""
+  },
+  "apiVersion": "5.11.0",
+  "author": {
+    "name": "Daniel Rider",
+    "email": "daniel.j.rider@gmail.com"
+  },
+  "assets": {
+    "icon": "assets/icon.png"
+  },
+  "externalJS": null,
+  "style": "style/visual.less",
+  "capabilities": "capabilities.json",
+  "dependencies": null,
+  "stringResources": [],
+  "version": "1.0.0.0"
+}
