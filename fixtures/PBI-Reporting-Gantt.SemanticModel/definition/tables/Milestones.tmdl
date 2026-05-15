@@ -56,7 +56,7 @@ table Milestones
 		mode: import
 		source =
 				let
-				    Source = Excel.Workbook(File.Contents("C:\\CORTEX\\projects\\Reporting-Gantt\\fixtures\\Demo-Roadmap-Source.xlsx"), null, true),
+				    Source = Excel.Workbook(File.Contents("Demo-Roadmap-Source.xlsx"), null, true),
 				    Milestones_Sheet = Source{[Item="Milestones",Kind="Sheet"]}[Data],
 				    PromotedHeaders = Table.PromoteHeaders(Milestones_Sheet, [PromoteAllScalars=true]),
 				    ChangedType = Table.TransformColumnTypes(PromotedHeaders,{
