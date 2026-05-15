@@ -189,7 +189,7 @@ class TimeAxisCard extends FormattingSettingsCard {
     showMonth = new formattingSettings.ToggleSwitch({ name: "showMonth", displayName: "Show Month", value: false });
     monthFill = new formattingSettings.ColorPicker({ name: "monthFill", displayName: "Month chevron color", value: { value: "#B8B8B8" } });
 
-    showQuarterGridlines = new formattingSettings.ToggleSwitch({ name: "showQuarterGridlines", displayName: "Show quarter gridlines", value: false });
+    showQuarterGridlines = new formattingSettings.ToggleSwitch({ name: "showQuarterGridlines", displayName: "Show quarter gridlines", value: true });
     quarterGridlineColor = new formattingSettings.ColorPicker({ name: "quarterGridlineColor", displayName: "Quarter gridline color", value: { value: "#888888" } });
     quarterGridlineOpacityPct = new formattingSettings.NumUpDown({ name: "quarterGridlineOpacityPct", displayName: "Quarter gridline opacity (%)", value: 30 });
     quarterGridlineStyle = new formattingSettings.ItemDropdown({
