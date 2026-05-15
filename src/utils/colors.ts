@@ -97,13 +97,21 @@ export function buildMilestoneConfigMap(
     return out;
 }
 
-// Read user-set per-area color overrides from the persisted dataView objects bag.
-// Shape: dataView.metadata.objects.areaColors[areaName].fill.solid.color = "#RRGGBB"
-export function readAreaColorOverrides(dataView: DataView | undefined): Record<string, string> {
+// Read user-set per-swim-lane color overrides from the persisted dataView objects bag.
+// Shape: dataView.metadata.objects.swimlanes[swimLaneName].fill.solid.color = "#RRGGBB"
+// (Swim Lane Colors card was consolidated into Swim Lanes card in v1.2.0.0.)
+// Static swim-lane properties (show, wrapText, useAreaColor, etc.) are filtered out.
+const SWIMLANE_STATIC_KEYS = new Set([
+    "show", "wrapText", "useAreaColor", "labelColor",
+    "swimLaneWidthPercent", "fontFamily", "fontSize", "bold", "italic", "underline",
+]);
+
+export function readSwimLaneColorOverrides(dataView: DataView | undefined): Record<string, string> {
     const out: Record<string, string> = {};
-    const objs = dataView?.metadata?.objects?.areaColors as Record<string, unknown> | undefined;
+    const objs = dataView?.metadata?.objects?.swimlanes as Record<string, unknown> | undefined;
     if (!objs) return out;
     for (const key of Object.keys(objs)) {
+        if (SWIMLANE_STATIC_KEYS.has(key)) continue;
         const inst = objs[key] as { fill?: { solid?: { color?: string } } } | undefined;
         const color = inst?.fill?.solid?.color;
         if (typeof color === "string" && color.length > 0) {

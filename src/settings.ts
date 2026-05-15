@@ -83,12 +83,6 @@ class TitleCard extends FormattingSettingsCard {
     ];
 }
 
-export class AreaColorsCard extends FormattingSettingsCard {
-    name: string = "areaColors";
-    displayName: string = "Swim Lane Colors";
-    slices: Array<FormattingSettingsSlice> = [];   // populated dynamically
-}
-
 export class MilestonesCard extends FormattingSettingsCard {
     hoverExpansion = new formattingSettings.NumUpDown({
         name: "hoverExpansion",
@@ -105,6 +99,11 @@ class ActivityLabelsCard extends FormattingSettingsCard {
         name: "show",
         displayName: "Show",
         value: true,
+    });
+    activityLabelWidthPercent = new formattingSettings.NumUpDown({
+        name: "activityLabelWidthPercent",
+        displayName: "Label column width (% of visual width)",
+        value: 14,
     });
     wrapText = new formattingSettings.ToggleSwitch({
         name: "wrapText",
@@ -164,6 +163,7 @@ class ActivityLabelsCard extends FormattingSettingsCard {
     displayName: string = "Activity Labels";
     slices: Array<FormattingSettingsSlice> = [
         this.show,
+        this.activityLabelWidthPercent,
         this.wrapText,
         this.overflowBehavior,
         this.fillMode,
@@ -230,11 +230,16 @@ class MilestoneLabelsCard extends FormattingSettingsCard {
     ];
 }
 
-class SwimlanesCard extends FormattingSettingsCard {
+export class SwimlanesCard extends FormattingSettingsCard {
     show = new formattingSettings.ToggleSwitch({
         name: "show",
         displayName: "Show",
         value: true,
+    });
+    swimLaneWidthPercent = new formattingSettings.NumUpDown({
+        name: "swimLaneWidthPercent",
+        displayName: "Swim lane width (% of visual width)",
+        value: 7,
     });
     wrapText = new formattingSettings.ToggleSwitch({
         name: "wrapText",
@@ -278,8 +283,11 @@ class SwimlanesCard extends FormattingSettingsCard {
     });
     name: string = "swimlanes";
     displayName: string = "Swim Lanes";
+    // Static slices first; per-swim-lane color pickers appended dynamically in
+    // visual.ts getFormattingModel() (one slice per distinct swim-lane name in data).
     slices: Array<FormattingSettingsSlice> = [
         this.show,
+        this.swimLaneWidthPercent,
         this.wrapText,
         this.useAreaColor,
         this.labelColor,
@@ -341,26 +349,32 @@ class LegendCard extends FormattingSettingsCard {
 }
 
 class LayoutCard extends FormattingSettingsCard {
-    leftRailWidthPercent = new formattingSettings.NumUpDown({
-        name: "leftRailWidthPercent",
-        displayName: "Left rail width (% of visual width)",
-        value: 7,
+    topMarginPercent = new formattingSettings.NumUpDown({
+        name: "topMarginPercent",
+        displayName: "Top margin (%)",
+        value: 1,
     });
-    activityLabelWidthPercent = new formattingSettings.NumUpDown({
-        name: "activityLabelWidthPercent",
-        displayName: "Activity label width (% of visual width)",
-        value: 14,
+    bottomMarginPercent = new formattingSettings.NumUpDown({
+        name: "bottomMarginPercent",
+        displayName: "Bottom margin (%)",
+        value: 1,
+    });
+    leftMarginPercent = new formattingSettings.NumUpDown({
+        name: "leftMarginPercent",
+        displayName: "Left margin (%)",
+        value: 1,
     });
     rightMarginPercent = new formattingSettings.NumUpDown({
         name: "rightMarginPercent",
-        displayName: "Right margin (% of visual width)",
-        value: 4,
+        displayName: "Right margin (%)",
+        value: 1,
     });
     name: string = "layout";
     displayName: string = "Layout";
     slices: Array<FormattingSettingsSlice> = [
-        this.leftRailWidthPercent,
-        this.activityLabelWidthPercent,
+        this.topMarginPercent,
+        this.bottomMarginPercent,
+        this.leftMarginPercent,
         this.rightMarginPercent,
     ];
 }
@@ -465,7 +479,6 @@ class TimeAxisCard extends FormattingSettingsCard {
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     title = new TitleCard();
     layout = new LayoutCard();
-    areaColors = new AreaColorsCard();
     milestones = new MilestonesCard();
     activityLabels = new ActivityLabelsCard();
     milestoneLabels = new MilestoneLabelsCard();
@@ -476,11 +489,10 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     cards = [
         this.title,
         this.layout,
-        this.areaColors,
-        this.milestones,
-        this.activityLabels,
-        this.milestoneLabels,
         this.swimlanes,
+        this.activityLabels,
+        this.milestones,
+        this.milestoneLabels,
         this.legend,
         this.timeAxis,
     ];

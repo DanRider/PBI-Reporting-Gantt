@@ -77,17 +77,12 @@
         },
         "layout": {
             "displayName": "Layout",
+            "description": "Outer margins around the chart, as percentages of viewport.",
             "properties": {
-                "leftRailWidthPercent":      { "displayName": "Left rail width (%)",      "type": { "numeric": true } },
-                "activityLabelWidthPercent": { "displayName": "Activity label width (%)", "type": { "numeric": true } },
-                "rightMarginPercent":        { "displayName": "Right margin (%)",         "type": { "numeric": true } }
-            }
-        },
-        "areaColors": {
-            "displayName": "Swim Lane Colors",
-            "description": "Color override per distinct Swim Lane value. Defaults follow the built-in palette (green/pink/blue/...) by source-order index.",
-            "properties": {
-                "fill": { "displayName": "Color", "type": { "fill": { "solid": { "color": true } } } }
+                "topMarginPercent":    { "displayName": "Top margin (%)",    "type": { "numeric": true } },
+                "bottomMarginPercent": { "displayName": "Bottom margin (%)", "type": { "numeric": true } },
+                "leftMarginPercent":   { "displayName": "Left margin (%)",   "type": { "numeric": true } },
+                "rightMarginPercent":  { "displayName": "Right margin (%)",  "type": { "numeric": true } }
             }
         },
         "milestones": {
@@ -114,8 +109,9 @@
         "activityLabels": {
             "displayName": "Activity Labels",
             "properties": {
-                "show":             { "displayName": "Show",            "type": { "bool": true } },
-                "wrapText":         { "displayName": "Wrap (2 lines)",  "type": { "bool": true } },
+                "show":                       { "displayName": "Show",                          "type": { "bool": true } },
+                "activityLabelWidthPercent":  { "displayName": "Label column width (%)",        "type": { "numeric": true } },
+                "wrapText":                   { "displayName": "Wrap (2 lines)",                "type": { "bool": true } },
                 "overflowBehavior": { "displayName": "When text doesn't fit", "type": { "enumeration": [
                     { "value": "truncate", "displayName": "Truncate with …" },
                     { "value": "hide",     "displayName": "Hide" },
@@ -151,16 +147,19 @@
         },
         "swimlanes": {
             "displayName": "Swim Lanes",
+            "description": "Width, label styling, and per-swim-lane color overrides — all consolidated here. One color picker appears per distinct Swim Lane value found in your data.",
             "properties": {
-                "show":       { "displayName": "Show",        "type": { "bool": true } },
-                "wrapText":   { "displayName": "Wrap labels", "type": { "bool": true } },
-                "labelColor": { "displayName": "Label color (default = swim lane color)", "type": { "fill": { "solid": { "color": true } } } },
-                "useAreaColor":{"displayName": "Use swim lane color for label", "type": { "bool": true } },
-                "fontFamily": { "displayName": "Font",        "type": { "formatting": { "fontFamily": true } } },
-                "fontSize":   { "displayName": "Size",        "type": { "formatting": { "fontSize": true } } },
-                "bold":       { "displayName": "Bold",        "type": { "bool": true } },
-                "italic":     { "displayName": "Italic",      "type": { "bool": true } },
-                "underline":  { "displayName": "Underline",   "type": { "bool": true } }
+                "show":                  { "displayName": "Show",                "type": { "bool": true } },
+                "swimLaneWidthPercent":  { "displayName": "Swim lane width (%)", "type": { "numeric": true } },
+                "wrapText":              { "displayName": "Wrap labels",         "type": { "bool": true } },
+                "labelColor":            { "displayName": "Label color (default = swim lane color)", "type": { "fill": { "solid": { "color": true } } } },
+                "useAreaColor":          { "displayName": "Use swim lane color for label", "type": { "bool": true } },
+                "fontFamily":            { "displayName": "Font",                "type": { "formatting": { "fontFamily": true } } },
+                "fontSize":              { "displayName": "Size",                "type": { "formatting": { "fontSize": true } } },
+                "bold":                  { "displayName": "Bold",                "type": { "bool": true } },
+                "italic":                { "displayName": "Italic",              "type": { "bool": true } },
+                "underline":             { "displayName": "Underline",           "type": { "bool": true } },
+                "fill":                  { "displayName": "Color",               "type": { "fill": { "solid": { "color": true } } } }
             }
         },
         "legend": {

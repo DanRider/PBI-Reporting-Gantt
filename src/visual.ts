@@ -21,7 +21,7 @@ import {
     buildAreaColorMap,
     buildMilestoneConfigMap,
     buildColorContext,
-    readAreaColorOverrides,
+    readSwimLaneColorOverrides,
     readMilestoneOverrides,
     ColorContext,
     MilestoneTypeConfig,
@@ -42,16 +42,15 @@ import {
 import { renderLegend, LEGEND_HEIGHT } from "./render/legend";
 import { renderTimeNow } from "./render/timeNow";
 
-const TOP_MARGIN = 4;
-const BOTTOM_MARGIN = 8;
 const TITLE_BOTTOM_GAP = 4;
 
-const LEFT_RAIL_MIN = 100;
-const LEFT_RAIL_MAX = 200;
+// Pixel safety clamps so degenerate viewport sizes don't produce unusable layouts.
+const SWIM_LANE_MIN = 100;
+const SWIM_LANE_MAX = 200;
 const ACTIVITY_LABEL_MIN = 100;
 const ACTIVITY_LABEL_MAX = 320;
-const RIGHT_MARGIN_MIN = 40;
-const RIGHT_MARGIN_MAX = 120;
+const OUTER_MARGIN_MIN = 0;
+const OUTER_MARGIN_MAX = 80;
 
 const MIN_ROW_HEIGHT = 16;
 const MAX_ROW_HEIGHT = 32;
@@ -163,7 +162,7 @@ export class Visual implements IVisual {
 
         const vm: RoadmapViewModel = convertDataView(dataView);
 
-        const persistedAreaOverrides = readAreaColorOverrides(dataView);
+        const persistedAreaOverrides = readSwimLaneColorOverrides(dataView);
         const areaColorMap = buildAreaColorMap(vm.distinctAreas, persistedAreaOverrides);
         const persistedMilestoneOverrides = readMilestoneOverrides(dataView);
         const milestoneConfig = buildMilestoneConfigMap(vm.distinctTypes, persistedMilestoneOverrides);
@@ -173,6 +172,12 @@ export class Visual implements IVisual {
         this.lastAreaColorMap = areaColorMap;
         this.lastDistinctTypes = vm.distinctTypes;
         this.lastMilestoneConfig = milestoneConfig;
+
+        // ── Outer margins (4-side, all default 1%) ────────────────────────────
+        const topMarginPx    = clamp(width * (this.settings.layout.topMarginPercent.value    / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
+        const bottomMarginPx = clamp(width * (this.settings.layout.bottomMarginPercent.value / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
+        const leftMarginPx   = clamp(width * (this.settings.layout.leftMarginPercent.value   / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
+        const rightMarginPx  = clamp(width * (this.settings.layout.rightMarginPercent.value  / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
 
         // ── Title ──────────────────────────────────────────────────────────────
         // Render at the top of the SVG when show=true and text is non-empty.
@@ -188,8 +193,10 @@ export class Visual implements IVisual {
             titleHeight = Math.max(titleFont.fontSize * 1.6, 28);
             const alignment = titleSettings.alignment.value.value as "left" | "center" | "right";
             const textAnchor = alignment === "left" ? "start" : alignment === "right" ? "end" : "middle";
-            const titleX = alignment === "left" ? 6 : alignment === "right" ? width - 6 : width / 2;
-            const titleY = TOP_MARGIN + titleHeight / 2;
+            const innerLeft = leftMarginPx + 6;
+            const innerRight = width - rightMarginPx - 6;
+            const titleX = alignment === "left" ? innerLeft : alignment === "right" ? innerRight : (innerLeft + innerRight) / 2;
+            const titleY = topMarginPx + titleHeight / 2;
             const tSel = this.titleG.append("text")
                 .attr("class", "visual-title-text")
                 .attr("x", titleX)
@@ -201,7 +208,7 @@ export class Visual implements IVisual {
             applyFont(tSel, titleFont);
         }
         const titleBlockH = titleShown ? titleHeight + TITLE_BOTTOM_GAP : 0;
-        const headerOffset = TOP_MARGIN + titleBlockH;
+        const headerOffset = topMarginPx + titleBlockH;
 
         // ── No-data state ─────────────────────────────────────────────────────
         if (vm.activities.length === 0 && vm.milestones.length === 0) {
@@ -226,21 +233,23 @@ export class Visual implements IVisual {
         }
         this.svg.selectAll(".no-data").remove();
 
-        // ── Layout dimensions ─────────────────────────────────────────────────
-        const leftRailPct = this.settings.layout.leftRailWidthPercent.value / 100;
-        const labelAreaPct = this.settings.layout.activityLabelWidthPercent.value / 100;
-        const rightMarginPct = this.settings.layout.rightMarginPercent.value / 100;
+        // ── Inner-content dimensions ─────────────────────────────────────────
+        // Swim-lane width lives on the Swim Lanes card; activity-label width on the
+        // Activity Labels card (was both on Layout in v1.1; reorg per INF-3523).
+        const leftRailPct = this.settings.swimlanes.swimLaneWidthPercent.value / 100;
+        const labelAreaPct = this.settings.activityLabels.activityLabelWidthPercent.value / 100;
 
-        const leftRailWidth = clamp(width * leftRailPct, LEFT_RAIL_MIN, LEFT_RAIL_MAX);
+        const leftRailWidth = clamp(width * leftRailPct, SWIM_LANE_MIN, SWIM_LANE_MAX);
         const activityLabelWidth = clamp(width * labelAreaPct, ACTIVITY_LABEL_MIN, ACTIVITY_LABEL_MAX);
-        const rightMargin = clamp(width * rightMarginPct, RIGHT_MARGIN_MIN, RIGHT_MARGIN_MAX);
 
-        const leftMargin = leftRailWidth + activityLabelWidth + ACTIVITY_LOLLIPOP_MIN_WIDTH;
+        // chart-x = leftMarginPx + swim-lane width + activity-label width + lollipop gap
+        const leftMargin = leftMarginPx + leftRailWidth + activityLabelWidth + ACTIVITY_LOLLIPOP_MIN_WIDTH;
+        const rightMargin = rightMarginPx;
 
         const axisH = axisTotalHeight();
         const availableBodyH = Math.max(
             MIN_ROW_HEIGHT * vm.activities.length,
-            height - headerOffset - axisH - BOTTOM_MARGIN
+            height - headerOffset - axisH - bottomMarginPx
         );
         const computedRowH = Math.floor(availableBodyH / Math.max(1, vm.activities.length));
         const rowHeight = Math.max(MIN_ROW_HEIGHT, Math.min(MAX_ROW_HEIGHT, computedRowH || TARGET_ROW_HEIGHT));
@@ -280,7 +289,7 @@ export class Visual implements IVisual {
         });
 
         // ── Legend (upper-left corner of header band, below title if any) ────
-        this.legendG.attr("transform", `translate(0, ${headerOffset})`);
+        this.legendG.attr("transform", `translate(${leftMarginPx}, ${headerOffset})`);
         renderLegend(
             this.legendG,
             vm.distinctTypes,
@@ -291,7 +300,7 @@ export class Visual implements IVisual {
         );
 
         // ── Swim-lane rails ───────────────────────────────────────────────────
-        this.railG.attr("transform", `translate(0, ${bodyY})`);
+        this.railG.attr("transform", `translate(${leftMarginPx}, ${bodyY})`);
         renderSwimlanes(this.railG, vm.areaGroups, rowHeight, colors, leftRailWidth, {
             show: this.settings.swimlanes.show.value,
             wrapText: this.settings.swimlanes.wrapText.value,
@@ -302,7 +311,7 @@ export class Visual implements IVisual {
 
         // ── Activity labels + lollipops ───────────────────────────────────────
         const labelsLayout: ActivityLabelsLayout = {
-            areaStartX: leftRailWidth + 8,
+            areaStartX: leftMarginPx + leftRailWidth + 8,
         };
         this.activityLabelsG.attr("transform", `translate(0, ${bodyY})`);
         renderActivityLabels(this.activityLabelsG, vm.activities, rowHeight, labelsLayout, xScale, {
@@ -317,7 +326,7 @@ export class Visual implements IVisual {
 
         // ── Bars + markers + milestone labels ─────────────────────────────────
         const chartLeftEdge = leftMargin;
-        const chartRightEdge = width - 10;
+        const chartRightEdge = width - rightMarginPx - 10;
         const milestoneLabelFont = fontFromCard(this.settings.milestoneLabels);
         const milestoneOverflow = this.settings.milestoneLabels.overflowBehavior.value.value as "truncate" | "hide" | "overflow";
         const renderedLabels = computeVisibleLabels(
@@ -343,8 +352,23 @@ export class Visual implements IVisual {
     }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {
-        // Swim Lane Colors — one ColorPicker per distinct swim-lane, persisted by selector{id}
-        this.settings.areaColors.slices = this.lastDistinctAreas.map(area =>
+        // Swim Lanes card now contains BOTH the static slices (show/width/font/etc.)
+        // AND a per-swim-lane ColorPicker for each distinct value. The standalone
+        // "Swim Lane Colors" card was consolidated here in v1.2.0.0.
+        // Persistence: selector{id: areaName} -> objects.swimlanes[areaName].fill
+        const swimlaneStaticSlices: formattingSettings.Slice[] = [
+            this.settings.swimlanes.show,
+            this.settings.swimlanes.swimLaneWidthPercent,
+            this.settings.swimlanes.wrapText,
+            this.settings.swimlanes.useAreaColor,
+            this.settings.swimlanes.labelColor,
+            this.settings.swimlanes.fontFamily,
+            this.settings.swimlanes.fontSize,
+            this.settings.swimlanes.bold,
+            this.settings.swimlanes.italic,
+            this.settings.swimlanes.underline,
+        ];
+        const swimlaneColorSlices: formattingSettings.Slice[] = this.lastDistinctAreas.map(area =>
             new formattingSettings.ColorPicker({
                 name: "fill",
                 displayName: area,
@@ -352,6 +376,7 @@ export class Visual implements IVisual {
                 value: { value: this.lastAreaColorMap[area] ?? "#888888" },
             })
         );
+        this.settings.swimlanes.slices = [...swimlaneStaticSlices, ...swimlaneColorSlices];
 
         // Milestones — 5 slices per distinct type
         const perTypeSlices: formattingSettings.Slice[] = [];
