@@ -30,7 +30,7 @@ import { FontStyle, applyFont } from "./utils/font";
 
 import { convertDataView, RoadmapViewModel, Activity, Milestone } from "./viewmodel";
 import { buildScale, quarterAlignedExtent } from "./utils/dateScale";
-import { renderTimeAxis, computeAxisLayout, AxisLayoutInfo } from "./render/timeAxis";
+import { renderTimeAxis, computeAxisLayout, AxisLayoutInfo, ChevronStyle } from "./render/timeAxis";
 import { renderBars } from "./render/bars";
 import { renderMilestones, renderMilestoneLabels, computeVisibleLabels } from "./render/milestones";
 import { renderSwimlanes } from "./render/swimlanes";
@@ -287,6 +287,7 @@ export class Visual implements IVisual {
                 quarter: tAxis.quarterFill.value.value,
                 month: tAxis.monthFill.value.value,
             },
+            chevronStyle: tAxis.chevronStyle.value.value as ChevronStyle,
             todayLabel: { show: tAxis.showTodayLabel.value, color: todayLineColor },
             font: axisFont,
         });

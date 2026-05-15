@@ -173,6 +173,14 @@
             "displayName": "Time Axis",
             "description": "Three hierarchy levels — Year, Quarter, Month. Each level can be toggled on/off. Quarter and Month tick boundaries can also render vertical gridlines through the chart body with their own color, opacity, and line style.",
             "properties": {
+                "chevronStyle": {
+                    "displayName": "Chevron style",
+                    "type": { "enumeration": [
+                        { "value": "nested",    "displayName": "Nested arrow" },
+                        { "value": "pentagon",  "displayName": "Pentagon" },
+                        { "value": "rectangle", "displayName": "Rectangle" }
+                    ]}
+                },
                 "showYear":                { "displayName": "Show Year",                "type": { "bool": true } },
                 "yearFill":                { "displayName": "Year chevron color",       "type": { "fill": { "solid": { "color": true } } } },
                 "showQuarter":             { "displayName": "Show Quarter",             "type": { "bool": true } },

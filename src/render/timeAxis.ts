@@ -39,6 +39,7 @@ export interface LevelFills {
 export interface TimeAxisOpts {
     levels: LevelToggles;
     fills: LevelFills;
+    chevronStyle: ChevronStyle;
     todayLabel: { show: boolean; color: string };
     font: FontStyle;
 }
@@ -89,19 +90,27 @@ export function computeAxisLayout(toggles: LevelToggles, todayShown: boolean): A
     return out;
 }
 
-// Build the chevron path. When isFirst=true, render flat-left pentagon (5 points).
-// When isFirst=false, render arrow-nested chevron with triangular notch on the LEFT
-// (6 points) — the previous chevron's tip slots into this notch, producing the
-// continuous nested-arrow visual from the user's PowerPoint mockup.
+export type ChevronStyle = "nested" | "pentagon" | "rectangle";
+
+// Build the chevron path for the chosen style. The first chevron of any band
+// (isFirst=true) ALWAYS renders without a left notch so the leftmost chevron
+// has a clean outer edge — even in "nested" mode.
 function chevronPath(
     x1: number,
     y0: number,
     w: number,
     h: number,
     tip: number,
+    style: ChevronStyle,
     isFirst: boolean
 ): string {
-    if (isFirst) {
+    if (style === "rectangle") {
+        // Flat both sides, no tip, no notch.
+        return `M${x1},${y0} L${x1 + w},${y0} L${x1 + w},${y0 + h} L${x1},${y0 + h} Z`;
+    }
+    if (style === "pentagon" || isFirst) {
+        // 5-point pentagon: flat outer-left + tip-right.
+        // First chevron of any nested-band also uses this so its outer edge is clean.
         return [
             `M${x1},${y0}`,
             `L${x1 + w - tip},${y0}`,
@@ -111,14 +120,17 @@ function chevronPath(
             `Z`,
         ].join(" ");
     }
+    // 6-point nested arrow: flat outer-left CORNER + V-notch INTO body + right tip.
+    // The previous chevron's tip slots into this notch, producing the interlocking
+    // nested-arrow strip. The notch POINT is INSIDE the body at (x1 + tip, y0 + h/2).
     return [
-        `M${x1 + tip},${y0}`,
-        `L${x1 + w - tip},${y0}`,
-        `L${x1 + w},${y0 + h / 2}`,
-        `L${x1 + w - tip},${y0 + h}`,
-        `L${x1 + tip},${y0 + h}`,
-        `L${x1},${y0 + h / 2}`,
-        `Z`,
+        `M${x1},${y0}`,                          // top-left outer CORNER
+        `L${x1 + w - tip},${y0}`,                // across top to before-tip
+        `L${x1 + w},${y0 + h / 2}`,              // right tip POINT
+        `L${x1 + w - tip},${y0 + h}`,            // back to before-tip on bottom
+        `L${x1},${y0 + h}`,                      // across bottom to bottom-left outer CORNER
+        `L${x1 + tip},${y0 + h / 2}`,            // notch POINT (inside body, at mid-height)
+        `Z`,                                     // close back to top-left
     ].join(" ");
 }
 
@@ -131,7 +143,8 @@ function renderBand(
     bandH: number,
     fill: string,
     font: FontStyle,
-    levelClass: string
+    levelClass: string,
+    style: ChevronStyle
 ): void {
     const stroke = readableStrokeColor(fill);
     const labelFill = stroke;
@@ -162,16 +175,17 @@ function renderBand(
 
         g.append("path")
             .attr("class", `${levelClass}-chevron`)
-            .attr("d", chevronPath(startX, bandY, w, bandH, tipUsed, isFirst))
+            .attr("d", chevronPath(startX, bandY, w, bandH, tipUsed, style, isFirst))
             .attr("fill", fill)
             .attr("stroke", "rgba(255,255,255,0.4)")
             .attr("stroke-width", 0.5);
 
-        // Label centered in the chevron's body region (excluding the right tip).
-        // For nested chevrons, also account for the left notch: label's effective
-        // horizontal range is [startX + (isFirst ? 0 : tipUsed), startX + w - tipUsed].
-        const labelLeftInset = isFirst ? 0 : tipUsed;
-        const labelMidX = startX + labelLeftInset + (w - tipUsed - labelLeftInset) / 2;
+        // Label centered in the chevron's body region.
+        // For "nested" style on non-first chevrons, the body's INTERIOR avoids the
+        // notch region [x1, x1+tip] AND the right tip [x1+w-tip, x1+w].
+        const labelLeftInset = (style === "nested" && !isFirst) ? tipUsed : 0;
+        const labelRightInset = (style === "rectangle") ? 0 : tipUsed;
+        const labelMidX = startX + labelLeftInset + (w - labelRightInset - labelLeftInset) / 2;
         const sel = g.append("text")
             .attr("class", `${levelClass}-label`)
             .attr("x", labelMidX)
@@ -204,7 +218,7 @@ export function renderTimeAxis(
         const yearTicks: BandTick[] = yearsInRange(domain).map(yb => ({
             start: yb.start, end: yb.end, label: String(yb.year),
         }));
-        renderBand(g, yearTicks, xScale, domain, layout.yearY, layout.yearH, opts.fills.year, opts.font, "year");
+        renderBand(g, yearTicks, xScale, domain, layout.yearY, layout.yearH, opts.fills.year, opts.font, "year", opts.chevronStyle);
     }
 
     // QUARTER band (mid font — 92% of card font)
@@ -213,7 +227,7 @@ export function renderTimeAxis(
             start: qb.start, end: qb.end, label: `Q${qb.quarter}`,
         }));
         const qFont: FontStyle = { ...opts.font, fontSize: Math.max(9, Math.round(opts.font.fontSize * 0.92)) };
-        renderBand(g, qTicks, xScale, domain, layout.quarterY, layout.quarterH, opts.fills.quarter, qFont, "quarter");
+        renderBand(g, qTicks, xScale, domain, layout.quarterY, layout.quarterH, opts.fills.quarter, qFont, "quarter", opts.chevronStyle);
     }
 
     // MONTH band (smallest font — single-letter labels)
@@ -222,7 +236,7 @@ export function renderTimeAxis(
             start: mb.start, end: mb.end, label: monthLetter(mb.month),
         }));
         const mFont: FontStyle = { ...opts.font, fontSize: Math.max(8, Math.round(opts.font.fontSize * 0.78)) };
-        renderBand(g, mTicks, xScale, domain, layout.monthY, layout.monthH, opts.fills.month, mFont, "month");
+        renderBand(g, mTicks, xScale, domain, layout.monthY, layout.monthH, opts.fills.month, mFont, "month", opts.chevronStyle);
     }
 
     // TODAY label (right-anchored at xNow so the "|" sits on the line)

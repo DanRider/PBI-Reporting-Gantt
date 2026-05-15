@@ -173,6 +173,15 @@ class LayoutCard extends FormattingSettingsCard {
 }
 
 class TimeAxisCard extends FormattingSettingsCard {
+    chevronStyle = new formattingSettings.ItemDropdown({
+        name: "chevronStyle", displayName: "Chevron style",
+        items: [
+            { value: "nested",    displayName: "Nested arrow" },
+            { value: "pentagon",  displayName: "Pentagon" },
+            { value: "rectangle", displayName: "Rectangle" },
+        ],
+        value: { value: "nested", displayName: "Nested arrow" },
+    });
     showYear = new formattingSettings.ToggleSwitch({ name: "showYear", displayName: "Show Year", value: true });
     yearFill = new formattingSettings.ColorPicker({ name: "yearFill", displayName: "Year chevron color", value: { value: "#E8E8E8" } });
     showQuarter = new formattingSettings.ToggleSwitch({ name: "showQuarter", displayName: "Show Quarter", value: true });
@@ -217,6 +226,8 @@ class TimeAxisCard extends FormattingSettingsCard {
     name: string = "timeAxis";
     displayName: string = "Time Axis";
     slices: Array<FormattingSettingsSlice> = [
+        // Chevron shape
+        this.chevronStyle,
         // Hierarchy levels
         this.showYear, this.yearFill,
         this.showQuarter, this.quarterFill,
