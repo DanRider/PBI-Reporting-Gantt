@@ -66,7 +66,6 @@ export class MilestonesCard extends CompositeCard {
     });
     type1Size = new formattingSettings.NumUpDown({ name: "type1Size", displayName: "Size (px)", value: 8 });
     type1ShowMarker = new formattingSettings.ToggleSwitch({ name: "type1ShowMarker", displayName: "Show markers", value: true });
-    type1ShowLabel = new formattingSettings.ToggleSwitch({ name: "type1ShowLabel", displayName: "Show labels", value: true });
 
     // Slot 2
     type2Color = new formattingSettings.ColorPicker({ name: "type2Color", displayName: "Color", value: { value: "#000000" } });
@@ -76,7 +75,6 @@ export class MilestonesCard extends CompositeCard {
     });
     type2Size = new formattingSettings.NumUpDown({ name: "type2Size", displayName: "Size (px)", value: 8 });
     type2ShowMarker = new formattingSettings.ToggleSwitch({ name: "type2ShowMarker", displayName: "Show markers", value: true });
-    type2ShowLabel = new formattingSettings.ToggleSwitch({ name: "type2ShowLabel", displayName: "Show labels", value: true });
 
     // Groups — each renders as a collapsible subsection in the Format pane
     hoverGroup = new Group({
@@ -101,11 +99,11 @@ export class MilestonesCard extends CompositeCard {
     });
     type1Group = new Group({
         name: "type1Group", displayName: "Type 1",
-        slices: [this.type1Color, this.type1Symbol, this.type1Size, this.type1ShowMarker, this.type1ShowLabel],
+        slices: [this.type1Color, this.type1Symbol, this.type1Size, this.type1ShowMarker],
     });
     type2Group = new Group({
         name: "type2Group", displayName: "Type 2",
-        slices: [this.type2Color, this.type2Symbol, this.type2Size, this.type2ShowMarker, this.type2ShowLabel],
+        slices: [this.type2Color, this.type2Symbol, this.type2Size, this.type2ShowMarker],
     });
 
     groups: Group[] = [

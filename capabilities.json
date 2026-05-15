@@ -98,7 +98,6 @@
                 ]}},
                 "type1Size":       { "displayName": "Type 1 size (px)",  "type": { "numeric": true } },
                 "type1ShowMarker": { "displayName": "Type 1 show markers","type": { "bool": true } },
-                "type1ShowLabel":  { "displayName": "Type 1 show labels", "type": { "bool": true } },
                 "type2Color":      { "displayName": "Type 2 color",     "type": { "fill": { "solid": { "color": true } } } },
                 "type2Symbol":     { "displayName": "Type 2 symbol",    "type": { "enumeration": [
                     { "value": "star",     "displayName": "Star" },
@@ -109,7 +108,6 @@
                 ]}},
                 "type2Size":       { "displayName": "Type 2 size (px)",  "type": { "numeric": true } },
                 "type2ShowMarker": { "displayName": "Type 2 show markers","type": { "bool": true } },
-                "type2ShowLabel":  { "displayName": "Type 2 show labels", "type": { "bool": true } },
                 "legendShow":       { "displayName": "Show legend",       "type": { "bool": true } },
                 "legendLabelColor": { "displayName": "Legend label color","type": { "fill": { "solid": { "color": true } } } },
                 "legendFontFamily": { "displayName": "Legend font",       "type": { "formatting": { "fontFamily": true } } },

@@ -8,7 +8,8 @@ export interface MilestoneTypeConfig {
     symbol: SymbolKind;
     size: number;
     showMarker: boolean;
-    showLabel: boolean;
+    // showLabel removed in v1.7.0.0 — labels controlled by per-row Label Visible
+    // column + labelPos + label text + per-type showMarker (compound).
 }
 
 export interface ColorContext {
@@ -24,12 +25,10 @@ export interface MilestonesSettingsShape {
     type1Symbol:     { value: { value: string | number } };
     type1Size:       { value: number };
     type1ShowMarker: { value: boolean };
-    type1ShowLabel:  { value: boolean };
     type2Color:      { value: { value: string } };
     type2Symbol:     { value: { value: string | number } };
     type2Size:       { value: number };
     type2ShowMarker: { value: boolean };
-    type2ShowLabel:  { value: boolean };
 }
 
 // Settings shape required to derive per-area color map (cap-8 with static slots).
@@ -76,7 +75,6 @@ export function buildMilestoneConfigMap(
             symbol:     isSymbolKind(symbolRaw) ? symbolRaw : "star",
             size:       (isSlot1 ? settings.type1Size : settings.type2Size).value,
             showMarker: (isSlot1 ? settings.type1ShowMarker : settings.type2ShowMarker).value,
-            showLabel:  (isSlot1 ? settings.type1ShowLabel : settings.type2ShowLabel).value,
         };
     }
     return out;

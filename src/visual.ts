@@ -194,6 +194,16 @@ export class Visual implements IVisual {
         if (slot1Type) mc.type1Group.displayName = slot1Type;
         mc.type2Group.visible = slot2Type != null;
         if (slot2Type) mc.type2Group.displayName = slot2Type;
+        // Hide marker-controls individually too (extra safety for cap-1 data scenarios)
+        const hideIfNoType = (slot: "type1" | "type2", hasType: boolean) => {
+            const visible = hasType;
+            mc[`${slot}Color`].visible = visible;
+            mc[`${slot}Symbol`].visible = visible;
+            mc[`${slot}Size`].visible = visible;
+            mc[`${slot}ShowMarker`].visible = visible;
+        };
+        hideIfNoType("type1", slot1Type != null);
+        hideIfNoType("type2", slot2Type != null);
 
         // ── Outer margins ─────────────────────────────────────────────────────
         const topMarginPx    = clamp(width * (this.settings.layout.topMarginPercent.value    / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);

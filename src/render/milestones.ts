@@ -128,8 +128,9 @@ export function computeVisibleLabels(
         if (m.labelPos === "none") return false;
         if (m.label == null || m.label.length === 0) return false;
         if (m.labelVisible === false) return false;   // per-row hide override
+        // Per-type showLabel removed in v1.7.0.0; hiding markers compounds (label requires marker visibility)
         const cfg = colors.milestoneConfig[m.type];
-        return cfg !== undefined && cfg.showLabel;
+        return cfg !== undefined && cfg.showMarker;
     });
 
     const byRow = new Map<number, Milestone[]>();
