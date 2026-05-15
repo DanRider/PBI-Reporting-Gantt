@@ -4,6 +4,8 @@ Generic timeline visual for Power BI. Activity swim lanes, chevron time axis, mi
 
 MIT licensed. Local-only (no AppSource publish).
 
+![Reporting Gantt rendering with bundled demo data](docs/screenshot.png)
+
 ## What it renders
 
 - **Forward-pointing chevron time axis** (Year + Quarter bands, with TODAY marker + past/future shading)
