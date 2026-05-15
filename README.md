@@ -20,7 +20,7 @@ The bundled demo is a generic project-portfolio dataset for an industrial equipm
 
 ### 2. Import the `.pbiviz` into an existing report
 
-The built visual binary lives at `dist/reportingGantt7C9F3E5A1B2D4F8E6A0C3B5D7E9F1A2C.1.8.0.0.pbiviz` — download it from the repo (or from the [GitHub Releases](https://github.com/DanRider/PBI-Reporting-Gantt/releases) page when published).
+The built visual binary lives at `dist/Reporting-Gantt-v1.8.0.0.pbiviz` — download it from the repo (or from the [GitHub Releases](https://github.com/DanRider/PBI-Reporting-Gantt/releases) page when published).
 
 In Power BI Desktop: Visualizations pane → ⋯ → **Get more visuals** → **Import a visual from a file**. Pick the `.pbiviz` file. The visual appears in the Visualizations pane as **Reporting Gantt**. Bind your own (Activity, Area, Start, End) + (Milestone Activity, Milestone Date, Milestone Type, Milestone Label, Label Position) columns from your existing model. Activity Note / Milestone Note are optional v1.8.0.0+ fields for tooltip status text.
 

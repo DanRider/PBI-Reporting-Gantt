@@ -11,7 +11,7 @@
   "scripts": {
     "pbiviz": "pbiviz",
     "start": "pbiviz start",
-    "package": "pbiviz package",
+    "package": "pbiviz package && node scripts/rename-pbiviz.js",
     "lint": "npx eslint ."
   },
   "dependencies": {
