@@ -25,6 +25,19 @@ MIT licensed. Local-only (no AppSource publish).
 
 The visual appears in the Visualizations pane under the name **Reporting Gantt**.
 
+## Try the demo
+
+Open `fixtures/PBI-Reporting-Gantt.pbip` in Power BI Desktop. The visual is already wired against the bundled `Demo-Roadmap-Source.xlsx` — a generic project-portfolio dataset for an industrial equipment manufacturer (24 activities across Production / Product Development / Supply Chain, 64 milestones across Major / Minor, date range Q4 2025 → Q4 2027).
+
+> **Path note.** The Power Query M `Source` step uses an absolute path: `C:\CORTEX\projects\Reporting-Gantt\fixtures\Demo-Roadmap-Source.xlsx`. If you clone elsewhere, open Power Query → edit the `Source` step on both the **Activities** and **Milestones** tables → repoint at your local copy of the .xlsx. Then **Home → Refresh**.
+
+Regenerate the demo dataset from source:
+
+```
+pip install openpyxl
+python fixtures/generate_source.py
+```
+
 ## Data contract
 
 Two related tables joined by activity name. Sample fixture at `fixtures/Demo-Roadmap-Source.xlsx` (run `python fixtures/generate_source.py` to (re)generate).
@@ -47,7 +60,7 @@ Two related tables joined by activity name. Sample fixture at `fixtures/Demo-Roa
 | `Milestone Date`  | date   | ✓        |                                                                      |
 | `Milestone Type`  | text   | ✓        | Any value — visual renders **first 2 distinct types**, drops the rest with a console warning |
 | `Milestone Label` | text   | optional | Nullable — unlabeled markers allowed                                 |
-| `Label Position`  | text   | optional | `L` / `R` / `none` (default `none`)                                  |
+| `Label Position`  | text   | optional | `L` / `R` shows the label on that side of the marker; `none` (or unbound) hides the label. Per-row hide control — the single source of truth for whether a given milestone's label renders. |
 
 ### Data role wiring
 
@@ -91,10 +104,17 @@ The visual binds the **first 2 distinct milestone types** seen in the data to sl
 - `typeNColor` — fill color
 - `typeNSymbol` — `star` / `circle` / `triangle` / `square` / `diamond`
 - `typeNSize` — pixel size (default 11)
-- `typeNShowMarker` — toggle marker visibility
-- `typeNShowLabel` — toggle label visibility
+- `typeNShowMarker` — toggle marker visibility. Hiding markers also hides their labels (compound rule — labels require their marker to be visible).
 
 Plus a global `hoverExpansion` (default 50%) controlling the invisible hover hit-area beyond the visible marker.
+
+**Label visibility rule** (as of v1.7.1.0):
+```
+label renders iff
+  (label data role has non-empty text) AND
+  (Label Position != "none")           — per-row hide via the Milestones table
+  AND (this type's Show markers = on)  — compound with marker visibility
+```
 
 If your data has 3+ distinct milestone types, the 3rd+ are dropped with a console warning. (This is the "max 2" cap by design — keeps the visual readable.)
 
@@ -109,7 +129,9 @@ If your data has 3+ distinct milestone types, the 3rd+ are dropped with a consol
 | `customColor`       | `#2A2A2A`        | Override applied when `fillMode=grey`                                                      |
 | `fontSize`          | 10               |                                                                                            |
 
-### Milestone Labels (layout — visibility lives on the Milestones card)
+### Milestone Labels
+
+This card controls label **layout** (text size, color, collision/overflow behavior). Per-row label **visibility** is data-driven via the `Label Position` column on the Milestones table — set a row's value to `none` to hide that one label, or leave the column unbound to hide every label.
 
 | Property            | Default     | Notes                                                                                          |
 |---------------------|-------------|------------------------------------------------------------------------------------------------|
