@@ -2,10 +2,9 @@
 
 import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
-import { Milestone, MilestoneTypeBinding } from "../viewmodel";
+import { Milestone } from "../viewmodel";
 import { typeColor, ColorContext } from "../utils/colors";
-import { VisualFormattingSettingsModel } from "../settings";
-import { symbolPath, readableStrokeColor, isSymbolKind, SymbolKind } from "../utils/symbols";
+import { symbolPath, readableStrokeColor } from "../utils/symbols";
 
 const LABEL_GAP_PX = 8;
 const LABEL_FONT_FAMILY = "Segoe UI, sans-serif";
@@ -25,32 +24,6 @@ export interface MilestoneLabelOptions {
     labelColor: string;
     fontSize: number;
     overflowBehavior: MilestoneOverflowBehavior;
-}
-
-interface PerTypeRenderConfig {
-    symbol: SymbolKind;
-    size: number;
-    showMarker: boolean;
-    showLabel: boolean;
-}
-
-function buildTypeRenderConfig(
-    typeBindings: MilestoneTypeBinding[],
-    settings: VisualFormattingSettingsModel
-): Map<string, PerTypeRenderConfig> {
-    const out = new Map<string, PerTypeRenderConfig>();
-    for (const b of typeBindings) {
-        const isSlot1 = b.slotIndex === 0;
-        const card = settings.milestones;
-        const symbolStr = String((isSlot1 ? card.type1Symbol : card.type2Symbol).value.value);
-        out.set(b.typeName, {
-            symbol: isSymbolKind(symbolStr) ? symbolStr : "star",
-            size: isSlot1 ? card.type1Size.value : card.type2Size.value,
-            showMarker: isSlot1 ? card.type1ShowMarker.value : card.type2ShowMarker.value,
-            showLabel: isSlot1 ? card.type1ShowLabel.value : card.type2ShowLabel.value,
-        });
-    }
-    return out;
 }
 
 function rowCenterY(parentRowIndex: number, rowHeight: number): number {
@@ -85,23 +58,20 @@ function decorate(rawLabel: string, pos: "L" | "R"): string {
 
 // Renders milestone markers using each milestone's type-bound symbol+size+color.
 // Stroke color computed dynamically from fill via sRGB luminance (white on dark, black on light).
-// Per-type showMarker filtering applied; markers for unbound types are also dropped.
+// Per-type showMarker filtering applied; markers for types without a config entry are dropped.
 export function renderMilestones(
     g: Selection<SVGGElement, unknown, null, undefined>,
     milestones: Milestone[],
-    typeBindings: MilestoneTypeBinding[],
     xScale: ScaleTime<number, number>,
     rowHeight: number,
-    settings: VisualFormattingSettingsModel,
     colors: ColorContext,
     hoverExpansionPercent: number = 50
 ): Selection<SVGCircleElement, Milestone, SVGGElement, unknown> {
-    const cfgByType = buildTypeRenderConfig(typeBindings, settings);
-    const renderable = milestones.filter(m =>
-        m.parentRowIndex !== -1 &&
-        cfgByType.has(m.type) &&
-        cfgByType.get(m.type)!.showMarker
-    );
+    const renderable = milestones.filter(m => {
+        if (m.parentRowIndex === -1) return false;
+        const cfg = colors.milestoneConfig[m.type];
+        return cfg !== undefined && cfg.showMarker;
+    });
     const expansion = Math.max(0, hoverExpansionPercent) / 100;
 
     g.selectAll<SVGPathElement, Milestone>("path.milestone-marker")
@@ -110,7 +80,7 @@ export function renderMilestones(
         .attr("class", "milestone-marker")
         .attr("data-milestone-id", m => m.id)
         .attr("d", m => {
-            const cfg = cfgByType.get(m.type)!;
+            const cfg = colors.milestoneConfig[m.type];
             return symbolPath(cfg.symbol, xScale(m.date), rowCenterY(m.parentRowIndex, rowHeight), cfg.size);
         })
         .attr("fill", m => typeColor(m.type, colors))
@@ -126,7 +96,7 @@ export function renderMilestones(
         .attr("cx", m => xScale(m.date))
         .attr("cy", m => rowCenterY(m.parentRowIndex, rowHeight))
         .attr("r", m => {
-            const cfg = cfgByType.get(m.type)!;
+            const cfg = colors.milestoneConfig[m.type];
             return cfg.size * (1 + expansion);
         })
         .attr("fill", "transparent")
@@ -142,11 +112,10 @@ export interface RenderedLabel {
 }
 
 // Pre-filters milestones whose type's showLabel is OFF before computing visible labels.
-// The marker-size of each milestone (per its type binding) drives the label-gap calculation.
+// The marker-size of each milestone (per its type config) drives the label-gap calculation.
 export function computeVisibleLabels(
     milestones: Milestone[],
-    typeBindings: MilestoneTypeBinding[],
-    settings: VisualFormattingSettingsModel,
+    colors: ColorContext,
     xScale: ScaleTime<number, number>,
     rowHeight: number,
     chartLeftEdge: number,
@@ -154,15 +123,13 @@ export function computeVisibleLabels(
     fontSize: number,
     overflowBehavior: MilestoneOverflowBehavior = "truncate"
 ): RenderedLabel[] {
-    const cfgByType = buildTypeRenderConfig(typeBindings, settings);
-    const candidates = milestones.filter(m =>
-        m.parentRowIndex !== -1 &&
-        m.labelPos !== "none" &&
-        m.label != null &&
-        m.label.length > 0 &&
-        cfgByType.has(m.type) &&
-        cfgByType.get(m.type)!.showLabel
-    );
+    const candidates = milestones.filter(m => {
+        if (m.parentRowIndex === -1) return false;
+        if (m.labelPos === "none") return false;
+        if (m.label == null || m.label.length === 0) return false;
+        const cfg = colors.milestoneConfig[m.type];
+        return cfg !== undefined && cfg.showLabel;
+    });
 
     const byRow = new Map<number, Milestone[]>();
     for (const m of candidates) {
@@ -181,7 +148,7 @@ export function computeVisibleLabels(
 
         for (const m of rowMs) {
             const cx = xScale(m.date);
-            const markerSize = cfgByType.get(m.type)!.size;
+            const markerSize = colors.milestoneConfig[m.type].size;
             const rawLabel = m.label as string;
 
             let pos: "L" | "R" = m.labelPos === "L" ? "L" : "R";

@@ -2,9 +2,7 @@
 
 import { Selection } from "d3-selection";
 import { ColorContext, typeColor } from "../utils/colors";
-import { MilestoneTypeBinding } from "../viewmodel";
-import { VisualFormattingSettingsModel } from "../settings";
-import { symbolPath, readableStrokeColor, isSymbolKind, SymbolKind } from "../utils/symbols";
+import { symbolPath, readableStrokeColor } from "../utils/symbols";
 
 export const LEGEND_HEIGHT = 24;
 
@@ -23,36 +21,30 @@ function measureTextWidth(text: string, fontSize: number, family: string): numbe
 }
 
 // Renders the legend as a left-justified row of (symbol, type-name) pairs at the
-// top of the visual. One entry per bound milestone-type slot. Each entry uses the
-// user-picked symbol + size + color from settings.milestones.
+// top of the visual. One entry per distinct milestone type found in data.
+// Each entry uses the user-picked symbol + size + color from per-type milestone config.
 export function renderLegend(
     g: Selection<SVGGElement, unknown, null, undefined>,
-    typeBindings: MilestoneTypeBinding[],
-    settings: VisualFormattingSettingsModel,
+    distinctTypes: string[],
     colors: ColorContext,
     show: boolean
 ): void {
     g.selectAll("*").remove();
-    if (!show || typeBindings.length === 0) return;
+    if (!show || distinctTypes.length === 0) return;
 
     const cy = LEGEND_HEIGHT / 2;
     let cursorX = LEFT_INSET;
 
-    for (const binding of typeBindings) {
-        const isSlot1 = binding.slotIndex === 0;
-        const symbolStr = String(isSlot1
-            ? settings.milestones.type1Symbol.value.value
-            : settings.milestones.type2Symbol.value.value);
-        const symbol: SymbolKind = isSymbolKind(symbolStr) ? symbolStr : "star";
-        const size = isSlot1
-            ? settings.milestones.type1Size.value
-            : settings.milestones.type2Size.value;
-        const fill = typeColor(binding.typeName, colors);
+    for (const typeName of distinctTypes) {
+        const cfg = colors.milestoneConfig[typeName];
+        if (!cfg) continue;
+        const fill = typeColor(typeName, colors);
         const stroke = readableStrokeColor(fill);
+        const size = cfg.size;
 
         const symbolCx = cursorX + size;
         g.append("path")
-            .attr("d", symbolPath(symbol, symbolCx, cy, size))
+            .attr("d", symbolPath(cfg.symbol, symbolCx, cy, size))
             .attr("fill", fill)
             .attr("stroke", stroke)
             .attr("stroke-width", 0.8);
@@ -66,9 +58,9 @@ export function renderLegend(
             .attr("font-size", LABEL_FONT_SIZE)
             .attr("font-family", LABEL_FONT_FAMILY)
             .attr("fill", "#222")
-            .text(binding.typeName);
+            .text(typeName);
 
-        const labelWidth = measureTextWidth(binding.typeName, LABEL_FONT_SIZE, LABEL_FONT_FAMILY);
+        const labelWidth = measureTextWidth(typeName, LABEL_FONT_SIZE, LABEL_FONT_FAMILY);
         cursorX = labelX + labelWidth + PAIR_GAP;
     }
 }

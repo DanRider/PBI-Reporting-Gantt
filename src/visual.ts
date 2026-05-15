@@ -16,16 +16,18 @@ import {
     ITooltipServiceWrapper,
 } from "powerbi-visuals-utils-tooltiputils";
 
-import { VisualFormattingSettingsModel } from "./settings";
+import { VisualFormattingSettingsModel, SYMBOL_DROPDOWN_ITEMS } from "./settings";
 import {
     buildAreaColorMap,
-    buildTypeColorMap,
+    buildMilestoneConfigMap,
     buildColorContext,
     readAreaColorOverrides,
+    readMilestoneOverrides,
     ColorContext,
+    MilestoneTypeConfig,
 } from "./utils/colors";
 
-import { convertDataView, RoadmapViewModel, Activity, Milestone, MilestoneTypeBinding } from "./viewmodel";
+import { convertDataView, RoadmapViewModel, Activity, Milestone } from "./viewmodel";
 import { buildScale, quarterAlignedExtent } from "./utils/dateScale";
 import { renderTimeAxis, axisTotalHeight, AXIS_DEFAULTS } from "./render/timeAxis";
 import { renderBars } from "./render/bars";
@@ -94,9 +96,12 @@ export class Visual implements IVisual {
     private settingsService: FormattingSettingsService;
     private settings: VisualFormattingSettingsModel;
 
-    // Stashed for getFormattingModel() to rebuild AreaColors slices on each Format-pane open
+    // Stashed per-render so getFormattingModel() can rebuild dynamic slices for both
+    // AreaColors (one ColorPicker per area) and Milestones (5 slices per type).
     private lastDistinctAreas: string[] = [];
     private lastAreaColorMap: Record<string, string> = {};
+    private lastDistinctTypes: string[] = [];
+    private lastMilestoneConfig: Record<string, MilestoneTypeConfig> = {};
 
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
@@ -114,7 +119,6 @@ export class Visual implements IVisual {
             this.root
         );
 
-        // Render order matters — earlier groups appear behind later ones.
         this.bgG = this.svg.append("g").attr("class", "background-layer");
         this.axisG = this.svg.append("g").attr("class", "time-axis");
         this.railG = this.svg.append("g").attr("class", "swimlane-rail-group");
@@ -139,15 +143,18 @@ export class Visual implements IVisual {
 
         const vm: RoadmapViewModel = convertDataView(dataView);
 
-        // Build dynamic color context: areas from data + theme palette + persisted overrides; types from settings slots
+        // Build dynamic color context — areas + milestone types both data-driven, both with persisted overrides.
         const persistedAreaOverrides = readAreaColorOverrides(dataView);
-        const areaColorMap = buildAreaColorMap(vm.distinctAreas, persistedAreaOverrides, this.host);
-        const typeColorMap = buildTypeColorMap(vm.typeBindings, this.settings);
-        const colors: ColorContext = buildColorContext(areaColorMap, typeColorMap);
+        const areaColorMap = buildAreaColorMap(vm.distinctAreas, persistedAreaOverrides);
+        const persistedMilestoneOverrides = readMilestoneOverrides(dataView);
+        const milestoneConfig = buildMilestoneConfigMap(vm.distinctTypes, persistedMilestoneOverrides);
+        const colors: ColorContext = buildColorContext(areaColorMap, milestoneConfig);
 
         // Stash for getFormattingModel
         this.lastDistinctAreas = vm.distinctAreas;
         this.lastAreaColorMap = areaColorMap;
+        this.lastDistinctTypes = vm.distinctTypes;
+        this.lastMilestoneConfig = milestoneConfig;
 
         if (vm.activities.length === 0 && vm.milestones.length === 0) {
             this.axisG.selectAll("*").remove();
@@ -171,7 +178,6 @@ export class Visual implements IVisual {
         }
         this.svg.selectAll(".no-data").remove();
 
-        // Dynamic layout dimensions — percentages of viewport width, clamped to bounds.
         const leftRailPct = this.settings.layout.leftRailWidthPercent.value / 100;
         const labelAreaPct = this.settings.layout.activityLabelWidthPercent.value / 100;
         const rightMarginPct = this.settings.layout.rightMarginPercent.value / 100;
@@ -183,9 +189,6 @@ export class Visual implements IVisual {
         const leftMargin = leftRailWidth + activityLabelWidth + ACTIVITY_LOLLIPOP_MIN_WIDTH;
 
         const axisH = axisTotalHeight();
-        // Legend at upper-LEFT corner — overlays leftMargin × axisH region above the body.
-        // Time axis chevrons start at x = leftMargin, so the [0, leftMargin] × [0, axisH] rect
-        // is unused — the legend lives there. No vertical space stolen from body.
         const availableBodyH = Math.max(
             MIN_ROW_HEIGHT * vm.activities.length,
             height - TOP_MARGIN - axisH - BOTTOM_MARGIN
@@ -223,17 +226,15 @@ export class Visual implements IVisual {
             futureOpacity: Math.max(0, Math.min(100, tAxis.futureShadingOpacityPct.value)) / 100,
         });
 
-        // Legend — upper-left corner (overlays unused leftMargin × axisH region)
+        // Legend — upper-left, one entry per distinct milestone type
         this.legendG.attr("transform", `translate(0, ${TOP_MARGIN})`);
-        renderLegend(this.legendG, vm.typeBindings, this.settings, colors, this.settings.legend.show.value);
+        renderLegend(this.legendG, vm.distinctTypes, colors, this.settings.legend.show.value);
 
-        // Swim-lane rails (left)
         this.railG.attr("transform", `translate(0, ${bodyY})`);
         renderSwimlanes(this.railG, vm.areaGroups, rowHeight, colors,
             this.settings.swimlanes.show.value, leftRailWidth,
             this.settings.swimlanes.wrapText.value);
 
-        // Activity labels + staggered horizontal lollipops
         const labelsLayout: ActivityLabelsLayout = {
             areaStartX: leftRailWidth + 8,
         };
@@ -248,14 +249,13 @@ export class Visual implements IVisual {
             overflowBehavior: this.settings.activityLabels.overflowBehavior.value.value as "truncate" | "hide" | "overflow",
         }, colors);
 
-        // Bars + markers + labels — per-type visibility applied inside renderMilestones/computeVisibleLabels
+        // Bars + markers + labels
         const chartLeftEdge = leftMargin;
         const chartRightEdge = width - 10;
         const labelFontSize = this.settings.milestoneLabels.fontSize.value;
         const milestoneOverflow = this.settings.milestoneLabels.overflowBehavior.value.value as "truncate" | "hide" | "overflow";
         const renderedLabels = computeVisibleLabels(
-            vm.milestones, vm.typeBindings, this.settings,
-            xScale, rowHeight, chartLeftEdge, chartRightEdge, labelFontSize, milestoneOverflow
+            vm.milestones, colors, xScale, rowHeight, chartLeftEdge, chartRightEdge, labelFontSize, milestoneOverflow
         );
 
         this.labelBgG.selectAll("*").remove();
@@ -263,8 +263,8 @@ export class Visual implements IVisual {
         this.bodyG.attr("transform", `translate(0, ${bodyY})`);
         const barsSel = renderBars(this.bodyG, vm.activities, xScale, rowHeight, colors);
         const starsSel = renderMilestones(
-            this.bodyG, vm.milestones, vm.typeBindings, xScale, rowHeight,
-            this.settings, colors, this.settings.milestones.hoverExpansion.value
+            this.bodyG, vm.milestones, xScale, rowHeight, colors,
+            this.settings.milestones.hoverExpansion.value
         );
         renderMilestoneLabels(this.bodyG, renderedLabels, rowHeight, {
             labelColor: this.settings.milestoneLabels.labelColor.value.value,
@@ -277,19 +277,61 @@ export class Visual implements IVisual {
     }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {
-        // Rebuild AreaColors slices each time the Format pane opens, based on the
-        // last-rendered set of distinct areas + their resolved colors.
+        // Area Colors — one ColorPicker per distinct area, persisted by selector{id}
         this.settings.areaColors.slices = this.lastDistinctAreas.map(area =>
             new formattingSettings.ColorPicker({
                 name: "fill",
                 displayName: area,
-                // PBI persists each (objectName, propertyName, selector) tuple separately —
-                // { id: areaName } keys the override by area string so swapping data
-                // preserves overrides per-area-name (not per-slot).
                 selector: { id: area } as powerbi.data.Selector,
                 value: { value: this.lastAreaColorMap[area] ?? "#888888" },
             })
         );
+
+        // Milestones — 5 slices per distinct type (color, symbol, size, showMarker, showLabel)
+        // displayName uses the type name as prefix so users see their actual data values.
+        // hoverExpansion stays static at the top of the card.
+        const perTypeSlices: formattingSettings.Slice[] = [];
+        for (const typeName of this.lastDistinctTypes) {
+            const cfg = this.lastMilestoneConfig[typeName];
+            if (!cfg) continue;
+            const sel = { id: typeName } as powerbi.data.Selector;
+            const symbolItem = SYMBOL_DROPDOWN_ITEMS.find(i => i.value === cfg.symbol) ?? SYMBOL_DROPDOWN_ITEMS[0];
+            perTypeSlices.push(
+                new formattingSettings.ColorPicker({
+                    name: "fill",
+                    displayName: `${typeName} — color`,
+                    selector: sel,
+                    value: { value: cfg.color },
+                }),
+                new formattingSettings.ItemDropdown({
+                    name: "symbol",
+                    displayName: `${typeName} — symbol`,
+                    items: SYMBOL_DROPDOWN_ITEMS,
+                    value: symbolItem,
+                    selector: sel,
+                }),
+                new formattingSettings.NumUpDown({
+                    name: "size",
+                    displayName: `${typeName} — size (px)`,
+                    value: cfg.size,
+                    selector: sel,
+                }),
+                new formattingSettings.ToggleSwitch({
+                    name: "showMarker",
+                    displayName: `${typeName} — show markers`,
+                    value: cfg.showMarker,
+                    selector: sel,
+                }),
+                new formattingSettings.ToggleSwitch({
+                    name: "showLabel",
+                    displayName: `${typeName} — show labels`,
+                    value: cfg.showLabel,
+                    selector: sel,
+                }),
+            );
+        }
+        this.settings.milestones.slices = [this.settings.milestones.hoverExpansion, ...perTypeSlices];
+
         return this.settingsService.buildFormattingModel(this.settings);
     }
 }

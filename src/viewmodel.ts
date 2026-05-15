@@ -10,8 +10,6 @@ export type Area = string;
 export type MilestoneType = string;
 export type LabelPos = "L" | "R" | "none";
 
-export const MAX_MILESTONE_TYPES = 2;
-
 // Sentinel value for milestones whose ONLY purpose is to anchor activities-without-real-milestones
 // in PBI's relationship cross-join. They never render. Generic PBI workaround, not domain-specific.
 export const PHANTOM_TYPE = "__phantom";
@@ -40,17 +38,12 @@ export interface AreaGroup {
     endRowIndex: number;
 }
 
-export interface MilestoneTypeBinding {
-    typeName: string;
-    slotIndex: 0 | 1;
-}
-
 export interface RoadmapViewModel {
     activities: Activity[];
     milestones: Milestone[];
     areaGroups: AreaGroup[];
     distinctAreas: string[];
-    typeBindings: MilestoneTypeBinding[];
+    distinctTypes: string[];     // first-seen-in-data order, no cap (was: typeBindings capped at 2)
     dateExtent: [Date, Date];
 }
 
@@ -59,7 +52,7 @@ export const EMPTY_VIEWMODEL: RoadmapViewModel = {
     milestones: [],
     areaGroups: [],
     distinctAreas: [],
-    typeBindings: [],
+    distinctTypes: [],
     dateExtent: [new Date(), new Date()],
 };
 
@@ -91,7 +84,6 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
     const typeSeen = new Set<string>();
     const milestonesRaw: Milestone[] = [];
     let milestoneCounter = 0;
-    let droppedExcessTypes = 0;
 
     for (const row of table.rows) {
         const aName = strAt(row, idx.activity);
@@ -118,7 +110,6 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
         const mDate = dateAt(row, idx.milestoneDate);
         const mType = strAt(row, idx.milestoneType);
         if (mAct && mDate && mType && mType !== PHANTOM_TYPE) {
-            // Track first-seen type order BEFORE filtering, so the cap is deterministic
             if (!typeSeen.has(mType)) {
                 typeSeen.add(mType);
                 typeFirstSeen.push(mType);
@@ -135,32 +126,6 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
         }
     }
 
-    // Cap milestone types at MAX_MILESTONE_TYPES. Drop milestones of types beyond the cap.
-    const boundTypes = typeFirstSeen.slice(0, MAX_MILESTONE_TYPES);
-    const boundTypeSet = new Set(boundTypes);
-    const milestonesFiltered: Milestone[] = [];
-    for (const m of milestonesRaw) {
-        if (boundTypeSet.has(m.type)) {
-            milestonesFiltered.push(m);
-        } else {
-            droppedExcessTypes++;
-        }
-    }
-    if (typeFirstSeen.length > MAX_MILESTONE_TYPES && typeof console !== "undefined") {
-        console.warn(
-            `[Reporting Gantt] Data has ${typeFirstSeen.length} distinct milestone types; ` +
-            `only the first ${MAX_MILESTONE_TYPES} are rendered. ` +
-            `Bound: [${boundTypes.join(", ")}]. ` +
-            `Dropped: [${typeFirstSeen.slice(MAX_MILESTONE_TYPES).join(", ")}] ` +
-            `(${droppedExcessTypes} milestones).`
-        );
-    }
-
-    const typeBindings: MilestoneTypeBinding[] = boundTypes.map((typeName, i) => ({
-        typeName,
-        slotIndex: (i as 0 | 1),
-    }));
-
     // Sort activities by area first-seen-in-data order, then by source-row index within area
     const areaSortIndex = new Map(areaFirstSeen.map((a, i) => [a, i]));
     const activities = [...activityMap.values()];
@@ -173,7 +138,7 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
     activities.forEach((a, i) => (a.index = i));
 
     const activityRowIndex = new Map(activities.map(a => [a.name, a.index]));
-    const deduped = dedupMilestones(milestonesFiltered);
+    const deduped = dedupMilestones(milestonesRaw);
     for (const m of deduped) {
         m.parentRowIndex = activityRowIndex.get(m.activity) ?? -1;
     }
@@ -186,7 +151,7 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
         milestones: deduped,
         areaGroups,
         distinctAreas: areaFirstSeen,
-        typeBindings,
+        distinctTypes: typeFirstSeen,
         dateExtent,
     };
 }

@@ -14,7 +14,9 @@ export class AreaColorsCard extends FormattingSettingsCard {
     slices: Array<FormattingSettingsSlice> = [];
 }
 
-const SYMBOL_DROPDOWN_ITEMS = [
+// SYMBOL_DROPDOWN_ITEMS exported because visual.ts builds dynamic Milestones-card
+// slices using this same list (one ItemDropdown per distinct milestone type).
+export const SYMBOL_DROPDOWN_ITEMS = [
     { value: "star",     displayName: "Star" },
     { value: "circle",   displayName: "Circle" },
     { value: "triangle", displayName: "Triangle" },
@@ -22,59 +24,11 @@ const SYMBOL_DROPDOWN_ITEMS = [
     { value: "diamond",  displayName: "Diamond" },
 ];
 
-class MilestonesCard extends FormattingSettingsCard {
-    type1Color = new formattingSettings.ColorPicker({
-        name: "type1Color",
-        displayName: "Slot 1 color",
-        value: { value: "#FFC000" },
-    });
-    type1Symbol = new formattingSettings.ItemDropdown({
-        name: "type1Symbol",
-        displayName: "Slot 1 symbol",
-        items: SYMBOL_DROPDOWN_ITEMS,
-        value: SYMBOL_DROPDOWN_ITEMS[0],
-    });
-    type1Size = new formattingSettings.NumUpDown({
-        name: "type1Size",
-        displayName: "Slot 1 size (px)",
-        value: 11,
-    });
-    type1ShowMarker = new formattingSettings.ToggleSwitch({
-        name: "type1ShowMarker",
-        displayName: "Slot 1 markers",
-        value: true,
-    });
-    type1ShowLabel = new formattingSettings.ToggleSwitch({
-        name: "type1ShowLabel",
-        displayName: "Slot 1 labels",
-        value: true,
-    });
-    type2Color = new formattingSettings.ColorPicker({
-        name: "type2Color",
-        displayName: "Slot 2 color",
-        value: { value: "#000000" },
-    });
-    type2Symbol = new formattingSettings.ItemDropdown({
-        name: "type2Symbol",
-        displayName: "Slot 2 symbol",
-        items: SYMBOL_DROPDOWN_ITEMS,
-        value: SYMBOL_DROPDOWN_ITEMS[1],
-    });
-    type2Size = new formattingSettings.NumUpDown({
-        name: "type2Size",
-        displayName: "Slot 2 size (px)",
-        value: 11,
-    });
-    type2ShowMarker = new formattingSettings.ToggleSwitch({
-        name: "type2ShowMarker",
-        displayName: "Slot 2 markers",
-        value: true,
-    });
-    type2ShowLabel = new formattingSettings.ToggleSwitch({
-        name: "type2ShowLabel",
-        displayName: "Slot 2 labels",
-        value: true,
-    });
+// Per-type milestone slices (color, symbol, size, showMarker, showLabel) populated
+// dynamically in visual.ts getFormattingModel() — one set of 5 slices per distinct
+// Milestone Type value found in the data, all selector-keyed by type name.
+// Only hoverExpansion stays static here.
+export class MilestonesCard extends FormattingSettingsCard {
     hoverExpansion = new formattingSettings.NumUpDown({
         name: "hoverExpansion",
         displayName: "Hover target expansion (% past marker edge)",
@@ -82,19 +36,7 @@ class MilestonesCard extends FormattingSettingsCard {
     });
     name: string = "milestones";
     displayName: string = "Milestones";
-    slices: Array<FormattingSettingsSlice> = [
-        this.type1Color,
-        this.type1Symbol,
-        this.type1Size,
-        this.type1ShowMarker,
-        this.type1ShowLabel,
-        this.type2Color,
-        this.type2Symbol,
-        this.type2Size,
-        this.type2ShowMarker,
-        this.type2ShowLabel,
-        this.hoverExpansion,
-    ];
+    slices: Array<FormattingSettingsSlice> = [this.hoverExpansion];
 }
 
 class ActivityLabelsCard extends FormattingSettingsCard {
