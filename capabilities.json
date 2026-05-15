@@ -4,7 +4,7 @@
             "name": "activity",
             "displayName": "Activity",
             "kind": "Grouping",
-            "description": "The bar's identity. Each unique value renders as one horizontal bar (e.g., a project task, a campaign phase, a product release, a clinical trial)."
+            "description": "The bar's identity. Each unique value renders as one horizontal bar (e.g., a project task, a campaign phase, a product release, an audit cycle)."
         },
         {
             "name": "area",
