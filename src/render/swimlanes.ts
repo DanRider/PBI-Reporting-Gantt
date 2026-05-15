@@ -14,11 +14,14 @@ const RAIL_STROKE_WIDTH = 4;
 const CIRCLE_RADIUS = 8;
 const LABEL_LINE_HEIGHT_FACTOR = 1.25;
 
+export type RailAlignment = "left" | "center" | "right";
+
 export interface SwimlaneOptions {
     show: boolean;
     wrapText: boolean;
     useAreaColor: boolean;
     labelColor: string;
+    railAlignment: RailAlignment;
     font: FontStyle;
 }
 
@@ -33,10 +36,26 @@ export function renderSwimlanes(
     g.selectAll("*").remove();
     if (!opts.show) return;
 
-    const railLineX = railWidth - RAIL_TO_RIGHT_GAP;
-    const labelBandLeft = LABEL_BAND_LEFT_PADDING;
-    const labelBandRight = railLineX - 8;
-    const textX = (labelBandLeft + labelBandRight) / 2;
+    // Position rail line and label text horizontally per the alignment choice.
+    // - left:   rail at left edge, label centered in remaining space to the right
+    // - center: rail bisects label (both at same x); label drawn ON TOP of rail
+    // - right:  rail at right edge, label centered in remaining space to the left (original)
+    let railLineX: number;
+    let textX: number;
+    if (opts.railAlignment === "left") {
+        railLineX = LABEL_BAND_LEFT_PADDING + CIRCLE_RADIUS;
+        textX = (railLineX + RAIL_TO_RIGHT_GAP + (railWidth - 4)) / 2;
+    } else if (opts.railAlignment === "center") {
+        railLineX = railWidth / 2;
+        textX = railWidth / 2;
+    } else {
+        // right (default — matches v2.8 original)
+        railLineX = railWidth - RAIL_TO_RIGHT_GAP;
+        const labelBandLeft = LABEL_BAND_LEFT_PADDING;
+        const labelBandRight = railLineX - 8;
+        textX = (labelBandLeft + labelBandRight) / 2;
+    }
+
     const lineHeight = Math.max(opts.font.fontSize * LABEL_LINE_HEIGHT_FACTOR, opts.font.fontSize + 3);
 
     for (const group of areaGroups) {
@@ -51,18 +70,9 @@ export function renderSwimlanes(
             : [group.area];
         const totalH = lines.length * lineHeight;
         const startY = yCenter - totalH / 2 + lineHeight / 2;
-        for (let i = 0; i < lines.length; i++) {
-            const textSel = g.append("text")
-                .attr("class", "swimlane-label")
-                .attr("x", textX)
-                .attr("y", startY + i * lineHeight)
-                .attr("text-anchor", "middle")
-                .attr("dominant-baseline", "central")
-                .attr("fill", labelFill)
-                .text(lines[i]);
-            applyFont(textSel, opts.font);
-        }
 
+        // Render order matters for "center" alignment — rail FIRST so the label
+        // text on top reads cleanly across the rail line.
         g.append("line")
             .attr("class", "swimlane-rail")
             .attr("x1", railLineX).attr("x2", railLineX)
@@ -79,5 +89,17 @@ export function renderSwimlanes(
             .attr("cx", railLineX).attr("cy", yBottom)
             .attr("r", CIRCLE_RADIUS)
             .attr("fill", railColor);
+
+        for (let i = 0; i < lines.length; i++) {
+            const textSel = g.append("text")
+                .attr("class", "swimlane-label")
+                .attr("x", textX)
+                .attr("y", startY + i * lineHeight)
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "central")
+                .attr("fill", labelFill)
+                .text(lines[i]);
+            applyFont(textSel, opts.font);
+        }
     }
 }

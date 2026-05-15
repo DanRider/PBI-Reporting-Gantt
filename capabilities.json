@@ -146,6 +146,14 @@
             "properties": {
                 "show":                  { "displayName": "Show",                "type": { "bool": true } },
                 "swimLaneWidthPercent":  { "displayName": "Swim lane width (%)", "type": { "numeric": true } },
+                "railAlignment": {
+                    "displayName": "Rail alignment relative to label",
+                    "type": { "enumeration": [
+                        { "value": "left",   "displayName": "Left of label" },
+                        { "value": "center", "displayName": "Bisect label (center)" },
+                        { "value": "right",  "displayName": "Right of label" }
+                    ]}
+                },
                 "wrapText":              { "displayName": "Wrap labels",         "type": { "bool": true } },
                 "labelColor":            { "displayName": "Label color (default = swim lane color)", "type": { "fill": { "solid": { "color": true } } } },
                 "useAreaColor":          { "displayName": "Use swim lane color for label", "type": { "bool": true } },

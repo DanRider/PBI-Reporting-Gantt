@@ -88,8 +88,8 @@ export function buildMilestoneConfigMap(
         const o = persistedOverrides[t] ?? {};
         out[t] = {
             color:      o.color ?? defaultMilestoneColorFor(t, i),
-            symbol:     o.symbol ?? (i === 0 ? "star" : "circle"),
-            size:       o.size ?? 11,
+            symbol:     o.symbol ?? "star",   // both slots default to STAR (was: slot 1 = circle)
+            size:       o.size ?? 8,          // 30% smaller default (was 11)
             showMarker: o.showMarker ?? true,
             showLabel:  o.showLabel ?? true,
         };

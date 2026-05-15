@@ -128,6 +128,15 @@ export class SwimlanesCard extends FormattingSettingsCard {
     swimLaneWidthPercent = new formattingSettings.NumUpDown({
         name: "swimLaneWidthPercent", displayName: "Swim lane width (% of visual width)", value: 10,
     });
+    railAlignment = new formattingSettings.ItemDropdown({
+        name: "railAlignment", displayName: "Rail alignment relative to label",
+        items: [
+            { value: "left",   displayName: "Left of label" },
+            { value: "center", displayName: "Bisect label (center)" },
+            { value: "right",  displayName: "Right of label" },
+        ],
+        value: { value: "right", displayName: "Right of label" },
+    });
     wrapText = new formattingSettings.ToggleSwitch({ name: "wrapText", displayName: "Wrap labels (one word per line)", value: true });
     useAreaColor = new formattingSettings.ToggleSwitch({ name: "useAreaColor", displayName: "Use swim lane color for label", value: true });
     labelColor = new formattingSettings.ColorPicker({ name: "labelColor", displayName: "Label color (when not using swim lane color)", value: { value: "#222222" } });
@@ -139,7 +148,8 @@ export class SwimlanesCard extends FormattingSettingsCard {
     name: string = "swimlanes";
     displayName: string = "Swim Lanes";
     slices: Array<FormattingSettingsSlice> = [
-        this.show, this.swimLaneWidthPercent, this.wrapText, this.useAreaColor, this.labelColor,
+        this.show, this.swimLaneWidthPercent, this.railAlignment, this.wrapText,
+        this.useAreaColor, this.labelColor,
         this.fontFamily, this.fontSize, this.bold, this.italic, this.underline,
     ];
 }

@@ -341,6 +341,7 @@ export class Visual implements IVisual {
             wrapText: this.settings.swimlanes.wrapText.value,
             useAreaColor: this.settings.swimlanes.useAreaColor.value,
             labelColor: this.settings.swimlanes.labelColor.value.value,
+            railAlignment: this.settings.swimlanes.railAlignment.value.value as "left" | "center" | "right",
             font: fontFromCard(this.settings.swimlanes),
         });
 
