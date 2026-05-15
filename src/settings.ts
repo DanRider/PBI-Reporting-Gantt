@@ -158,7 +158,7 @@ class LegendCard extends FormattingSettingsCard {
     show = new formattingSettings.ToggleSwitch({ name: "show", displayName: "Show legend (upper-left)", value: true });
     labelColor = new formattingSettings.ColorPicker({ name: "labelColor", displayName: "Label color", value: { value: "#222222" } });
     fontFamily = new formattingSettings.FontPicker({ name: "fontFamily", displayName: "Font", value: "Segoe UI" });
-    fontSize = new formattingSettings.NumUpDown({ name: "fontSize", displayName: "Size", value: 12 });
+    fontSize = new formattingSettings.NumUpDown({ name: "fontSize", displayName: "Size", value: 10 });
     bold = new formattingSettings.ToggleSwitch({ name: "bold", displayName: "Bold", value: false });
     italic = new formattingSettings.ToggleSwitch({ name: "italic", displayName: "Italic", value: false });
     underline = new formattingSettings.ToggleSwitch({ name: "underline", displayName: "Underline", value: false });

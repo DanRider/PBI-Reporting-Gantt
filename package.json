@@ -1,7 +1,7 @@
 {
   "name": "reporting-gantt",
   "description": "Reporting Gantt — generic timeline visual for Power BI. Activity swim lanes, chevron time axis, milestone markers with conditional labels. Data-driven (any area names, any milestone types).",
-  "version": "1.4.0.0",
+  "version": "1.4.1.0",
   "author": {
     "name": "Daniel Rider",
     "email": "daniel.j.rider@gmail.com"

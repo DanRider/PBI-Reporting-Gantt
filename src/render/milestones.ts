@@ -84,8 +84,7 @@ export function renderMilestones(
             return symbolPath(cfg.symbol, xScale(m.date), rowCenterY(m.parentRowIndex, rowHeight), cfg.size);
         })
         .attr("fill", m => typeColor(m.type, colors))
-        .attr("stroke", m => readableStrokeColor(typeColor(m.type, colors)))
-        .attr("stroke-width", 0.8)
+        .attr("stroke-width", 0)
         .attr("pointer-events", "none");
 
     return g.selectAll<SVGCircleElement, Milestone>("circle.milestone-hit")
