@@ -10,15 +10,19 @@ MIT licensed. Open source on GitHub.
 
 Three ways to see it running:
 
-### 1. Try the demo fixture (zero setup)
+### 1. Try the demo fixture (zero setup, zero dependencies)
 
-Clone this repo and open `fixtures/PBI-Reporting-Gantt.pbip` in Power BI Desktop. The visual is wired against `fixtures/Demo-Roadmap-Source.xlsx` — a generic project-portfolio dataset for an industrial equipment manufacturer (24 activities across Production / Product Development / Supply Chain, 64 milestones, Q4 2025 → Q4 2027 timeline). The custom visual is bundled inside the `.pbip` so it works on first open.
+Clone this repo and open `fixtures/PBI-Reporting-Gantt.pbip` in Power BI Desktop. **Demo data is embedded inline in the .pbip's M code** — no external file, no internet, no setup. The visual renders immediately on first refresh.
 
-> **Path note**: the demo's Power Query M Source step uses an absolute path: `C:\CORTEX\projects\Reporting-Gantt\fixtures\Demo-Roadmap-Source.xlsx`. If you cloned elsewhere, open Power Query Editor → edit the Source step on both the Activities and Milestones tables → repoint at your local `.xlsx`. Then **Home → Refresh**.
+The bundled demo is a generic project-portfolio dataset for an industrial equipment manufacturer (24 activities across Production / Product Development / Supply Chain, 64 milestones, Q4 2025 → Q4 2027 timeline).
 
-### 2. Import the `.pbiviz` into your own report
+**To use your own data**: open Power Query Editor → Advanced Editor on the Activities or Milestones query → comment out the `Source = #table(...)` block → uncomment the `EXCEL SOURCE` block at the bottom → set `YOUR_FILE_PATH` to your `.xlsx` location. `fixtures/Demo-Roadmap-Source.xlsx` is included as a schema reference for the expected column layout.
 
-Visualizations pane → ⋯ → **Get more visuals** → **Import a visual from a file**. Select `dist/reportingGantt….1.8.0.0.pbiviz`. The visual appears in the Visualizations pane as **Reporting Gantt**. Bind your own (Activity, Area, Start, End) + (Milestone Activity, Milestone Date, Milestone Type, Milestone Label, Label Position) columns from your model.
+### 2. Import the `.pbiviz` into an existing report
+
+The built visual binary lives at `dist/reportingGantt7C9F3E5A1B2D4F8E6A0C3B5D7E9F1A2C.1.8.0.0.pbiviz` — download it from the repo (or from the [GitHub Releases](https://github.com/DanRider/PBI-Reporting-Gantt/releases) page when published).
+
+In Power BI Desktop: Visualizations pane → ⋯ → **Get more visuals** → **Import a visual from a file**. Pick the `.pbiviz` file. The visual appears in the Visualizations pane as **Reporting Gantt**. Bind your own (Activity, Area, Start, End) + (Milestone Activity, Milestone Date, Milestone Type, Milestone Label, Label Position) columns from your existing model. Activity Note / Milestone Note are optional v1.8.0.0+ fields for tooltip status text.
 
 ### 3. Build from source
 

@@ -62,19 +62,64 @@ table Activities
 		mode: import
 		source =
 				let
-				    Source = Excel.Workbook(File.Contents("C:\\CORTEX\\projects\\Reporting-Gantt\\fixtures\\Demo-Roadmap-Source.xlsx"), null, true),
-				    Activities_Sheet = Source{[Item="Activities",Kind="Sheet"]}[Data],
-				    PromotedHeaders = Table.PromoteHeaders(Activities_Sheet, [PromoteAllScalars=true]),
-				    ChangedType = Table.TransformColumnTypes(PromotedHeaders,{
-				        {"Activity", type text},
-				        {"Area", type text},
-				        {"Start Date", type date},
-				        {"End Date", type date},
-				        {"SortOrder", Int64.Type},
-				        {"Activity Note", type text}
-				    })
+				    /*
+				     * DEMO DATA — embedded inline so the visual renders on any clone
+				     * with zero setup (no file path, no internet dependency).
+				     *
+				     * To switch this query to an Excel workbook (so you can edit the
+				     * data in Excel instead of editing M code here), comment out the
+				     * `Source = #table(...)` step below and uncomment the EXCEL SOURCE
+				     * block. Update YOUR_FILE_PATH to your local xlsx.
+				     */
+				    Source = #table(
+				        type table [Activity = text, Area = text, Start Date = date, End Date = date, SortOrder = number, Activity Note = nullable text],
+				        {
+				            {"Line 3 Automation", "Production", #date(2026, 1, 1), #date(2026, 9, 30), 0, null},
+				            {"Plant 2 Expansion", "Production", #date(2025, 10, 1), #date(2026, 12, 31), 1, "Permits cleared; foundation contractor confirmed for May start."},
+				            {"MES Pipeline Refresh", "Production", #date(2026, 1, 1), #date(2027, 3, 31), 2, null},
+				            {"Mobile Operator Console", "Production", #date(2026, 4, 1), #date(2027, 6, 30), 3, "Pilot floor adoption running ahead of target — 38 of 40 operators trained."},
+				            {"Vision Inspection Rollout", "Production", #date(2026, 7, 1), #date(2027, 3, 31), 4, null},
+				            {"Sensor Telemetry Rollout", "Production", #date(2025, 10, 1), #date(2026, 9, 30), 5, null},
+				            {"Edge Compute Buildout", "Production", #date(2026, 4, 1), #date(2026, 12, 31), 6, null},
+				            {"Robotics Cell Network", "Production", #date(2026, 7, 1), #date(2027, 12, 31), 7, "Vendor SLA renegotiation may push final cell migration into Q1 2028."},
+				            {"Plant Historian Migration", "Production", #date(2026, 1, 1), #date(2027, 9, 30), 8, null},
+				            {"Compact Series Redesign", "Product Development", #date(2026, 1, 1), #date(2026, 6, 30), 9, null},
+				            {"Heavy-Duty Variant Launch", "Product Development", #date(2026, 4, 1), #date(2026, 9, 30), 10, null},
+				            {"Sustainable Materials Program", "Product Development", #date(2026, 4, 1), #date(2027, 3, 31), 11, "Material spec frozen after 3 rounds with engineering and procurement."},
+				            {"CAD System Migration", "Product Development", #date(2026, 10, 1), #date(2027, 6, 30), 12, null},
+				            {"ISO 9001 Recertification", "Supply Chain", #date(2026, 1, 1), #date(2026, 12, 31), 13, "External auditor confirmed for Aug 1–4; evidence binders 80% ready."},
+				            {"Supplier Consolidation", "Supply Chain", #date(2026, 4, 1), #date(2027, 3, 31), 14, null},
+				            {"Warehouse Move", "Supply Chain", #date(2026, 7, 1), #date(2027, 3, 31), 15, null},
+				            {"Fleet Refresh", "Supply Chain", #date(2026, 10, 1), #date(2027, 6, 30), 16, null},
+				            {"Procurement Workflow", "Supply Chain", #date(2026, 1, 1), #date(2026, 12, 31), 17, "Pilot site (Plant 1) live and stable; org-wide rollout cleared for Nov."},
+				            {"Safety Training Refresh", "Supply Chain", #date(2025, 10, 1), #date(2026, 6, 30), 18, null},
+				            {"Business Continuity Program", "Supply Chain", #date(2026, 4, 1), #date(2027, 3, 31), 19, "Tabletop exercise revealed gap in supplier-escalation path; remediation in v1.1."},
+				            {"Plant Incident Response", "Supply Chain", #date(2026, 7, 1), #date(2027, 3, 31), 20, null},
+				            {"OT Network Segmentation", "Supply Chain", #date(2026, 1, 1), #date(2027, 12, 31), 21, "Pentest scope expanded to include the new robotics cell network."},
+				            {"3PL Renegotiation", "Supply Chain", #date(2026, 10, 1), #date(2027, 6, 30), 22, null},
+				            {"Inventory Audit Cycle", "Supply Chain", #date(2025, 10, 1), #date(2026, 3, 31), 23, null}
+				        }
+				    )
+
+				    /*
+				     * EXCEL SOURCE — uncomment to load from your own xlsx instead.
+				     * Both Activities and Milestones sheets must follow the column
+				     * schema documented in README.md.
+				     *
+				     *     RawSource = Excel.Workbook(File.Contents("YOUR_FILE_PATH\\Demo-Roadmap-Source.xlsx"), null, true),
+				     *     Sheet = RawSource{[Item="Activities",Kind="Sheet"]}[Data],
+				     *     PromotedHeaders = Table.PromoteHeaders(Sheet, [PromoteAllScalars=true]),
+				     *     Source = Table.TransformColumnTypes(PromotedHeaders,{
+				     *         {"Activity", type text},
+				     *         {"Area", type text},
+				     *         {"Start Date", type date},
+				     *         {"End Date", type date},
+				     *         {"SortOrder", Int64.Type},
+				     *         {"Activity Note", type text}
+				     *     })
+				     */
 				in
-				    ChangedType
+				    Source
 
 	annotation PBI_ResultType = Table
 

@@ -56,19 +56,106 @@ table Milestones
 		mode: import
 		source =
 				let
-				    Source = Excel.Workbook(File.Contents("C:\\CORTEX\\projects\\Reporting-Gantt\\fixtures\\Demo-Roadmap-Source.xlsx"), null, true),
-				    Milestones_Sheet = Source{[Item="Milestones",Kind="Sheet"]}[Data],
-				    PromotedHeaders = Table.PromoteHeaders(Milestones_Sheet, [PromoteAllScalars=true]),
-				    ChangedType = Table.TransformColumnTypes(PromotedHeaders,{
-				        {"Activity", type text},
-				        {"Milestone Date", type date},
-				        {"Milestone Type", type text},
-				        {"Milestone Label", type text},
-				        {"Label Position", type text},
-				        {"Milestone Note", type text}
-				    })
+				    /*
+				     * DEMO DATA — embedded inline so the visual renders on any clone
+				     * with zero setup (no file path, no internet dependency).
+				     *
+				     * To switch this query to an Excel workbook (so you can edit the
+				     * data in Excel instead of editing M code here), comment out the
+				     * `Source = #table(...)` step below and uncomment the EXCEL SOURCE
+				     * block. Update YOUR_FILE_PATH to your local xlsx.
+				     */
+				    Source = #table(
+				        type table [Activity = text, Milestone Date = date, Milestone Type = text, Milestone Label = nullable text, Label Position = text, Milestone Note = nullable text],
+				        {
+				            {"Line 3 Automation", #date(2026, 2, 15), "Major", "Cell design review", "R", null},
+				            {"Line 3 Automation", #date(2026, 3, 10), "Minor", "Equipment delivered", "L", null},
+				            {"Line 3 Automation", #date(2026, 3, 28), "Major", "Line live", "R", null},
+				            {"Plant 2 Expansion", #date(2026, 1, 15), "Minor", "Groundbreaking", "R", null},
+				            {"Plant 2 Expansion", #date(2026, 5, 20), "Major", "Foundation poured", "R", "Concrete pour delayed 3 days due to weather; on critical path."},
+				            {"Plant 2 Expansion", #date(2026, 9, 15), "Major", "Equipment installed", "R", "Two CNC mills arriving Q3 from Yamazaki; install crew booked."},
+				            {"Plant 2 Expansion", #date(2026, 12, 20), "Minor", "Commissioning", "L", null},
+				            {"MES Pipeline Refresh", #date(2026, 2, 28), "Minor", "Schema lock", "R", null},
+				            {"MES Pipeline Refresh", #date(2026, 6, 15), "Major", "MES cutover", "R", "Cutover plan reviewed with operations; rollback path documented."},
+				            {"MES Pipeline Refresh", #date(2026, 11, 30), "Major", "Legacy SCADA off", "L", null},
+				            {"Mobile Operator Console", #date(2026, 9, 10), "Minor", "Pilot floor rollout", "R", null},
+				            {"Mobile Operator Console", #date(2026, 12, 1), "Major", "Full deployment", "R", "Hardware refresh (Zebra TC52) ordered alongside software rollout."},
+				            {"Mobile Operator Console", #date(2027, 4, 20), "Major", "Adoption target met", "R", null},
+				            {"Vision Inspection Rollout", #date(2026, 10, 15), "Major", "Cameras installed", "R", null},
+				            {"Vision Inspection Rollout", #date(2027, 1, 30), "Major", "Inspection live", "R", null},
+				            {"Sensor Telemetry Rollout", #date(2026, 1, 10), "Minor", "Tag mapping complete", "R", null},
+				            {"Sensor Telemetry Rollout", #date(2026, 4, 15), "Major", "Telemetry live", "R", null},
+				            {"Sensor Telemetry Rollout", #date(2026, 8, 20), "Major", "Coverage target met", "R", null},
+				            {"Edge Compute Buildout", #date(2026, 7, 1), "Minor", "Reference architecture", "R", null},
+				            {"Edge Compute Buildout", #date(2026, 11, 15), "Major", "Edge nodes live", "R", null},
+				            {"Robotics Cell Network", #date(2026, 11, 1), "Minor", "POC cell complete", "R", null},
+				            {"Robotics Cell Network", #date(2027, 3, 1), "Major", "First cell migrated", "R", null},
+				            {"Robotics Cell Network", #date(2027, 8, 15), "Major", "50% cells migrated", "R", null},
+				            {"Robotics Cell Network", #date(2027, 12, 1), "Major", "All cells migrated", "R", null},
+				            {"Plant Historian Migration", #date(2026, 5, 1), "Minor", "Plant 1 tag mapping", "R", null},
+				            {"Plant Historian Migration", #date(2026, 11, 1), "Major", "Plant 1 cut over", "R", null},
+				            {"Plant Historian Migration", #date(2027, 6, 1), "Major", "All plants migrated", "R", null},
+				            {"Compact Series Redesign", #date(2026, 1, 25), "Minor", "Concept review", "R", null},
+				            {"Compact Series Redesign", #date(2026, 3, 1), "Major", "Pilot production run", "R", null},
+				            {"Compact Series Redesign", #date(2026, 5, 15), "Minor", "V2 spec released", "R", null},
+				            {"Heavy-Duty Variant Launch", #date(2026, 5, 1), "Minor", "Prototype A complete", "R", null},
+				            {"Heavy-Duty Variant Launch", #date(2026, 8, 5), "Major", "Launch approved", "R", null},
+				            {"Sustainable Materials Program", #date(2026, 5, 20), "Minor", "Material spec frozen", "R", null},
+				            {"Sustainable Materials Program", #date(2026, 7, 20), "Minor", "First test batch", "R", null},
+				            {"Sustainable Materials Program", #date(2026, 12, 10), "Major", "Customer shipments begin", "R", null},
+				            {"Sustainable Materials Program", #date(2027, 2, 28), "Major", "Adoption target met", "L", null},
+				            {"CAD System Migration", #date(2026, 12, 15), "Minor", "Engineering pilot", "R", null},
+				            {"CAD System Migration", #date(2027, 5, 1), "Major", "Org-wide rollout", "R", null},
+				            {"ISO 9001 Recertification", #date(2026, 4, 1), "Minor", "Internal audit complete", "R", null},
+				            {"ISO 9001 Recertification", #date(2026, 8, 1), "Minor", "External auditor on-site", "R", "Lead auditor: Mary Chen, KPMG. 4-day on-site engagement."},
+				            {"ISO 9001 Recertification", #date(2026, 11, 15), "Major", "Certificate received", "R", "Certificate valid through November 2029 (3-year cycle)."},
+				            {"Supplier Consolidation", #date(2026, 6, 1), "Minor", "Supplier list approved", "R", null},
+				            {"Supplier Consolidation", #date(2026, 10, 1), "Major", "First 5 consolidated", "R", "First 5 consolidated: ~12% spend reduction realized in Q4."},
+				            {"Supplier Consolidation", #date(2027, 1, 15), "Major", "Final wave complete", "R", null},
+				            {"Fleet Refresh", #date(2027, 1, 15), "Minor", "PO approved", "R", null},
+				            {"Fleet Refresh", #date(2027, 5, 1), "Major", "Fleet replacement complete", "R", null},
+				            {"Procurement Workflow", #date(2026, 3, 15), "Minor", "Process designed", "R", null},
+				            {"Procurement Workflow", #date(2026, 7, 1), "Major", "Pilot site live", "R", null},
+				            {"Procurement Workflow", #date(2026, 11, 30), "Major", "Org-wide rollout", "R", null},
+				            {"Safety Training Refresh", #date(2025, 12, 15), "Minor", "Curriculum approved", "R", null},
+				            {"Safety Training Refresh", #date(2026, 6, 1), "Major", "100% completion", "R", null},
+				            {"Business Continuity Program", #date(2026, 5, 1), "Minor", "Tabletop exercise", "R", null},
+				            {"Business Continuity Program", #date(2026, 10, 1), "Major", "Plant failover test", "R", null},
+				            {"Business Continuity Program", #date(2027, 1, 1), "Major", "Recertification complete", "L", null},
+				            {"Plant Incident Response", #date(2026, 9, 1), "Minor", "v1 draft", "R", null},
+				            {"Plant Incident Response", #date(2026, 12, 1), "Major", "v1 ratified", "R", "v1 ratified by ops council; rollout to all 3 plants begins Q1."},
+				            {"Plant Incident Response", #date(2027, 3, 15), "Major", "Cross-plant drill", "R", null},
+				            {"OT Network Segmentation", #date(2026, 3, 1), "Minor", "Baseline scan", "R", null},
+				            {"OT Network Segmentation", #date(2026, 7, 15), "Major", "Plant 1 segmented", "R", "VLAN inventory complete; 47 firewall rule changes approved."},
+				            {"OT Network Segmentation", #date(2026, 11, 1), "Minor", "Pentest engaged", "R", "External pentest firm: Praetorian Security; SOW signed."},
+				            {"OT Network Segmentation", #date(2027, 5, 1), "Major", "All plants segmented", "R", null},
+				            {"OT Network Segmentation", #date(2027, 11, 30), "Major", "Pentest pass", "R", null},
+				            {"3PL Renegotiation", #date(2027, 1, 15), "Minor", "Initial terms", "R", null},
+				            {"3PL Renegotiation", #date(2027, 5, 1), "Major", "Contracts signed", "R", null},
+				            {"Warehouse Move", #date(2026, 1, 1), "__phantom", null, "none", null},
+				            {"Inventory Audit Cycle", #date(2026, 1, 1), "__phantom", null, "none", null}
+				        }
+				    )
+
+				    /*
+				     * EXCEL SOURCE — uncomment to load from your own xlsx instead.
+				     * Both Activities and Milestones sheets must follow the column
+				     * schema documented in README.md.
+				     *
+				     *     RawSource = Excel.Workbook(File.Contents("YOUR_FILE_PATH\\Demo-Roadmap-Source.xlsx"), null, true),
+				     *     Sheet = RawSource{[Item="Milestones",Kind="Sheet"]}[Data],
+				     *     PromotedHeaders = Table.PromoteHeaders(Sheet, [PromoteAllScalars=true]),
+				     *     Source = Table.TransformColumnTypes(PromotedHeaders,{
+				     *         {"Activity", type text},
+				     *         {"Milestone Date", type date},
+				     *         {"Milestone Type", type text},
+				     *         {"Milestone Label", type text},
+				     *         {"Label Position", type text},
+				     *         {"Milestone Note", type text}
+				     *     })
+				     */
 				in
-				    ChangedType
+				    Source
 
 	annotation PBI_ResultType = Table
 
