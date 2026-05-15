@@ -60,7 +60,7 @@ export function yearsInRange([start, end]: [Date, Date]): YearBand[] {
         out.push({
             year: y,
             start: new Date(y, 0, 1),
-            end: new Date(y, 11, 31),
+            end: new Date(y + 1, 0, 1),  // next year's Jan 1 — adjacent ticks share boundary x
         });
     }
     return out;
@@ -73,13 +73,14 @@ export function quartersInRange([start, end]: [Date, Date]): QuarterBand[] {
     let d = new Date(begin);
     while (d <= finish) {
         const q = (Math.floor(d.getMonth() / 3) + 1) as 1 | 2 | 3 | 4;
+        const nextStart = new Date(d.getFullYear(), d.getMonth() + 3, 1);
         out.push({
             year: d.getFullYear(),
             quarter: q,
             start: new Date(d),
-            end: endOfQuarter(d),
+            end: nextStart,  // next quarter's start — adjacent ticks share boundary x
         });
-        d = new Date(d.getFullYear(), d.getMonth() + 3, 1);
+        d = nextStart;
     }
     return out;
 }
@@ -90,14 +91,14 @@ export function monthsInRange([start, end]: [Date, Date]): MonthBand[] {
     const finish = new Date(end.getFullYear(), end.getMonth() + 1, 0);
     let d = new Date(begin);
     while (d <= finish) {
-        const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+        const nextStart = new Date(d.getFullYear(), d.getMonth() + 1, 1);
         out.push({
             year: d.getFullYear(),
             month: d.getMonth() + 1,
             start: new Date(d),
-            end: monthEnd,
+            end: nextStart,  // next month's start — adjacent ticks share boundary x
         });
-        d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+        d = nextStart;
     }
     return out;
 }

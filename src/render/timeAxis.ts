@@ -15,8 +15,8 @@ const TODAY_SLOT_H = 14;
 const YEAR_BAND_H = 28;
 const QUARTER_BAND_H = 22;
 const MONTH_BAND_H = 16;
-const TIP_PX = 10;
-const GAP_PX = 2;
+const TIP_PX = 18;   // visible chevron tip (was 10 — too small to read)
+const GAP_PX = 0;    // adjacent chevrons interlock (was 2 — visible gap broke nesting)
 
 export interface BandTick {
     start: Date;
