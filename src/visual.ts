@@ -30,7 +30,7 @@ import { FontStyle, applyFont } from "./utils/font";
 
 import { convertDataView, RoadmapViewModel, Activity, Milestone } from "./viewmodel";
 import { buildScale, quarterAlignedExtent } from "./utils/dateScale";
-import { renderTimeAxis, axisTotalHeight, AXIS_DEFAULTS } from "./render/timeAxis";
+import { renderTimeAxis, computeAxisLayout, AxisLayoutInfo } from "./render/timeAxis";
 import { renderBars } from "./render/bars";
 import { renderMilestones, renderMilestoneLabels, computeVisibleLabels } from "./render/milestones";
 import { renderSwimlanes } from "./render/swimlanes";
@@ -40,11 +40,10 @@ import {
     ActivityLabelsLayout,
 } from "./render/activityLabels";
 import { renderLegend, LEGEND_HEIGHT } from "./render/legend";
-import { renderTimeNow } from "./render/timeNow";
+import { renderTimeNow, GridlineStyle } from "./render/timeNow";
 
 const TITLE_BOTTOM_GAP = 4;
 
-// Pixel safety clamps so degenerate viewport sizes don't produce unusable layouts.
 const SWIM_LANE_MIN = 100;
 const SWIM_LANE_MAX = 200;
 const ACTIVITY_LABEL_MIN = 100;
@@ -82,8 +81,6 @@ function milestoneTooltip(m: Milestone): VisualTooltipDataItem[] {
     ];
 }
 
-// Helper: build a FontStyle bundle from a settings card that has the standard
-// fontFamily/fontSize/bold/italic/underline 5-tuple.
 function fontFromCard(card: {
     fontFamily: { value: string };
     fontSize:   { value: number };
@@ -97,6 +94,24 @@ function fontFromCard(card: {
         bold:       card.bold.value,
         italic:     card.italic.value,
         underline:  card.underline.value,
+    };
+}
+
+// Build a FontStyle from the milestones-card label* properties (label font is
+// distinct from the marker config, lives on the same card after v1.3.0.0 merge).
+function milestoneLabelFont(card: {
+    labelFontFamily: { value: string };
+    labelFontSize:   { value: number };
+    labelBold:       { value: boolean };
+    labelItalic:     { value: boolean };
+    labelUnderline:  { value: boolean };
+}): FontStyle {
+    return {
+        fontFamily: card.labelFontFamily.value,
+        fontSize:   card.labelFontSize.value,
+        bold:       card.labelBold.value,
+        italic:     card.labelItalic.value,
+        underline:  card.labelUnderline.value,
     };
 }
 
@@ -173,16 +188,13 @@ export class Visual implements IVisual {
         this.lastDistinctTypes = vm.distinctTypes;
         this.lastMilestoneConfig = milestoneConfig;
 
-        // ── Outer margins (4-side, all default 1%) ────────────────────────────
+        // ── Outer margins ─────────────────────────────────────────────────────
         const topMarginPx    = clamp(width * (this.settings.layout.topMarginPercent.value    / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
         const bottomMarginPx = clamp(width * (this.settings.layout.bottomMarginPercent.value / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
         const leftMarginPx   = clamp(width * (this.settings.layout.leftMarginPercent.value   / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
         const rightMarginPx  = clamp(width * (this.settings.layout.rightMarginPercent.value  / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
 
         // ── Title ──────────────────────────────────────────────────────────────
-        // Render at the top of the SVG when show=true and text is non-empty.
-        // Title block's bottom edge sets the Y baseline that everything else
-        // (axis, body, legend) shifts down from.
         const titleSettings = this.settings.title;
         const titleFont = fontFromCard(titleSettings);
         const titleText = titleSettings.text.value || "";
@@ -234,19 +246,23 @@ export class Visual implements IVisual {
         this.svg.selectAll(".no-data").remove();
 
         // ── Inner-content dimensions ─────────────────────────────────────────
-        // Swim-lane width lives on the Swim Lanes card; activity-label width on the
-        // Activity Labels card (was both on Layout in v1.1; reorg per INF-3523).
         const leftRailPct = this.settings.swimlanes.swimLaneWidthPercent.value / 100;
         const labelAreaPct = this.settings.activityLabels.activityLabelWidthPercent.value / 100;
 
         const leftRailWidth = clamp(width * leftRailPct, SWIM_LANE_MIN, SWIM_LANE_MAX);
         const activityLabelWidth = clamp(width * labelAreaPct, ACTIVITY_LABEL_MIN, ACTIVITY_LABEL_MAX);
 
-        // chart-x = leftMarginPx + swim-lane width + activity-label width + lollipop gap
         const leftMargin = leftMarginPx + leftRailWidth + activityLabelWidth + ACTIVITY_LOLLIPOP_MIN_WIDTH;
         const rightMargin = rightMarginPx;
 
-        const axisH = axisTotalHeight();
+        // ── Axis layout (3-level toggleable) ─────────────────────────────────
+        const tAxis = this.settings.timeAxis;
+        const axisLayout: AxisLayoutInfo = computeAxisLayout(
+            { year: tAxis.showYear.value, quarter: tAxis.showQuarter.value, month: tAxis.showMonth.value },
+            tAxis.showTodayLabel.value,
+        );
+        const axisH = axisLayout.totalH;
+
         const availableBodyH = Math.max(
             MIN_ROW_HEIGHT * vm.activities.length,
             height - headerOffset - axisH - bottomMarginPx
@@ -258,24 +274,30 @@ export class Visual implements IVisual {
         const domain = quarterAlignedExtent(vm.dateExtent);
         const xScale = buildScale(domain, width, leftMargin, rightMargin);
 
-        const tAxis = this.settings.timeAxis;
         const todayLineColor = tAxis.todayLabelColor.value.value;
         const axisFont = fontFromCard(tAxis);
 
-        // ── Time axis ─────────────────────────────────────────────────────────
+        // ── Time axis (renders into axisG; returns the same layout for confirmation) ──
         this.axisG.attr("transform", `translate(0, ${headerOffset})`);
         const now = (tAxis.showTodayLine.value || tAxis.showTodayLabel.value) ? new Date() : null;
         renderTimeAxis(this.axisG, xScale, domain, now, {
+            levels: { year: tAxis.showYear.value, quarter: tAxis.showQuarter.value, month: tAxis.showMonth.value },
+            fills: {
+                year: tAxis.yearFill.value.value,
+                quarter: tAxis.quarterFill.value.value,
+                month: tAxis.monthFill.value.value,
+            },
             todayLabel: { show: tAxis.showTodayLabel.value, color: todayLineColor },
-            axisLabelColor: tAxis.axisLabelColor.value.value,
             font: axisFont,
         });
 
         const bodyY = headerOffset + axisH;
 
-        // ── Background (past/future shading + TODAY line) ─────────────────────
-        const bgY = headerOffset + AXIS_DEFAULTS.yearBandH;
-        const bgH = AXIS_DEFAULTS.todaySlotH + AXIS_DEFAULTS.quarterBandH + bodyH;
+        // ── Background: gridlines + past/future shading + TODAY line ─────────
+        // Gridlines extend from the BOTTOM of the year band (or top of axis if no year)
+        // through the chart body, so they visually anchor to the chevron tick boundaries.
+        const bgY = headerOffset + (axisLayout.yearY >= 0 ? axisLayout.yearH : 0);
+        const bgH = (axisH - (axisLayout.yearY >= 0 ? axisLayout.yearH : 0)) + bodyH;
         this.bgG.attr("transform", `translate(0, ${bgY})`);
         renderTimeNow(this.bgG, xScale, domain, bgH, {
             showTodayLine: tAxis.showTodayLine.value,
@@ -286,9 +308,21 @@ export class Visual implements IVisual {
             showFutureShading: tAxis.showFutureShading.value,
             futureFillColor: tAxis.futureShadingColor.value.value,
             futureOpacity: Math.max(0, Math.min(100, tAxis.futureShadingOpacityPct.value)) / 100,
+            quarterGridlines: {
+                show: tAxis.showQuarterGridlines.value,
+                color: tAxis.quarterGridlineColor.value.value,
+                opacity: Math.max(0, Math.min(100, tAxis.quarterGridlineOpacityPct.value)) / 100,
+                style: tAxis.quarterGridlineStyle.value.value as GridlineStyle,
+            },
+            monthGridlines: {
+                show: tAxis.showMonthGridlines.value,
+                color: tAxis.monthGridlineColor.value.value,
+                opacity: Math.max(0, Math.min(100, tAxis.monthGridlineOpacityPct.value)) / 100,
+                style: tAxis.monthGridlineStyle.value.value as GridlineStyle,
+            },
         });
 
-        // ── Legend (upper-left corner of header band, below title if any) ────
+        // ── Legend (upper-left) ───────────────────────────────────────────────
         this.legendG.attr("transform", `translate(${leftMarginPx}, ${headerOffset})`);
         renderLegend(
             this.legendG,
@@ -327,10 +361,11 @@ export class Visual implements IVisual {
         // ── Bars + markers + milestone labels ─────────────────────────────────
         const chartLeftEdge = leftMargin;
         const chartRightEdge = width - rightMarginPx - 10;
-        const milestoneLabelFont = fontFromCard(this.settings.milestoneLabels);
-        const milestoneOverflow = this.settings.milestoneLabels.overflowBehavior.value.value as "truncate" | "hide" | "overflow";
+        const milestoneCard = this.settings.milestones;
+        const labelFont = milestoneLabelFont(milestoneCard);
+        const labelOverflow = milestoneCard.labelOverflow.value.value as "truncate" | "hide" | "overflow";
         const renderedLabels = computeVisibleLabels(
-            vm.milestones, colors, xScale, rowHeight, chartLeftEdge, chartRightEdge, milestoneLabelFont, milestoneOverflow
+            vm.milestones, colors, xScale, rowHeight, chartLeftEdge, chartRightEdge, labelFont, labelOverflow
         );
 
         this.labelBgG.selectAll("*").remove();
@@ -339,12 +374,12 @@ export class Visual implements IVisual {
         const barsSel = renderBars(this.bodyG, vm.activities, xScale, rowHeight, colors);
         const starsSel = renderMilestones(
             this.bodyG, vm.milestones, xScale, rowHeight, colors,
-            this.settings.milestones.hoverExpansion.value
+            milestoneCard.hoverExpansion.value
         );
         renderMilestoneLabels(this.bodyG, renderedLabels, rowHeight, {
-            labelColor: this.settings.milestoneLabels.labelColor.value.value,
-            font: milestoneLabelFont,
-            overflowBehavior: milestoneOverflow,
+            labelColor: milestoneCard.labelColor.value.value,
+            font: labelFont,
+            overflowBehavior: labelOverflow,
         });
 
         this.tooltipService.addTooltip(barsSel, activityTooltip);
@@ -352,10 +387,7 @@ export class Visual implements IVisual {
     }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {
-        // Swim Lanes card now contains BOTH the static slices (show/width/font/etc.)
-        // AND a per-swim-lane ColorPicker for each distinct value. The standalone
-        // "Swim Lane Colors" card was consolidated here in v1.2.0.0.
-        // Persistence: selector{id: areaName} -> objects.swimlanes[areaName].fill
+        // Swim Lanes — static slices + per-swim-lane ColorPickers
         const swimlaneStaticSlices: formattingSettings.Slice[] = [
             this.settings.swimlanes.show,
             this.settings.swimlanes.swimLaneWidthPercent,
@@ -378,7 +410,17 @@ export class Visual implements IVisual {
         );
         this.settings.swimlanes.slices = [...swimlaneStaticSlices, ...swimlaneColorSlices];
 
-        // Milestones — 5 slices per distinct type
+        // Milestones — static label-styling + dynamic per-type slices
+        const milestoneStaticSlices: formattingSettings.Slice[] = [
+            this.settings.milestones.hoverExpansion,
+            this.settings.milestones.labelOverflow,
+            this.settings.milestones.labelColor,
+            this.settings.milestones.labelFontFamily,
+            this.settings.milestones.labelFontSize,
+            this.settings.milestones.labelBold,
+            this.settings.milestones.labelItalic,
+            this.settings.milestones.labelUnderline,
+        ];
         const perTypeSlices: formattingSettings.Slice[] = [];
         for (const typeName of this.lastDistinctTypes) {
             const cfg = this.lastMilestoneConfig[typeName];
@@ -387,39 +429,28 @@ export class Visual implements IVisual {
             const symbolItem = SYMBOL_DROPDOWN_ITEMS.find(i => i.value === cfg.symbol) ?? SYMBOL_DROPDOWN_ITEMS[0];
             perTypeSlices.push(
                 new formattingSettings.ColorPicker({
-                    name: "fill",
-                    displayName: `${typeName} — color`,
-                    selector: sel,
+                    name: "fill", displayName: `${typeName} — color`, selector: sel,
                     value: { value: cfg.color },
                 }),
                 new formattingSettings.ItemDropdown({
-                    name: "symbol",
-                    displayName: `${typeName} — symbol`,
-                    items: SYMBOL_DROPDOWN_ITEMS,
-                    value: symbolItem,
-                    selector: sel,
+                    name: "symbol", displayName: `${typeName} — symbol`,
+                    items: SYMBOL_DROPDOWN_ITEMS, value: symbolItem, selector: sel,
                 }),
                 new formattingSettings.NumUpDown({
-                    name: "size",
-                    displayName: `${typeName} — size (px)`,
-                    value: cfg.size,
-                    selector: sel,
+                    name: "size", displayName: `${typeName} — size (px)`,
+                    value: cfg.size, selector: sel,
                 }),
                 new formattingSettings.ToggleSwitch({
-                    name: "showMarker",
-                    displayName: `${typeName} — show markers`,
-                    value: cfg.showMarker,
-                    selector: sel,
+                    name: "showMarker", displayName: `${typeName} — show markers`,
+                    value: cfg.showMarker, selector: sel,
                 }),
                 new formattingSettings.ToggleSwitch({
-                    name: "showLabel",
-                    displayName: `${typeName} — show labels`,
-                    value: cfg.showLabel,
-                    selector: sel,
+                    name: "showLabel", displayName: `${typeName} — show labels`,
+                    value: cfg.showLabel, selector: sel,
                 }),
             );
         }
-        this.settings.milestones.slices = [this.settings.milestones.hoverExpansion, ...perTypeSlices];
+        this.settings.milestones.slices = [...milestoneStaticSlices, ...perTypeSlices];
 
         return this.settingsService.buildFormattingModel(this.settings);
     }

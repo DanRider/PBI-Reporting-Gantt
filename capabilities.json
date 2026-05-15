@@ -87,7 +87,7 @@
         },
         "milestones": {
             "displayName": "Milestones",
-            "description": "Marker shape, size, color, and visibility per distinct Milestone Type value found in your data.",
+            "description": "Marker + label controls. One subgroup per distinct Milestone Type value with color/symbol/size/visibility, plus shared label-styling controls.",
             "properties": {
                 "fill":           { "displayName": "Color",       "type": { "fill": { "solid": { "color": true } } } },
                 "symbol": {
@@ -103,7 +103,18 @@
                 "size":           { "displayName": "Size (px)",    "type": { "numeric": true } },
                 "showMarker":     { "displayName": "Show markers", "type": { "bool": true } },
                 "showLabel":      { "displayName": "Show labels",  "type": { "bool": true } },
-                "hoverExpansion": { "displayName": "Hover target expansion (%)", "type": { "numeric": true } }
+                "hoverExpansion": { "displayName": "Hover target expansion (%)", "type": { "numeric": true } },
+                "labelOverflow":  { "displayName": "Label overflow", "type": { "enumeration": [
+                    { "value": "truncate", "displayName": "Truncate with …" },
+                    { "value": "hide",     "displayName": "Hide colliding" },
+                    { "value": "overflow", "displayName": "Show all (may overlap)" }
+                ]}},
+                "labelColor":      { "displayName": "Label color",       "type": { "fill": { "solid": { "color": true } } } },
+                "labelFontFamily": { "displayName": "Label font",        "type": { "formatting": { "fontFamily": true } } },
+                "labelFontSize":   { "displayName": "Label size",        "type": { "formatting": { "fontSize": true } } },
+                "labelBold":       { "displayName": "Label bold",        "type": { "bool": true } },
+                "labelItalic":     { "displayName": "Label italic",      "type": { "bool": true } },
+                "labelUnderline":  { "displayName": "Label underline",   "type": { "bool": true } }
             }
         },
         "activityLabels": {
@@ -127,22 +138,6 @@
                 "bold":         { "displayName": "Bold",        "type": { "bool": true } },
                 "italic":       { "displayName": "Italic",      "type": { "bool": true } },
                 "underline":    { "displayName": "Underline",   "type": { "bool": true } }
-            }
-        },
-        "milestoneLabels": {
-            "displayName": "Milestone Labels",
-            "properties": {
-                "overflowBehavior": { "displayName": "When labels collide", "type": { "enumeration": [
-                    { "value": "truncate", "displayName": "Truncate with …" },
-                    { "value": "hide",     "displayName": "Hide colliding" },
-                    { "value": "overflow", "displayName": "Show all (may overlap)" }
-                ]}},
-                "labelColor": { "displayName": "Label color", "type": { "fill": { "solid": { "color": true } } } },
-                "fontFamily": { "displayName": "Font",        "type": { "formatting": { "fontFamily": true } } },
-                "fontSize":   { "displayName": "Size",        "type": { "formatting": { "fontSize": true } } },
-                "bold":       { "displayName": "Bold",        "type": { "bool": true } },
-                "italic":     { "displayName": "Italic",      "type": { "bool": true } },
-                "underline":  { "displayName": "Underline",   "type": { "bool": true } }
             }
         },
         "swimlanes": {
@@ -176,17 +171,39 @@
         },
         "timeAxis": {
             "displayName": "Time Axis",
+            "description": "Three hierarchy levels — Year, Quarter, Month. Each level can be toggled on/off. Quarter and Month tick boundaries can also render vertical gridlines through the chart body with their own color, opacity, and line style.",
             "properties": {
-                "showTodayLine":           { "displayName": "TODAY line",                "type": { "bool": true } },
-                "showTodayLabel":          { "displayName": "TODAY label",               "type": { "bool": true } },
-                "todayLabelColor":         { "displayName": "TODAY color",               "type": { "fill": { "solid": { "color": true } } } },
-                "showPastShading":         { "displayName": "Past shading",              "type": { "bool": true } },
-                "pastShadingColor":        { "displayName": "Past shading color",        "type": { "fill": { "solid": { "color": true } } } },
-                "pastShadingOpacityPct":   { "displayName": "Past shading opacity (%)",  "type": { "numeric": true } },
-                "showFutureShading":       { "displayName": "Future shading",            "type": { "bool": true } },
-                "futureShadingColor":      { "displayName": "Future shading color",      "type": { "fill": { "solid": { "color": true } } } },
+                "showYear":                { "displayName": "Show Year",                "type": { "bool": true } },
+                "yearFill":                { "displayName": "Year chevron color",       "type": { "fill": { "solid": { "color": true } } } },
+                "showQuarter":             { "displayName": "Show Quarter",             "type": { "bool": true } },
+                "quarterFill":             { "displayName": "Quarter chevron color",    "type": { "fill": { "solid": { "color": true } } } },
+                "showMonth":               { "displayName": "Show Month",               "type": { "bool": true } },
+                "monthFill":               { "displayName": "Month chevron color",      "type": { "fill": { "solid": { "color": true } } } },
+                "showQuarterGridlines":    { "displayName": "Show quarter gridlines",    "type": { "bool": true } },
+                "quarterGridlineColor":    { "displayName": "Quarter gridline color",    "type": { "fill": { "solid": { "color": true } } } },
+                "quarterGridlineOpacityPct":{ "displayName": "Quarter gridline opacity (%)","type": { "numeric": true } },
+                "quarterGridlineStyle":    { "displayName": "Quarter gridline style",    "type": { "enumeration": [
+                    { "value": "solid",  "displayName": "Solid" },
+                    { "value": "dashed", "displayName": "Dashed" },
+                    { "value": "dotted", "displayName": "Dotted" }
+                ]}},
+                "showMonthGridlines":      { "displayName": "Show month gridlines",     "type": { "bool": true } },
+                "monthGridlineColor":      { "displayName": "Month gridline color",     "type": { "fill": { "solid": { "color": true } } } },
+                "monthGridlineOpacityPct": { "displayName": "Month gridline opacity (%)","type": { "numeric": true } },
+                "monthGridlineStyle":      { "displayName": "Month gridline style",     "type": { "enumeration": [
+                    { "value": "solid",  "displayName": "Solid" },
+                    { "value": "dashed", "displayName": "Dashed" },
+                    { "value": "dotted", "displayName": "Dotted" }
+                ]}},
+                "showTodayLine":           { "displayName": "TODAY line",               "type": { "bool": true } },
+                "showTodayLabel":          { "displayName": "TODAY label",              "type": { "bool": true } },
+                "todayLabelColor":         { "displayName": "TODAY color",              "type": { "fill": { "solid": { "color": true } } } },
+                "showPastShading":         { "displayName": "Past shading",             "type": { "bool": true } },
+                "pastShadingColor":        { "displayName": "Past shading color",       "type": { "fill": { "solid": { "color": true } } } },
+                "pastShadingOpacityPct":   { "displayName": "Past shading opacity (%)", "type": { "numeric": true } },
+                "showFutureShading":       { "displayName": "Future shading",           "type": { "bool": true } },
+                "futureShadingColor":      { "displayName": "Future shading color",     "type": { "fill": { "solid": { "color": true } } } },
                 "futureShadingOpacityPct": { "displayName": "Future shading opacity (%)","type": { "numeric": true } },
-                "axisLabelColor":          { "displayName": "Year/Quarter label color",  "type": { "fill": { "solid": { "color": true } } } },
                 "fontFamily":              { "displayName": "Font",                     "type": { "formatting": { "fontFamily": true } } },
                 "fontSize":                { "displayName": "Size",                     "type": { "formatting": { "fontSize": true } } },
                 "bold":                    { "displayName": "Bold",                     "type": { "bool": true } },

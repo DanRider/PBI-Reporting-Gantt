@@ -15,6 +15,19 @@ export interface QuarterBand {
     end: Date;
 }
 
+export interface MonthBand {
+    year: number;
+    month: number;       // 1-12
+    start: Date;
+    end: Date;
+}
+
+const MONTH_LETTERS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
+
+export function monthLetter(month: number): string {
+    return MONTH_LETTERS[(month - 1) % 12];
+}
+
 export function buildScale(
     domain: [Date, Date],
     width: number,
@@ -67,6 +80,24 @@ export function quartersInRange([start, end]: [Date, Date]): QuarterBand[] {
             end: endOfQuarter(d),
         });
         d = new Date(d.getFullYear(), d.getMonth() + 3, 1);
+    }
+    return out;
+}
+
+export function monthsInRange([start, end]: [Date, Date]): MonthBand[] {
+    const out: MonthBand[] = [];
+    const begin = new Date(start.getFullYear(), start.getMonth(), 1);
+    const finish = new Date(end.getFullYear(), end.getMonth() + 1, 0);
+    let d = new Date(begin);
+    while (d <= finish) {
+        const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+        out.push({
+            year: d.getFullYear(),
+            month: d.getMonth() + 1,
+            start: new Date(d),
+            end: monthEnd,
+        });
+        d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
     }
     return out;
 }
