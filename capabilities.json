@@ -53,9 +53,70 @@
             "displayName": "Label Position",
             "kind": "Grouping",
             "description": "L | R | none. Author-controlled position of the label relative to the marker. Use 'none' to hide a single milestone's label without affecting others (per-row hide mechanism)."
+        },
+        {
+            "name": "activityNote",
+            "displayName": "Activity Note",
+            "kind": "Grouping",
+            "description": "Optional per-activity status note (free text). Shown in the activity tooltip on hover. Source: a text column on the Activities table — typically a 'Status' or 'Notes' column."
+        },
+        {
+            "name": "milestoneNote",
+            "displayName": "Milestone Note",
+            "kind": "Grouping",
+            "description": "Optional per-milestone status note (free text). Shown in the milestone tooltip on hover. Source: a text column on the Milestones table."
         }
     ],
     "objects": {
+        "title": {
+            "displayName": "Title",
+            "description": "Power BI's built-in platform title. Off by default — use the Chart Title card below instead for richer styling. Turning this on shows the title as a separate text element above the visual viewport (PBI platform handles rendering).",
+            "properties": {
+                "show":         { "displayName": "Show",        "type": { "bool": true } },
+                "text":         { "displayName": "Title text",  "type": { "text": true } },
+                "fontColor":    { "displayName": "Color",       "type": { "fill": { "solid": { "color": true } } } },
+                "background":   { "displayName": "Background",  "type": { "fill": { "solid": { "color": true } } } },
+                "alignment": {
+                    "displayName": "Alignment",
+                    "type": { "enumeration": [
+                        { "value": "left",   "displayName": "Left" },
+                        { "value": "center", "displayName": "Center" },
+                        { "value": "right",  "displayName": "Right" }
+                    ]}
+                }
+            }
+        },
+        "chartTitle": {
+            "displayName": "Chart Title",
+            "description": "Custom title rendered inside the visual at the top — independent from Power BI's built-in 'Title' card. Use this for a styled, presentation-quality title. To avoid two titles, turn the built-in Title card OFF when using Chart Title.",
+            "properties": {
+                "show":       { "displayName": "Show",        "type": { "bool": true } },
+                "text":       { "displayName": "Title text",  "type": { "text": true } },
+                "fontColor":  { "displayName": "Color",       "type": { "fill": { "solid": { "color": true } } } },
+                "fontFamily": { "displayName": "Font",        "type": { "formatting": { "fontFamily": true } } },
+                "fontSize":   { "displayName": "Size",        "type": { "formatting": { "fontSize": true } } },
+                "bold":       { "displayName": "Bold",        "type": { "bool": true } },
+                "italic":     { "displayName": "Italic",      "type": { "bool": true } },
+                "underline":  { "displayName": "Underline",   "type": { "bool": true } },
+                "alignment": {
+                    "displayName": "Alignment",
+                    "type": { "enumeration": [
+                        { "value": "left",   "displayName": "Left" },
+                        { "value": "center", "displayName": "Center" },
+                        { "value": "right",  "displayName": "Right" }
+                    ]}
+                }
+            }
+        },
+        "tooltip": {
+            "displayName": "Tooltip",
+            "description": "Controls hover-tooltip behavior. The Note row appears in both activity and milestone tooltips; this card decides whether to show it and how to handle rows where the Note field is unbound or empty.",
+            "properties": {
+                "showNote":         { "displayName": "Show Note row",            "type": { "bool": true } },
+                "hideRowWhenEmpty": { "displayName": "Hide row when no note",    "type": { "bool": true } },
+                "emptyPlaceholder": { "displayName": "Placeholder for empty notes", "type": { "text": true } }
+            }
+        },
         "layout": {
             "displayName": "Layout",
             "description": "Outer margins around the chart, as percentages of viewport.",
@@ -229,7 +290,9 @@
                     "milestoneDate":     { "max": 1 },
                     "milestoneType":     { "max": 1 },
                     "milestoneLabel":    { "max": 1 },
-                    "labelPosition":     { "max": 1 }
+                    "labelPosition":     { "max": 1 },
+                    "activityNote":      { "max": 1 },
+                    "milestoneNote":     { "max": 1 }
                 }
             ],
             "table": {
@@ -243,7 +306,9 @@
                         { "for": { "in": "milestoneDate" } },
                         { "for": { "in": "milestoneType" } },
                         { "for": { "in": "milestoneLabel" } },
-                        { "for": { "in": "labelPosition" } }
+                        { "for": { "in": "labelPosition" } },
+                        { "for": { "in": "activityNote" } },
+                        { "for": { "in": "milestoneNote" } }
                     ],
                     "dataReductionAlgorithm": {
                         "top": { "count": 5000 }

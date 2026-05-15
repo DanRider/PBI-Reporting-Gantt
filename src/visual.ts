@@ -58,22 +58,50 @@ function fmtDate(d: Date): string {
     return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
-function activityTooltip(a: Activity): VisualTooltipDataItem[] {
-    return [
-        { displayName: "Activity", value: a.name },
-        { displayName: "Swim Lane", value: a.area },
-        { displayName: "Start", value: fmtDate(a.start) },
-        { displayName: "End", value: fmtDate(a.end) },
-    ];
+interface TooltipConfig {
+    showNote: boolean;
+    hideRowWhenEmpty: boolean;
+    emptyPlaceholder: string;
 }
 
-function milestoneTooltip(m: Milestone): VisualTooltipDataItem[] {
-    return [
-        { displayName: "Activity", value: m.activity },
-        { displayName: "Date", value: fmtDate(m.date) },
-        { displayName: "Type", value: m.type },
-        { displayName: "Label", value: m.label ?? "(unlabeled)" },
-    ];
+function makeActivityTooltip(cfg: TooltipConfig): (a: Activity) => VisualTooltipDataItem[] {
+    return (a: Activity) => {
+        // First item's `header` field renders as the tooltip's title row (bold heading).
+        const items: VisualTooltipDataItem[] = [
+            { displayName: "Swim Lane", value: a.area, header: a.name },
+            { displayName: "Start",     value: fmtDate(a.start) },
+            { displayName: "End",       value: fmtDate(a.end) },
+        ];
+        if (cfg.showNote) {
+            const hasNote = a.note != null && a.note.trim().length > 0;
+            if (hasNote) {
+                items.push({ displayName: "Note", value: a.note as string });
+            } else if (!cfg.hideRowWhenEmpty) {
+                items.push({ displayName: "Note", value: cfg.emptyPlaceholder });
+            }
+        }
+        return items;
+    };
+}
+
+function makeMilestoneTooltip(cfg: TooltipConfig): (m: Milestone) => VisualTooltipDataItem[] {
+    return (m: Milestone) => {
+        const headerText = m.label ?? "(unlabeled)";
+        const items: VisualTooltipDataItem[] = [
+            { displayName: "Type",     value: m.type, header: headerText },
+            { displayName: "Activity", value: m.activity },
+            { displayName: "Date",     value: fmtDate(m.date) },
+        ];
+        if (cfg.showNote) {
+            const hasNote = m.note != null && m.note.trim().length > 0;
+            if (hasNote) {
+                items.push({ displayName: "Note", value: m.note as string });
+            } else if (!cfg.hideRowWhenEmpty) {
+                items.push({ displayName: "Note", value: cfg.emptyPlaceholder });
+            }
+        }
+        return items;
+    };
 }
 
 function fontFromCard(card: {
@@ -119,6 +147,7 @@ export class Visual implements IVisual {
     private labelBgG: d3Selection<SVGGElement, unknown, null, undefined>;
     private bodyG: d3Selection<SVGGElement, unknown, null, undefined>;
     private legendG: d3Selection<SVGGElement, unknown, null, undefined>;
+    private chartTitleG: d3Selection<SVGGElement, unknown, null, undefined>;
     private tooltipService: ITooltipServiceWrapper;
     private settingsService: FormattingSettingsService;
     private settings: VisualFormattingSettingsModel;
@@ -146,6 +175,7 @@ export class Visual implements IVisual {
         this.labelBgG = this.svg.append("g").attr("class", "label-backgrounds");
         this.bodyG = this.svg.append("g").attr("class", "body");
         this.legendG = this.svg.append("g").attr("class", "legend");
+        this.chartTitleG = this.svg.append("g").attr("class", "chart-title");
     }
 
     public update(options: VisualUpdateOptions): void {
@@ -211,7 +241,40 @@ export class Visual implements IVisual {
         const leftMarginPx   = clamp(width * (this.settings.layout.leftMarginPercent.value   / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
         const rightMarginPx  = clamp(width * (this.settings.layout.rightMarginPercent.value  / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
 
-        const headerOffset = topMarginPx;
+        // ── Chart Title (custom) ─────────────────────────────────────────────
+        // Renders inside the SVG viewport at the top. Independent from PBI's
+        // built-in platform Title (which can be hidden via Format pane → Title → Show off).
+        this.chartTitleG.selectAll("*").remove();
+        let chartTitleHeight = 0;
+        const ct = this.settings.chartTitle;
+        const ctText = (ct.text.value ?? "").trim();
+        if (ct.show.value && ctText.length > 0) {
+            const ctFontSize = ct.fontSize.value;
+            const ctPaddingY = 8;
+            chartTitleHeight = ctFontSize + ctPaddingY * 2;
+            const ctAlignment = ct.alignment.value.value as "left" | "center" | "right";
+            const ctAnchor =
+                ctAlignment === "left"  ? "start" :
+                ctAlignment === "right" ? "end"   : "middle";
+            const ctX =
+                ctAlignment === "left"  ? leftMarginPx + 8 :
+                ctAlignment === "right" ? width - rightMarginPx - 8 :
+                width / 2;
+            this.chartTitleG.append("text")
+                .attr("x", ctX)
+                .attr("y", topMarginPx + ctPaddingY + ctFontSize / 2)
+                .attr("text-anchor", ctAnchor)
+                .attr("dominant-baseline", "middle")
+                .attr("fill", ct.fontColor.value.value)
+                .attr("font-family", ct.fontFamily.value)
+                .attr("font-size", ctFontSize)
+                .attr("font-weight", ct.bold.value ? "bold" : "normal")
+                .attr("font-style", ct.italic.value ? "italic" : "normal")
+                .attr("text-decoration", ct.underline.value ? "underline" : "none")
+                .text(ctText);
+        }
+
+        const headerOffset = topMarginPx + chartTitleHeight;
 
         // ── No-data state ─────────────────────────────────────────────────────
         if (vm.activities.length === 0 && vm.milestones.length === 0) {
@@ -381,8 +444,16 @@ export class Visual implements IVisual {
             overflowBehavior: labelOverflow,
         });
 
-        this.tooltipService.addTooltip(barsSel, activityTooltip);
-        this.tooltipService.addTooltip(starsSel, milestoneTooltip);
+        const tooltipCard = this.settings.tooltip;
+        const tooltipCfg: TooltipConfig = {
+            showNote: tooltipCard.showNote.value,
+            hideRowWhenEmpty: tooltipCard.hideRowWhenEmpty.value,
+            emptyPlaceholder: (tooltipCard.emptyPlaceholder.value ?? "").length > 0
+                ? tooltipCard.emptyPlaceholder.value
+                : "(no note recorded)",
+        };
+        this.tooltipService.addTooltip(barsSel, makeActivityTooltip(tooltipCfg));
+        this.tooltipService.addTooltip(starsSel, makeMilestoneTooltip(tooltipCfg));
     }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {

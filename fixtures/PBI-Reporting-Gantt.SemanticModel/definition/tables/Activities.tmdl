@@ -50,6 +50,14 @@ table Activities
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Activity Note'
+		dataType: string
+		lineageTag: f8e2a951-0d5c-4b1e-9e7a-2c7e3f44a8b1
+		summarizeBy: none
+		sourceColumn: Activity Note
+
+		annotation SummarizationSetBy = Automatic
+
 	partition Activities-26e3e969-f225-4e9d-a275-a5ce3a299a19 = m
 		mode: import
 		source =
@@ -62,7 +70,8 @@ table Activities
 				        {"Area", type text},
 				        {"Start Date", type date},
 				        {"End Date", type date},
-				        {"SortOrder", Int64.Type}
+				        {"SortOrder", Int64.Type},
+				        {"Activity Note", type text}
 				    })
 				in
 				    ChangedType

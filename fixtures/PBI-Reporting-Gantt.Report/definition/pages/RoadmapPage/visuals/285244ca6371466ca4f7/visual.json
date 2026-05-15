@@ -173,6 +173,42 @@
               "nativeQueryRef": "Area"
             }
           ]
+        },
+        "activityNote": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Activities"
+                    }
+                  },
+                  "Property": "Activity Note"
+                }
+              },
+              "queryRef": "Activities.Activity Note",
+              "nativeQueryRef": "Activity Note"
+            }
+          ]
+        },
+        "milestoneNote": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Milestones"
+                    }
+                  },
+                  "Property": "Milestone Note"
+                }
+              },
+              "queryRef": "Milestones.Milestone Note",
+              "nativeQueryRef": "Milestone Note"
+            }
+          ]
         }
       }
     },
@@ -237,6 +273,107 @@
               "expr": {
                 "Literal": {
                   "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "chartTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Operations Modernization Roadmap — 2025–2027'"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#1F2937'"
+                    }
+                  }
+                }
+              }
+            },
+            "fontFamily": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Segoe UI Semibold'"
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "22D"
+                }
+              }
+            },
+            "bold": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "italic": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "underline": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "alignment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'center'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
                 }
               }
             }
@@ -369,6 +506,34 @@
               }
             },
             "Property": "Area"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "f8e2a9510d5c4b1e9e7a",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Activities"
+              }
+            },
+            "Property": "Activity Note"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "c3a9d7126f4e4d8ba52e",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Milestones"
+              }
+            },
+            "Property": "Milestone Note"
           }
         },
         "type": "Categorical"

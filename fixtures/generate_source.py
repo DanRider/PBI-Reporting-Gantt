@@ -159,21 +159,50 @@ MILESTONES: list[tuple[str, date, str, str | None, str]] = [
 # cross-join doesn't drop them. The viewmodel filters Milestone Type === "__phantom".
 PHANTOM_ACTIVITIES = ["Warehouse Move", "Inventory Audit Cycle"]
 
+# Sparse Activity Notes — keyed by activity name. Status notes shown in tooltip
+# on hover for the bar. Most activities have no note (realistic — not every
+# project has a current status callout). v1.8.0.0 feature.
+ACTIVITY_NOTES: dict[str, str] = {
+    "Plant 2 Expansion":            "Permits cleared; foundation contractor confirmed for May start.",
+    "Mobile Operator Console":      "Pilot floor adoption running ahead of target — 38 of 40 operators trained.",
+    "Robotics Cell Network":        "Vendor SLA renegotiation may push final cell migration into Q1 2028.",
+    "Sustainable Materials Program":"Material spec frozen after 3 rounds with engineering and procurement.",
+    "ISO 9001 Recertification":     "External auditor confirmed for Aug 1–4; evidence binders 80% ready.",
+    "OT Network Segmentation":      "Pentest scope expanded to include the new robotics cell network.",
+    "Business Continuity Program":  "Tabletop exercise revealed gap in supplier-escalation path; remediation in v1.1.",
+    "Procurement Workflow":         "Pilot site (Plant 1) live and stable; org-wide rollout cleared for Nov.",
+}
+
+# Sparse Milestone Notes — keyed by (activity, milestone date, type). ~10 of 64
+# milestones have notes. Status callouts for specific events.
+MILESTONE_NOTES: dict[tuple[str, date, str], str] = {
+    ("Plant 2 Expansion",         date(2026, 5, 20),  "Major"): "Concrete pour delayed 3 days due to weather; on critical path.",
+    ("Plant 2 Expansion",         date(2026, 9, 15),  "Major"): "Two CNC mills arriving Q3 from Yamazaki; install crew booked.",
+    ("MES Pipeline Refresh",      date(2026, 6, 15),  "Major"): "Cutover plan reviewed with operations; rollback path documented.",
+    ("Mobile Operator Console",   date(2026, 12, 1),  "Major"): "Hardware refresh (Zebra TC52) ordered alongside software rollout.",
+    ("ISO 9001 Recertification",  date(2026, 8, 1),   "Minor"): "Lead auditor: Mary Chen, KPMG. 4-day on-site engagement.",
+    ("ISO 9001 Recertification",  date(2026, 11, 15), "Major"): "Certificate valid through November 2029 (3-year cycle).",
+    ("OT Network Segmentation",   date(2026, 7, 15),  "Major"): "VLAN inventory complete; 47 firewall rule changes approved.",
+    ("OT Network Segmentation",   date(2026, 11, 1),  "Minor"): "External pentest firm: Praetorian Security; SOW signed.",
+    ("Plant Incident Response",   date(2026, 12, 1),  "Major"): "v1 ratified by ops council; rollout to all 3 plants begins Q1.",
+    ("Supplier Consolidation",    date(2026, 10, 1),  "Major"): "First 5 consolidated: ~12% spend reduction realized in Q4.",
+}
+
 
 def main() -> None:
     wb = Workbook()
     ws_a = wb.active
     ws_a.title = "Activities"
-    ws_a.append(["Activity", "Area", "Start Date", "End Date", "SortOrder"])
+    ws_a.append(["Activity", "Area", "Start Date", "End Date", "SortOrder", "Activity Note"])
     for i, (name, area, start, end) in enumerate(ACTIVITIES):
-        ws_a.append([name, area, start, end, i])
+        ws_a.append([name, area, start, end, i, ACTIVITY_NOTES.get(name)])
 
     ws_m = wb.create_sheet("Milestones")
-    ws_m.append(["Activity", "Milestone Date", "Milestone Type", "Milestone Label", "Label Position"])
+    ws_m.append(["Activity", "Milestone Date", "Milestone Type", "Milestone Label", "Label Position", "Milestone Note"])
     for activity, mdate, mtype, label, pos in MILESTONES:
-        ws_m.append([activity, mdate, mtype, label, pos])
+        ws_m.append([activity, mdate, mtype, label, pos, MILESTONE_NOTES.get((activity, mdate, mtype))])
     for activity in PHANTOM_ACTIVITIES:
-        ws_m.append([activity, date(2026, 1, 1), "__phantom", None, "none"])
+        ws_m.append([activity, date(2026, 1, 1), "__phantom", None, "none", None])
 
     wb.save(OUTPUT)
 
@@ -181,11 +210,14 @@ def main() -> None:
     areas = sorted({a for _, a, _, _ in ACTIVITIES})
     type_counts = {t: sum(1 for _, _, mt, _, _ in MILESTONES if mt == t) for t in types}
     area_counts = {a: sum(1 for _, ar, _, _ in ACTIVITIES if ar == a) for a in areas}
+    activity_notes_filled = sum(1 for name, _, _, _ in ACTIVITIES if name in ACTIVITY_NOTES)
+    milestone_notes_filled = sum(1 for activity, mdate, mtype, _, _ in MILESTONES if (activity, mdate, mtype) in MILESTONE_NOTES)
 
     print(f"Wrote {OUTPUT}")
     print(f"  Activities: {len(ACTIVITIES)} ({', '.join(f'{a}={n}' for a, n in area_counts.items())})")
     print(f"  Milestones: {len(MILESTONES)} real + {len(PHANTOM_ACTIVITIES)} phantom = {len(MILESTONES) + len(PHANTOM_ACTIVITIES)} rows")
     print(f"  Types: {', '.join(f'{t}={n}' for t, n in type_counts.items())}")
+    print(f"  Notes: {activity_notes_filled}/{len(ACTIVITIES)} activities + {milestone_notes_filled}/{len(MILESTONES)} milestones populated")
 
 
 if __name__ == "__main__":

@@ -44,6 +44,14 @@ table Milestones
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Milestone Note'
+		dataType: string
+		lineageTag: c3a9d712-6f4e-4d8b-a52e-1b9c8e3f7d04
+		summarizeBy: none
+		sourceColumn: Milestone Note
+
+		annotation SummarizationSetBy = Automatic
+
 	partition Milestones-8f2a6180-e056-4455-80c8-0e3d1e0f0a5e = m
 		mode: import
 		source =
@@ -56,7 +64,8 @@ table Milestones
 				        {"Milestone Date", type date},
 				        {"Milestone Type", type text},
 				        {"Milestone Label", type text},
-				        {"Label Position", type text}
+				        {"Label Position", type text},
+				        {"Milestone Note", type text}
 				    })
 				in
 				    ChangedType

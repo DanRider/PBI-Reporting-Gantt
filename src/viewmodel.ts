@@ -38,6 +38,7 @@ export interface Activity {
     start: Date;
     end: Date;
     index: number;
+    note: string | null;    // optional per-row status note from Activity Note role; null when unbound or empty
 }
 
 export interface Milestone {
@@ -48,6 +49,7 @@ export interface Milestone {
     labelPos: LabelPos;     // "L" | "R" | "none" — "none" hides the label (per-row hide mechanism)
     id: string;
     parentRowIndex: number;
+    note: string | null;    // optional per-row status note from Milestone Note role
 }
 
 export interface AreaGroup {
@@ -124,6 +126,7 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
                     start,
                     end,
                     index: activityMap.size,
+                    note: strAt(row, idx.activityNote),
                 });
             }
         }
@@ -144,6 +147,7 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
                 labelPos: (strAt(row, idx.labelPosition) ?? "none") as LabelPos,
                 id: `m${milestoneCounter++}`,
                 parentRowIndex: -1,
+                note: strAt(row, idx.milestoneNote),
             });
         }
     }

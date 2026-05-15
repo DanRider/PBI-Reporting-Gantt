@@ -22,6 +22,81 @@ const LINE_STYLE_ITEMS = [
     { value: "dotted", displayName: "Dotted" },
 ];
 
+const ALIGNMENT_ITEMS = [
+    { value: "left",   displayName: "Left" },
+    { value: "center", displayName: "Center" },
+    { value: "right",  displayName: "Right" },
+];
+
+// ── Title (overrides PBI's built-in platform title — defaults OFF) ────────
+// Declaring this object in capabilities.json + this card with show=false
+// tells PBI's platform: don't auto-concatenate data role names as a title;
+// instead use these settings. Default show=false suppresses the eyesore
+// auto-title for every clone. Users can opt in to either this OR the more
+// powerful Chart Title card below.
+class TitleCard extends SimpleCard {
+    show = new formattingSettings.ToggleSwitch({ name: "show", displayName: "Show", value: false });
+    text = new formattingSettings.TextInput({
+        name: "text", displayName: "Title text", placeholder: "",
+        value: "",
+    });
+    fontColor = new formattingSettings.ColorPicker({ name: "fontColor", displayName: "Color", value: { value: "#222222" } });
+    background = new formattingSettings.ColorPicker({ name: "background", displayName: "Background", value: { value: "#FFFFFF" } });
+    alignment = new formattingSettings.ItemDropdown({
+        name: "alignment", displayName: "Alignment",
+        items: ALIGNMENT_ITEMS, value: ALIGNMENT_ITEMS[0],
+    });
+    name: string = "title";
+    displayName: string = "Title";
+    slices: Array<FormattingSettingsSlice> = [
+        this.show, this.text, this.fontColor, this.background, this.alignment,
+    ];
+}
+
+// ── Chart Title (custom title — independent of PBI's built-in Title card) ─
+// Renders inside the SVG viewport at the top. Named "chartTitle" to avoid
+// the duplicate-collision with PBI's platform "Title" object.
+class ChartTitleCard extends SimpleCard {
+    show = new formattingSettings.ToggleSwitch({ name: "show", displayName: "Show", value: false });
+    text = new formattingSettings.TextInput({
+        name: "text", displayName: "Title text", placeholder: "Project Roadmap",
+        value: "Project Roadmap",
+    });
+    fontColor = new formattingSettings.ColorPicker({ name: "fontColor", displayName: "Color", value: { value: "#1F2937" } });
+    fontFamily = new formattingSettings.FontPicker({ name: "fontFamily", displayName: "Font", value: "Segoe UI" });
+    fontSize = new formattingSettings.NumUpDown({ name: "fontSize", displayName: "Size", value: 18 });
+    bold = new formattingSettings.ToggleSwitch({ name: "bold", displayName: "Bold", value: true });
+    italic = new formattingSettings.ToggleSwitch({ name: "italic", displayName: "Italic", value: false });
+    underline = new formattingSettings.ToggleSwitch({ name: "underline", displayName: "Underline", value: false });
+    alignment = new formattingSettings.ItemDropdown({
+        name: "alignment", displayName: "Alignment",
+        items: ALIGNMENT_ITEMS, value: ALIGNMENT_ITEMS[1],
+    });
+    name: string = "chartTitle";
+    displayName: string = "Chart Title";
+    slices: Array<FormattingSettingsSlice> = [
+        this.show, this.text, this.fontColor, this.fontFamily, this.fontSize,
+        this.bold, this.italic, this.underline, this.alignment,
+    ];
+}
+
+// ── Tooltip (note-row visibility + empty-state behavior) ──────────────────
+class TooltipCard extends SimpleCard {
+    showNote = new formattingSettings.ToggleSwitch({ name: "showNote", displayName: "Show Note row", value: true });
+    hideRowWhenEmpty = new formattingSettings.ToggleSwitch({
+        name: "hideRowWhenEmpty", displayName: "Hide row when no note", value: false,
+    });
+    emptyPlaceholder = new formattingSettings.TextInput({
+        name: "emptyPlaceholder", displayName: "Placeholder for empty notes",
+        placeholder: "(no note recorded)", value: "(no note recorded)",
+    });
+    name: string = "tooltip";
+    displayName: string = "Tooltip";
+    slices: Array<FormattingSettingsSlice> = [
+        this.showNote, this.hideRowWhenEmpty, this.emptyPlaceholder,
+    ];
+}
+
 // ── Milestones (composite card with 5 collapsible groups) ─────────────────
 export class MilestonesCard extends CompositeCard {
     name: string = "milestones";
@@ -310,17 +385,23 @@ class TimeAxisCard extends CompositeCard {
 }
 
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
+    title = new TitleCard();
+    chartTitle = new ChartTitleCard();
     layout = new LayoutCard();
     milestones = new MilestonesCard();
     activityLabels = new ActivityLabelsCard();
     swimlanes = new SwimlanesCard();
     timeAxis = new TimeAxisCard();
+    tooltip = new TooltipCard();
 
     cards = [
+        this.title,
+        this.chartTitle,
         this.layout,
         this.swimlanes,
         this.activityLabels,
         this.milestones,
         this.timeAxis,
+        this.tooltip,
     ];
 }

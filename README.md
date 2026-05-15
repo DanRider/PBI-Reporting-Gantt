@@ -1,192 +1,161 @@
 # Reporting Gantt
 
-Generic timeline visual for Power BI. Activity swim lanes, chevron time axis, milestone markers with conditional left/right labels. Data-driven — works with any (Activity, Area, Start, End, MilestoneActivity, MilestoneDate, MilestoneType, MilestoneLabel, LabelPos)-shaped dataset.
+A presentation-quality timeline visual for Power BI. Activity swim lanes, chevron time axis, milestone markers with conditional left/right labels, and per-row status notes shown on hover. Data-driven against any (Activity, Area, Start, End, Milestone Activity, Milestone Date, Milestone Type, Milestone Label, Label Position, Activity Note, Milestone Note)-shaped dataset.
 
-MIT licensed. Local-only (no AppSource publish).
+MIT licensed. Open source on GitHub.
 
 ![Reporting Gantt rendering with bundled demo data](docs/screenshot.png)
 
-## What it renders
+## Quick start
 
-- **Forward-pointing chevron time axis** (Year + Quarter bands, with TODAY marker + past/future shading)
-- **Swim lanes per Area** — N areas supported (no cap), bracket rails on the left
-- **Activity bars** colored by Area (defaults from PBI theme palette, overridable per-area in Format pane), rounded ends, dynamic row height so the visual never overflows
-- **Activity row labels** with staggered horizontal "lollipops" connecting label → bar start
-- **Milestone markers** — choose your symbol (star, circle, triangle, square, diamond) per type, choose your size, choose your color
-- **Conditional marker labels** with explicit L / R positioning, arrows (← / →) showing which marker a label belongs to
-- **Auto-flip + truncation** for labels that would overflow the right edge or collide with a neighbor
-- **Upper-left legend** showing the bound milestone types with their picked symbols + colors
-- **Hover tooltips** on bars and markers
+Three ways to see it running:
 
-## Install
+### 1. Try the demo fixture (zero setup)
 
-1. Open your Power BI Desktop report.
-2. Visualizations pane → "…" → "Get more visuals" → "Import a visual from a file".
-3. Select `dist/reportingGantt….<version>.pbiviz`.
-4. Accept the security prompt → click **Import**.
+Clone this repo and open `fixtures/PBI-Reporting-Gantt.pbip` in Power BI Desktop. The visual is wired against `fixtures/Demo-Roadmap-Source.xlsx` — a generic project-portfolio dataset for an industrial equipment manufacturer (24 activities across Production / Product Development / Supply Chain, 64 milestones, Q4 2025 → Q4 2027 timeline). The custom visual is bundled inside the `.pbip` so it works on first open.
 
-The visual appears in the Visualizations pane under the name **Reporting Gantt**.
+> **Path note**: the demo's Power Query M Source step uses an absolute path: `C:\CORTEX\projects\Reporting-Gantt\fixtures\Demo-Roadmap-Source.xlsx`. If you cloned elsewhere, open Power Query Editor → edit the Source step on both the Activities and Milestones tables → repoint at your local `.xlsx`. Then **Home → Refresh**.
 
-## Try the demo
+### 2. Import the `.pbiviz` into your own report
 
-Open `fixtures/PBI-Reporting-Gantt.pbip` in Power BI Desktop. The visual is already wired against the bundled `Demo-Roadmap-Source.xlsx` — a generic project-portfolio dataset for an industrial equipment manufacturer (24 activities across Production / Product Development / Supply Chain, 64 milestones across Major / Minor, date range Q4 2025 → Q4 2027).
+Visualizations pane → ⋯ → **Get more visuals** → **Import a visual from a file**. Select `dist/reportingGantt….1.8.0.0.pbiviz`. The visual appears in the Visualizations pane as **Reporting Gantt**. Bind your own (Activity, Area, Start, End) + (Milestone Activity, Milestone Date, Milestone Type, Milestone Label, Label Position) columns from your model.
 
-> **Path note.** The Power Query M `Source` step uses an absolute path: `C:\CORTEX\projects\Reporting-Gantt\fixtures\Demo-Roadmap-Source.xlsx`. If you clone elsewhere, open Power Query → edit the `Source` step on both the **Activities** and **Milestones** tables → repoint at your local copy of the .xlsx. Then **Home → Refresh**.
-
-Regenerate the demo dataset from source:
-
-```
-pip install openpyxl
-python fixtures/generate_source.py
-```
-
-## Data contract
-
-Two related tables joined by activity name. Sample fixture at `fixtures/Demo-Roadmap-Source.xlsx` (run `python fixtures/generate_source.py` to (re)generate).
-
-### Activities table
-
-| Column        | Type   | Required | Notes                                                                |
-|---------------|--------|----------|----------------------------------------------------------------------|
-| `Activity`    | text   | ✓        | PK, unique per row                                                   |
-| `Area`        | text   | ✓        | Any value — drives swim-lane segmentation; sort order = first-seen-in-data |
-| `Start Date`  | date   | ✓        |                                                                      |
-| `End Date`    | date   | ✓        |                                                                      |
-| `SortOrder`   | number | optional | If present, preserves your row ordering through PBI's row-rebucketing |
-
-### Milestones table
-
-| Column            | Type   | Required | Notes                                                                |
-|-------------------|--------|----------|----------------------------------------------------------------------|
-| `Activity`        | text   | ✓        | FK → Activities.Activity                                             |
-| `Milestone Date`  | date   | ✓        |                                                                      |
-| `Milestone Type`  | text   | ✓        | Any value — visual renders **first 2 distinct types**, drops the rest with a console warning |
-| `Milestone Label` | text   | optional | Nullable — unlabeled markers allowed                                 |
-| `Label Position`  | text   | optional | `L` / `R` shows the label on that side of the marker; `none` (or unbound) hides the label. Per-row hide control — the single source of truth for whether a given milestone's label renders. |
-
-### Data role wiring
-
-| Visual data role     | Source column                       |
-|----------------------|-------------------------------------|
-| Activity             | `Activities[Activity]`              |
-| Area                 | `Activities[Area]`                  |
-| Start Date           | `Activities[Start Date]`            |
-| End Date             | `Activities[End Date]`              |
-| Milestone Activity   | `Milestones[Activity]`              |
-| Milestone Date       | `Milestones[Milestone Date]`        |
-| Milestone Type       | `Milestones[Milestone Type]`        |
-| Milestone Label      | `Milestones[Milestone Label]`       |
-| Label Position       | `Milestones[Label Position]`        |
-
-### PBI quirks worked around
-
-- **Activities without any matching Milestone rows** are filtered out by PBI's relationship cross-join. Workaround: emit one phantom milestone row per such activity with `Milestone Type = "__phantom"`. The viewmodel filters phantom rows before render. See `fixtures/generate_source.py` for the pattern.
-- **Multi-year date-span filtering** via Calendar→Activities[StartDate] alone breaks for activities spanning into a year that's not the start year. If you need date-span filtering, build a Calendar bridge table (Activity × Date row per active day).
-
-## Format pane (8 cards)
-
-### Layout
-
-| Property                       | Default | Notes                                                          |
-|--------------------------------|---------|----------------------------------------------------------------|
-| `leftRailWidthPercent`         | 7%      | Width of the swim-lane bracket rail (% of visual width).      |
-| `activityLabelWidthPercent`    | 14%     | Width of the activity row label column.                       |
-| `rightMarginPercent`           | 4%      | Right-edge whitespace.                                        |
-
-Plot area = `100% − leftRail − activityLabel − rightMargin`. All clamp to safe min/max.
-
-### Area Colors (dynamic — N entries)
-
-One color picker per distinct `Area` value found in the data. Defaults derived from `host.colorPalette.getColor(areaName).value` (deterministic per-string from the report theme palette). User overrides persist across `.pbix` save/reopen, keyed by area name (so the override stays put even if you swap data).
-
-### Milestones (fixed 2 slots)
-
-The visual binds the **first 2 distinct milestone types** seen in the data to slots 1 and 2. Each slot has its own:
-
-- `typeNColor` — fill color
-- `typeNSymbol` — `star` / `circle` / `triangle` / `square` / `diamond`
-- `typeNSize` — pixel size (default 11)
-- `typeNShowMarker` — toggle marker visibility. Hiding markers also hides their labels (compound rule — labels require their marker to be visible).
-
-Plus a global `hoverExpansion` (default 50%) controlling the invisible hover hit-area beyond the visible marker.
-
-**Label visibility rule** (as of v1.7.1.0):
-```
-label renders iff
-  (label data role has non-empty text) AND
-  (Label Position != "none")           — per-row hide via the Milestones table
-  AND (this type's Show markers = on)  — compound with marker visibility
-```
-
-If your data has 3+ distinct milestone types, the 3rd+ are dropped with a console warning. (This is the "max 2" cap by design — keeps the visual readable.)
-
-### Activity Labels
-
-| Property            | Default          | Notes                                                                                      |
-|---------------------|------------------|--------------------------------------------------------------------------------------------|
-| `show`              | on               | Master toggle                                                                              |
-| `wrapText`          | on               | Wrap long activity names to 2 lines                                                       |
-| `overflowBehavior`  | truncate         | `truncate` (adds …) / `hide` / `overflow`                                                  |
-| `fillMode`          | grey             | `grey` / `area` (use the row's area color)                                                 |
-| `customColor`       | `#2A2A2A`        | Override applied when `fillMode=grey`                                                      |
-| `fontSize`          | 10               |                                                                                            |
-
-### Milestone Labels
-
-This card controls label **layout** (text size, color, collision/overflow behavior). Per-row label **visibility** is data-driven via the `Label Position` column on the Milestones table — set a row's value to `none` to hide that one label, or leave the column unbound to hide every label.
-
-| Property            | Default     | Notes                                                                                          |
-|---------------------|-------------|------------------------------------------------------------------------------------------------|
-| `overflowBehavior`  | truncate    | `truncate` / `hide colliding` / `overflow`                                                     |
-| `fontSize`          | 8           | Drives the dynamic minimum-truncation-width threshold                                         |
-| `labelColor`        | black       | Single color shared across both types                                                          |
-
-Auto-flip (right-edge labels mirror to the opposite side) is **always on** — viewport-correctness, not stylistic.
-
-### Swim Lanes
-
-| Property     | Default | Notes                                                                                  |
-|--------------|---------|----------------------------------------------------------------------------------------|
-| `show`       | on      | Master toggle for left rail brackets + rotated area labels                            |
-| `wrapText`   | on      | Wrap area labels inside the rail width                                                |
-
-### Legend
-
-| Property | Default | Notes                                                                |
-|----------|---------|----------------------------------------------------------------------|
-| `show`   | on      | Renders the type swatches at the **upper-left corner** of the visual |
-
-Legend renders in the otherwise-unused space above the swim-lane rails. Each entry uses the user-picked symbol + size + color for that bound type.
-
-### Time Axis
-
-| Property                  | Default     | Notes                                                                            |
-|---------------------------|-------------|----------------------------------------------------------------------------------|
-| `showTodayLine`           | on          | Vertical dashed line at today's date                                             |
-| `showTodayLabel`          | on          | "TODAY \|" text label anchored to the line                                       |
-| `todayLabelColor`         | `#444444`   |                                                                                  |
-| `showPastShading`         | on          | Tints the area to the left of TODAY                                              |
-| `pastShadingColor`        | `#000000`   |                                                                                  |
-| `pastShadingOpacityPct`   | 10          |                                                                                  |
-| `showFutureShading`       | off         | Tints the area to the right of TODAY                                             |
-| `futureShadingColor`      | `#FFFAF0`   | Warm cream                                                                       |
-| `futureShadingOpacityPct` | 50          |                                                                                  |
-
-## Build
+### 3. Build from source
 
 ```
 npm install
 npm run package
 ```
 
-Outputs `dist/reportingGantt….<version>.pbiviz`.
+Outputs `dist/<guid>.<version>.pbiviz`.
+
+## Data contract
+
+Two related tables joined by activity name.
+
+### Activities
+
+| Column | Type | Required | Notes |
+|---|---|---|---|
+| `Activity` | text | ✓ | Primary key; one bar per distinct value |
+| `Area` (Swim Lane) | text | ✓ | Groups bars into swim lanes; first-seen-in-data sort order; cap 8 distinct values |
+| `Start Date` | date | ✓ | Bar start |
+| `End Date` | date | ✓ | Bar end |
+| `SortOrder` | number | optional | Preserves source-row ordering through PBI's rebucketing |
+| `Activity Note` | text | optional | Status note shown in tooltip on hover (v1.8.0.0+) |
+
+### Milestones
+
+| Column | Type | Required | Notes |
+|---|---|---|---|
+| `Activity` | text | ✓ | Foreign key → `Activities[Activity]` |
+| `Milestone Date` | date | ✓ | Marker position along the bar |
+| `Milestone Type` | text | ✓ | Marker classifier; cap 2 distinct values (first 2 bind to slots 1/2; rest dropped with console warning) |
+| `Milestone Label` | text | optional | Text shown next to the marker |
+| `Label Position` | text | optional | `L` / `R` / `none` — author-controlled side of marker; `none` hides label (per-row hide mechanism) |
+| `Milestone Note` | text | optional | Status note shown in tooltip on hover (v1.8.0.0+) |
+
+### PBI quirks worked around
+
+- **Activities without matching milestone rows** get dropped by PBI's relationship cross-join. Workaround: emit one phantom row per such activity with `Milestone Type = "__phantom"`. The viewmodel filters phantom rows before render. The demo's `fixtures/generate_source.py` shows the pattern.
+- **Multi-year date-span filtering** via `Calendar → Activities[Start Date]` alone breaks for activities spanning past the start year. If you need date-span filtering, build a Calendar bridge table (activity × date row per active day) — the demo's TMDL shows this.
+
+## Format pane reference
+
+Eight cards organize all the controls. Defaults are sensible for most use cases — open the cards to customize.
+
+### Title (Power BI built-in)
+
+![Title card](docs/format-pane/PBI-Ghantt-Title.png)
+
+Power BI Desktop's standard built-in title. **Off by default** — declaring this object's `show` default as `false` in the visual's capabilities suppresses Power BI's auto-concatenation of data role names as the title (which is the ugly default behavior for visuals that don't declare a title object).
+
+Turn this on to render a simple text title above the visual viewport with a single color and alignment. For richer styling (font family/size/bold/italic/underline), use **Chart Title** below instead.
+
+### Chart Title (custom — presentation quality)
+
+![Chart Title card](docs/format-pane/PBI-Ghantt-ChartTitle.png)
+
+A custom in-SVG title with full styling control: **Show toggle**, **Title text**, **Color**, **Font family**, **Size**, **Bold / Italic / Underline**, **Alignment** (left / center / right). Renders inside the visual viewport so it travels with the visual when exported. Use this for PowerPoint-quality output — the demo uses **Segoe UI Semibold, 22pt, bold, #1F2937 (dark charcoal), centered**.
+
+### Size and style (Power BI built-in)
+
+![Size and style card](docs/format-pane/PBI-Ghantt-SizeandStyle.png)
+
+Power BI Desktop's standard visual container controls — background, border, lock aspect, padding, visual header. Not part of the Reporting Gantt code; included here for completeness so you know where to find these settings.
+
+### Layout
+
+![Layout card](docs/format-pane/PBI-Ghantt-Layout.png)
+
+Four outer margins as percentages of the visual viewport width — Top / Bottom / Left / Right. Defaults are 1% on every side. Use this to push the chart inward from the visual container edge for breathing room.
+
+### Swim Lanes
+
+![Swim Lanes card](docs/format-pane/PBI-Ghantt-SwimLanes.png)
+
+Three collapsible groups inside one card:
+
+- **Layout** — Show toggle, swim-lane column width (% of visual), rail alignment (left / center / right of label), text wrapping.
+- **Label styling** — Use swim-lane color for label (default on); custom label color; font family / size / bold / italic / underline.
+- **Colors** — One color picker per slot (8 slots total). Slot 1's display name auto-binds to the first distinct Area value found in data; Slot 2 to the second; etc. Unused slots are hidden from the Format pane to keep it tidy.
+
+### Activity Labels
+
+![Activity Labels card](docs/format-pane/PBI-Ghantt-ActivityLabels.png)
+
+Row labels (one per activity bar). Controls: Show toggle, label column width (%), text wrap (2 lines), overflow behavior (truncate with … / hide / overflow), fill mode (dark grey or swim-lane color), custom color, full font controls. Staggered horizontal "lollipop" connectors link each label to its bar.
+
+### Milestones
+
+A composite card with five groups across two screenshots:
+
+![Milestones card — hover, labels, legend](docs/format-pane/PBI-Ghantt-Milestones1.png)
+
+- **Hover behavior** — Hover target expansion (% beyond the marker edge); larger = easier to land tooltips on small markers.
+- **Labels** — Overflow mode (truncate / hide colliding / overflow), label color, full font controls. Auto-flip on right-edge overflow is always on (viewport-correctness, not stylistic).
+- **Legend** — Show toggle (default on); legend renders in the upper-left corner of the header band. Full font + color controls.
+
+![Milestones card — Type 1 and Type 2 marker config](docs/format-pane/PBI-Ghantt-Milestones2.png)
+
+- **Type 1** and **Type 2** — Each marker type bound from data gets its own collapsible group with: **Color**, **Symbol** (star / circle / triangle / square / diamond), **Size** (pixels), **Show markers** toggle. Hiding markers compounds: a hidden marker hides its label too.
+
+### Time Axis
+
+A composite card with seven groups across three screenshots:
+
+![Time Axis card — chevron style, Year, Quarter](docs/format-pane/PBI-Ghantt-TimeAxis.png)
+
+- **Chevron style** — Nested arrow / Pentagon / Rectangle.
+- **Year band** — Show toggle, fill color.
+- **Quarter band** — Show toggle, fill color, gridline controls (show, color, opacity, style: solid / dashed / dotted).
+
+![Time Axis card — Month, TODAY marker, shading](docs/format-pane/PBI-Ghantt-TimeAxis2.png)
+
+- **Month band** — Show toggle (default off), fill color, gridlines.
+- **TODAY marker** — Vertical dashed line at today's date, "TODAY" label, color.
+- **Past / future shading** — Tints the chart area on either side of TODAY with configurable color and opacity. Past shading on by default at 10% black; future shading off by default.
+
+![Time Axis card — font](docs/format-pane/PBI-Ghantt-TimeAxis3.png)
+
+- **Font** — Family / size / bold / italic / underline. Applied to all axis labels (year / quarter / month).
+
+### Tooltip
+
+![Tooltip card](docs/format-pane/PBI-Ghantt-ToolTip.png)
+
+Controls hover-tooltip behavior. Three controls:
+
+- **Show Note row** (default on) — whether the Note row appears in tooltips at all.
+- **Hide row when no note** (default off) — if on, omit the Note row entirely when the bound Note column is empty/null for a row; if off, show the placeholder text instead.
+- **Placeholder for empty notes** (default `(no note recorded)`) — text shown when Note row is on AND the row has no note.
 
 ## Source / dev
 
 - TypeScript + SVG (no third-party visual code forked)
 - Architectural patterns informed by reading source of MIT-licensed Microsoft visuals (`microsoft/powerbi-visuals-gantt`, `microsoft/powerbi-visuals-timeline`)
 - Build: `npm run package` → `dist/<guid>.<version>.pbiviz`
-- Test: drop the .pbiviz into any PBI Desktop report's `CustomVisuals/<guid>/` folder, kill PBIDesktop, relaunch
+- Test: drop the .pbiviz into any PBI Desktop report's `CustomVisuals/<guid>/` folder, kill PBIDesktop, relaunch — or use the bundled demo `.pbip`.
 
 ## License
 

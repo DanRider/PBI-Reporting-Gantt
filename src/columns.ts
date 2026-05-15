@@ -13,6 +13,8 @@ export const ROLE = {
     milestoneType:     "milestoneType",
     milestoneLabel:    "milestoneLabel",
     labelPosition:     "labelPosition",
+    activityNote:      "activityNote",
+    milestoneNote:     "milestoneNote",
 } as const;
 
 export type RoleName = typeof ROLE[keyof typeof ROLE];

@@ -1,5 +1,5 @@
 {
-		"version": "1.7.1.0",
+		"version": "1.8.0.0",
 		"author": {"name":"Daniel Rider","email":"daniel.rider@hotmail.com"},
 		"resources": [
 			{
@@ -8,7 +8,7 @@
 				"file": "resources/reportingGantt7C9F3E5A1B2D4F8E6A0C3B5D7E9F1A2C.pbiviz.json"
 			}
 		],
-		"visual": {"name":"reportingGantt","displayName":"Reporting Gantt","guid":"reportingGantt7C9F3E5A1B2D4F8E6A0C3B5D7E9F1A2C","visualClassName":"Visual","version":"1.7.1.0","description":"Reporting Gantt — generic timeline visual for Power BI. Activity swim lanes, chevron time axis, and milestone markers with conditional left/right labels. Data-driven: any swim-lane names, any milestone-type names (no cap). Per-value color overrides via Format pane, per-type symbol/size/color/visibility controls, custom Title card, full font controls on every text element.","supportUrl":"https://nas.cortex.lan/reporting-gantt","gitHubUrl":""},
+		"visual": {"name":"reportingGantt","displayName":"Reporting Gantt","guid":"reportingGantt7C9F3E5A1B2D4F8E6A0C3B5D7E9F1A2C","visualClassName":"Visual","version":"1.8.0.0","description":"Reporting Gantt — generic timeline visual for Power BI. Activity swim lanes, chevron time axis, milestone markers with conditional left/right labels, optional per-row Notes shown on hover for activities and milestones. Data-driven: any swim-lane names, any milestone-type names (cap 2 types / 8 lanes). Per-value color overrides via Format pane, per-type symbol/size/color/visibility controls, customizable Title card, full font controls on every text element, structured tooltips with header + dates + note section.","supportUrl":"https://github.com/DanRider/PBI-Reporting-Gantt/issues","gitHubUrl":"https://github.com/DanRider/PBI-Reporting-Gantt"},
 		"metadata": {
 			"pbivizjson": {
 				"resourceId": "rId0"
