@@ -174,11 +174,11 @@ class LayoutCard extends FormattingSettingsCard {
 
 class TimeAxisCard extends FormattingSettingsCard {
     showYear = new formattingSettings.ToggleSwitch({ name: "showYear", displayName: "Show Year", value: true });
-    yearFill = new formattingSettings.ColorPicker({ name: "yearFill", displayName: "Year chevron color", value: { value: "#205E8B" } });
+    yearFill = new formattingSettings.ColorPicker({ name: "yearFill", displayName: "Year chevron color", value: { value: "#E8E8E8" } });
     showQuarter = new formattingSettings.ToggleSwitch({ name: "showQuarter", displayName: "Show Quarter", value: true });
-    quarterFill = new formattingSettings.ColorPicker({ name: "quarterFill", displayName: "Quarter chevron color", value: { value: "#357AAD" } });
+    quarterFill = new formattingSettings.ColorPicker({ name: "quarterFill", displayName: "Quarter chevron color", value: { value: "#D0D0D0" } });
     showMonth = new formattingSettings.ToggleSwitch({ name: "showMonth", displayName: "Show Month", value: false });
-    monthFill = new formattingSettings.ColorPicker({ name: "monthFill", displayName: "Month chevron color", value: { value: "#5BA8D8" } });
+    monthFill = new formattingSettings.ColorPicker({ name: "monthFill", displayName: "Month chevron color", value: { value: "#B8B8B8" } });
 
     showQuarterGridlines = new formattingSettings.ToggleSwitch({ name: "showQuarterGridlines", displayName: "Show quarter gridlines", value: false });
     quarterGridlineColor = new formattingSettings.ColorPicker({ name: "quarterGridlineColor", displayName: "Quarter gridline color", value: { value: "#888888" } });

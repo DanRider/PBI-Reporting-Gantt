@@ -89,13 +89,35 @@ export function computeAxisLayout(toggles: LevelToggles, todayShown: boolean): A
     return out;
 }
 
-function chevronPath(x1: number, y0: number, w: number, h: number, tip: number): string {
+// Build the chevron path. When isFirst=true, render flat-left pentagon (5 points).
+// When isFirst=false, render arrow-nested chevron with triangular notch on the LEFT
+// (6 points) — the previous chevron's tip slots into this notch, producing the
+// continuous nested-arrow visual from the user's PowerPoint mockup.
+function chevronPath(
+    x1: number,
+    y0: number,
+    w: number,
+    h: number,
+    tip: number,
+    isFirst: boolean
+): string {
+    if (isFirst) {
+        return [
+            `M${x1},${y0}`,
+            `L${x1 + w - tip},${y0}`,
+            `L${x1 + w},${y0 + h / 2}`,
+            `L${x1 + w - tip},${y0 + h}`,
+            `L${x1},${y0 + h}`,
+            `Z`,
+        ].join(" ");
+    }
     return [
-        `M${x1},${y0}`,
+        `M${x1 + tip},${y0}`,
         `L${x1 + w - tip},${y0}`,
         `L${x1 + w},${y0 + h / 2}`,
         `L${x1 + w - tip},${y0 + h}`,
-        `L${x1},${y0 + h}`,
+        `L${x1 + tip},${y0 + h}`,
+        `L${x1},${y0 + h / 2}`,
         `Z`,
     ].join(" ");
 }
@@ -104,6 +126,7 @@ function renderBand(
     g: Selection<SVGGElement, unknown, null, undefined>,
     ticks: BandTick[],
     xScale: ScaleTime<number, number>,
+    domain: [Date, Date],
     bandY: number,
     bandH: number,
     fill: string,
@@ -111,32 +134,55 @@ function renderBand(
     levelClass: string
 ): void {
     const stroke = readableStrokeColor(fill);
-    const labelFill = stroke;  // dark fill -> white label, light fill -> black label
+    const labelFill = stroke;
     const tip = Math.max(4, Math.min(TIP_PX, Math.round(bandH * 0.45)));
+    const xMin = xScale(domain[0]);
+    const xMax = xScale(domain[1]);
+
+    let isFirstChevron = true;
 
     for (const t of ticks) {
-        const x1 = xScale(t.start);
-        const x2 = xScale(t.end);
-        const w = (x2 - x1) - GAP_PX;
+        // Clamp the tick's effective range to the visible domain so a year that
+        // extends before/after domain bounds doesn't extrapolate to negative x
+        // or beyond the right edge (was overrunning the legend area in v1.3.0).
+        const startRaw = xScale(t.start);
+        const endRaw = xScale(t.end);
+        if (endRaw <= xMin || startRaw >= xMax) continue;
+        const startX = Math.max(startRaw, xMin);
+        const endX = Math.min(endRaw, xMax);
+
+        const w = (endX - startX) - GAP_PX;
         if (w <= 0) continue;
         const tipUsed = Math.min(tip, w / 2);
 
+        // The first VISIBLE chevron in the band gets flat-left geometry.
+        // Float-tolerant comparison: if the clamped startX equals xMin (chart left edge),
+        // this is the first chevron of the row.
+        const isFirst = isFirstChevron && Math.abs(startX - xMin) < 0.5;
+
         g.append("path")
             .attr("class", `${levelClass}-chevron`)
-            .attr("d", chevronPath(x1, bandY, w, bandH, tipUsed))
+            .attr("d", chevronPath(startX, bandY, w, bandH, tipUsed, isFirst))
             .attr("fill", fill)
             .attr("stroke", "rgba(255,255,255,0.4)")
             .attr("stroke-width", 0.5);
 
+        // Label centered in the chevron's body region (excluding the right tip).
+        // For nested chevrons, also account for the left notch: label's effective
+        // horizontal range is [startX + (isFirst ? 0 : tipUsed), startX + w - tipUsed].
+        const labelLeftInset = isFirst ? 0 : tipUsed;
+        const labelMidX = startX + labelLeftInset + (w - tipUsed - labelLeftInset) / 2;
         const sel = g.append("text")
             .attr("class", `${levelClass}-label`)
-            .attr("x", x1 + (w - tipUsed) / 2)
+            .attr("x", labelMidX)
             .attr("y", bandY + bandH / 2)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "central")
             .attr("fill", labelFill)
             .text(t.label);
         applyFont(sel, font);
+
+        isFirstChevron = false;
     }
 }
 
@@ -158,7 +204,7 @@ export function renderTimeAxis(
         const yearTicks: BandTick[] = yearsInRange(domain).map(yb => ({
             start: yb.start, end: yb.end, label: String(yb.year),
         }));
-        renderBand(g, yearTicks, xScale, layout.yearY, layout.yearH, opts.fills.year, opts.font, "year");
+        renderBand(g, yearTicks, xScale, domain, layout.yearY, layout.yearH, opts.fills.year, opts.font, "year");
     }
 
     // QUARTER band (mid font — 92% of card font)
@@ -167,7 +213,7 @@ export function renderTimeAxis(
             start: qb.start, end: qb.end, label: `Q${qb.quarter}`,
         }));
         const qFont: FontStyle = { ...opts.font, fontSize: Math.max(9, Math.round(opts.font.fontSize * 0.92)) };
-        renderBand(g, qTicks, xScale, layout.quarterY, layout.quarterH, opts.fills.quarter, qFont, "quarter");
+        renderBand(g, qTicks, xScale, domain, layout.quarterY, layout.quarterH, opts.fills.quarter, qFont, "quarter");
     }
 
     // MONTH band (smallest font — single-letter labels)
@@ -176,7 +222,7 @@ export function renderTimeAxis(
             start: mb.start, end: mb.end, label: monthLetter(mb.month),
         }));
         const mFont: FontStyle = { ...opts.font, fontSize: Math.max(8, Math.round(opts.font.fontSize * 0.78)) };
-        renderBand(g, mTicks, xScale, layout.monthY, layout.monthH, opts.fills.month, mFont, "month");
+        renderBand(g, mTicks, xScale, domain, layout.monthY, layout.monthH, opts.fills.month, mFont, "month");
     }
 
     // TODAY label (right-anchored at xNow so the "|" sits on the line)
