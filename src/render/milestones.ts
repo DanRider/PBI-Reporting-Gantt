@@ -127,6 +127,7 @@ export function computeVisibleLabels(
         if (m.parentRowIndex === -1) return false;
         if (m.labelPos === "none") return false;
         if (m.label == null || m.label.length === 0) return false;
+        if (m.labelVisible === false) return false;   // per-row hide override
         const cfg = colors.milestoneConfig[m.type];
         return cfg !== undefined && cfg.showLabel;
     });

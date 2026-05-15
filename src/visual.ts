@@ -183,40 +183,17 @@ export class Visual implements IVisual {
             }
         }
 
-        // Override MilestonesCard type1/type2 slot displayNames from bound type names.
+        // Override MilestonesCard type1/type2 GROUP displayNames from bound type names —
+        // the GROUP becomes the user-facing label (e.g., "Capability Enabler" as the
+        // collapsible subsection title). Individual slice displayNames inside the group
+        // are short ("Color", "Symbol", "Size (px)", "Show markers", "Show labels").
         const mc = this.settings.milestones;
         const slot1Type = vm.typeBindings[0]?.typeName;
         const slot2Type = vm.typeBindings[1]?.typeName;
-        const setSlot1 = (visible: boolean, name?: string) => {
-            mc.type1Color.visible = visible;
-            mc.type1Symbol.visible = visible;
-            mc.type1Size.visible = visible;
-            mc.type1ShowMarker.visible = visible;
-            mc.type1ShowLabel.visible = visible;
-            if (visible && name) {
-                mc.type1Color.displayName = `${name} — color`;
-                mc.type1Symbol.displayName = `${name} — symbol`;
-                mc.type1Size.displayName = `${name} — size (px)`;
-                mc.type1ShowMarker.displayName = `${name} — show markers`;
-                mc.type1ShowLabel.displayName = `${name} — show labels`;
-            }
-        };
-        const setSlot2 = (visible: boolean, name?: string) => {
-            mc.type2Color.visible = visible;
-            mc.type2Symbol.visible = visible;
-            mc.type2Size.visible = visible;
-            mc.type2ShowMarker.visible = visible;
-            mc.type2ShowLabel.visible = visible;
-            if (visible && name) {
-                mc.type2Color.displayName = `${name} — color`;
-                mc.type2Symbol.displayName = `${name} — symbol`;
-                mc.type2Size.displayName = `${name} — size (px)`;
-                mc.type2ShowMarker.displayName = `${name} — show markers`;
-                mc.type2ShowLabel.displayName = `${name} — show labels`;
-            }
-        };
-        setSlot1(slot1Type != null, slot1Type);
-        setSlot2(slot2Type != null, slot2Type);
+        mc.type1Group.visible = slot1Type != null;
+        if (slot1Type) mc.type1Group.displayName = slot1Type;
+        mc.type2Group.visible = slot2Type != null;
+        if (slot2Type) mc.type2Group.displayName = slot2Type;
 
         // ── Outer margins ─────────────────────────────────────────────────────
         const topMarginPx    = clamp(width * (this.settings.layout.topMarginPercent.value    / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
@@ -326,14 +303,22 @@ export class Visual implements IVisual {
         });
 
         // ── Legend (upper-left corner of header band) ─────────────────────────
+        // Legend properties now live on MilestonesCard (merged in v1.6.0.0).
+        const legendFont = {
+            fontFamily: mc.legendFontFamily.value,
+            fontSize:   mc.legendFontSize.value,
+            bold:       mc.legendBold.value,
+            italic:     mc.legendItalic.value,
+            underline:  mc.legendUnderline.value,
+        };
         this.legendG.attr("transform", `translate(${leftMarginPx}, ${headerOffset})`);
         renderLegend(
             this.legendG,
             vm.distinctTypes,
             colors,
-            this.settings.legend.show.value,
-            fontFromCard(this.settings.legend),
-            this.settings.legend.labelColor.value.value,
+            mc.legendShow.value,
+            legendFont,
+            mc.legendLabelColor.value.value,
         );
 
         // ── Swim-lane rails ───────────────────────────────────────────────────

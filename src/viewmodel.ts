@@ -46,6 +46,7 @@ export interface Milestone {
     type: MilestoneType;
     label: string | null;
     labelPos: LabelPos;
+    labelVisible: boolean | null;   // null = not bound (default true); false = hidden per-row
     id: string;
     parentRowIndex: number;
 }
@@ -142,6 +143,7 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
                 type: mType,
                 label: strAt(row, idx.milestoneLabel),
                 labelPos: (strAt(row, idx.labelPosition) ?? "none") as LabelPos,
+                labelVisible: boolAt(row, idx.labelVisible),
                 id: `m${milestoneCounter++}`,
                 parentRowIndex: -1,
             });
@@ -242,6 +244,20 @@ function strAt(row: DataViewTableRow, i: number): string | null {
     if (v == null) return null;
     const s = String(v);
     return s.length === 0 ? null : s;
+}
+
+// Tolerant boolean parser for the Label Visible column.
+// Accepts: native boolean, "true"/"false", 1/0, "yes"/"no", "y"/"n" (any case).
+// Returns null when unbound or unparseable so per-type defaults can apply.
+function boolAt(row: DataViewTableRow, i: number): boolean | null {
+    if (i < 0) return null;
+    const v = row[i];
+    if (v == null) return null;
+    if (typeof v === "boolean") return v;
+    const s = String(v).trim().toLowerCase();
+    if (s === "true" || s === "1" || s === "yes" || s === "y") return true;
+    if (s === "false" || s === "0" || s === "no" || s === "n") return false;
+    return null;
 }
 
 function dateAt(row: DataViewTableRow, i: number): Date | null {
