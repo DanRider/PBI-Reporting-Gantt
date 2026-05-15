@@ -26,6 +26,7 @@ import {
     ColorContext,
     MilestoneTypeConfig,
 } from "./utils/colors";
+import { FontStyle, applyFont } from "./utils/font";
 
 import { convertDataView, RoadmapViewModel, Activity, Milestone } from "./viewmodel";
 import { buildScale, quarterAlignedExtent } from "./utils/dateScale";
@@ -43,6 +44,7 @@ import { renderTimeNow } from "./render/timeNow";
 
 const TOP_MARGIN = 4;
 const BOTTOM_MARGIN = 8;
+const TITLE_BOTTOM_GAP = 4;
 
 const LEFT_RAIL_MIN = 100;
 const LEFT_RAIL_MAX = 200;
@@ -66,7 +68,7 @@ function fmtDate(d: Date): string {
 function activityTooltip(a: Activity): VisualTooltipDataItem[] {
     return [
         { displayName: "Activity", value: a.name },
-        { displayName: "Area", value: a.area },
+        { displayName: "Swim Lane", value: a.area },
         { displayName: "Start", value: fmtDate(a.start) },
         { displayName: "End", value: fmtDate(a.end) },
     ];
@@ -81,11 +83,30 @@ function milestoneTooltip(m: Milestone): VisualTooltipDataItem[] {
     ];
 }
 
+// Helper: build a FontStyle bundle from a settings card that has the standard
+// fontFamily/fontSize/bold/italic/underline 5-tuple.
+function fontFromCard(card: {
+    fontFamily: { value: string };
+    fontSize:   { value: number };
+    bold:       { value: boolean };
+    italic:     { value: boolean };
+    underline:  { value: boolean };
+}): FontStyle {
+    return {
+        fontFamily: card.fontFamily.value,
+        fontSize:   card.fontSize.value,
+        bold:       card.bold.value,
+        italic:     card.italic.value,
+        underline:  card.underline.value,
+    };
+}
+
 export class Visual implements IVisual {
     private host: IVisualHost;
     private root: HTMLElement;
     private svg: d3Selection<SVGSVGElement, unknown, null, undefined>;
     private bgG: d3Selection<SVGGElement, unknown, null, undefined>;
+    private titleG: d3Selection<SVGGElement, unknown, null, undefined>;
     private axisG: d3Selection<SVGGElement, unknown, null, undefined>;
     private railG: d3Selection<SVGGElement, unknown, null, undefined>;
     private activityLabelsG: d3Selection<SVGGElement, unknown, null, undefined>;
@@ -96,8 +117,6 @@ export class Visual implements IVisual {
     private settingsService: FormattingSettingsService;
     private settings: VisualFormattingSettingsModel;
 
-    // Stashed per-render so getFormattingModel() can rebuild dynamic slices for both
-    // AreaColors (one ColorPicker per area) and Milestones (5 slices per type).
     private lastDistinctAreas: string[] = [];
     private lastAreaColorMap: Record<string, string> = {};
     private lastDistinctTypes: string[] = [];
@@ -120,6 +139,7 @@ export class Visual implements IVisual {
         );
 
         this.bgG = this.svg.append("g").attr("class", "background-layer");
+        this.titleG = this.svg.append("g").attr("class", "visual-title");
         this.axisG = this.svg.append("g").attr("class", "time-axis");
         this.railG = this.svg.append("g").attr("class", "swimlane-rail-group");
         this.activityLabelsG = this.svg.append("g").attr("class", "activity-labels");
@@ -143,19 +163,47 @@ export class Visual implements IVisual {
 
         const vm: RoadmapViewModel = convertDataView(dataView);
 
-        // Build dynamic color context — areas + milestone types both data-driven, both with persisted overrides.
         const persistedAreaOverrides = readAreaColorOverrides(dataView);
         const areaColorMap = buildAreaColorMap(vm.distinctAreas, persistedAreaOverrides);
         const persistedMilestoneOverrides = readMilestoneOverrides(dataView);
         const milestoneConfig = buildMilestoneConfigMap(vm.distinctTypes, persistedMilestoneOverrides);
         const colors: ColorContext = buildColorContext(areaColorMap, milestoneConfig);
 
-        // Stash for getFormattingModel
         this.lastDistinctAreas = vm.distinctAreas;
         this.lastAreaColorMap = areaColorMap;
         this.lastDistinctTypes = vm.distinctTypes;
         this.lastMilestoneConfig = milestoneConfig;
 
+        // ── Title ──────────────────────────────────────────────────────────────
+        // Render at the top of the SVG when show=true and text is non-empty.
+        // Title block's bottom edge sets the Y baseline that everything else
+        // (axis, body, legend) shifts down from.
+        const titleSettings = this.settings.title;
+        const titleFont = fontFromCard(titleSettings);
+        const titleText = titleSettings.text.value || "";
+        const titleShown = titleSettings.show.value && titleText.length > 0;
+        let titleHeight = 0;
+        this.titleG.selectAll("*").remove();
+        if (titleShown) {
+            titleHeight = Math.max(titleFont.fontSize * 1.6, 28);
+            const alignment = titleSettings.alignment.value.value as "left" | "center" | "right";
+            const textAnchor = alignment === "left" ? "start" : alignment === "right" ? "end" : "middle";
+            const titleX = alignment === "left" ? 6 : alignment === "right" ? width - 6 : width / 2;
+            const titleY = TOP_MARGIN + titleHeight / 2;
+            const tSel = this.titleG.append("text")
+                .attr("class", "visual-title-text")
+                .attr("x", titleX)
+                .attr("y", titleY)
+                .attr("text-anchor", textAnchor)
+                .attr("dominant-baseline", "central")
+                .attr("fill", titleSettings.color.value.value)
+                .text(titleText);
+            applyFont(tSel, titleFont);
+        }
+        const titleBlockH = titleShown ? titleHeight + TITLE_BOTTOM_GAP : 0;
+        const headerOffset = TOP_MARGIN + titleBlockH;
+
+        // ── No-data state ─────────────────────────────────────────────────────
         if (vm.activities.length === 0 && vm.milestones.length === 0) {
             this.axisG.selectAll("*").remove();
             this.bgG.selectAll("*").remove();
@@ -173,11 +221,12 @@ export class Visual implements IVisual {
                 .attr("dominant-baseline", "central")
                 .attr("fill", "#999")
                 .attr("font-size", 13)
-                .text("Bind Activity, Area, Start Date, End Date to see the roadmap.");
+                .text("Bind Activity, Swim Lane, Start Date, End Date to see the roadmap.");
             return;
         }
         this.svg.selectAll(".no-data").remove();
 
+        // ── Layout dimensions ─────────────────────────────────────────────────
         const leftRailPct = this.settings.layout.leftRailWidthPercent.value / 100;
         const labelAreaPct = this.settings.layout.activityLabelWidthPercent.value / 100;
         const rightMarginPct = this.settings.layout.rightMarginPercent.value / 100;
@@ -191,7 +240,7 @@ export class Visual implements IVisual {
         const axisH = axisTotalHeight();
         const availableBodyH = Math.max(
             MIN_ROW_HEIGHT * vm.activities.length,
-            height - TOP_MARGIN - axisH - BOTTOM_MARGIN
+            height - headerOffset - axisH - BOTTOM_MARGIN
         );
         const computedRowH = Math.floor(availableBodyH / Math.max(1, vm.activities.length));
         const rowHeight = Math.max(MIN_ROW_HEIGHT, Math.min(MAX_ROW_HEIGHT, computedRowH || TARGET_ROW_HEIGHT));
@@ -202,17 +251,21 @@ export class Visual implements IVisual {
 
         const tAxis = this.settings.timeAxis;
         const todayLineColor = tAxis.todayLabelColor.value.value;
+        const axisFont = fontFromCard(tAxis);
 
-        this.axisG.attr("transform", `translate(0, ${TOP_MARGIN})`);
+        // ── Time axis ─────────────────────────────────────────────────────────
+        this.axisG.attr("transform", `translate(0, ${headerOffset})`);
         const now = (tAxis.showTodayLine.value || tAxis.showTodayLabel.value) ? new Date() : null;
         renderTimeAxis(this.axisG, xScale, domain, now, {
-            show: tAxis.showTodayLabel.value,
-            color: todayLineColor,
+            todayLabel: { show: tAxis.showTodayLabel.value, color: todayLineColor },
+            axisLabelColor: tAxis.axisLabelColor.value.value,
+            font: axisFont,
         });
 
-        const bodyY = TOP_MARGIN + axisH;
+        const bodyY = headerOffset + axisH;
 
-        const bgY = TOP_MARGIN + AXIS_DEFAULTS.yearBandH;
+        // ── Background (past/future shading + TODAY line) ─────────────────────
+        const bgY = headerOffset + AXIS_DEFAULTS.yearBandH;
         const bgH = AXIS_DEFAULTS.todaySlotH + AXIS_DEFAULTS.quarterBandH + bodyH;
         this.bgG.attr("transform", `translate(0, ${bgY})`);
         renderTimeNow(this.bgG, xScale, domain, bgH, {
@@ -226,15 +279,28 @@ export class Visual implements IVisual {
             futureOpacity: Math.max(0, Math.min(100, tAxis.futureShadingOpacityPct.value)) / 100,
         });
 
-        // Legend — upper-left, one entry per distinct milestone type
-        this.legendG.attr("transform", `translate(0, ${TOP_MARGIN})`);
-        renderLegend(this.legendG, vm.distinctTypes, colors, this.settings.legend.show.value);
+        // ── Legend (upper-left corner of header band, below title if any) ────
+        this.legendG.attr("transform", `translate(0, ${headerOffset})`);
+        renderLegend(
+            this.legendG,
+            vm.distinctTypes,
+            colors,
+            this.settings.legend.show.value,
+            fontFromCard(this.settings.legend),
+            this.settings.legend.labelColor.value.value,
+        );
 
+        // ── Swim-lane rails ───────────────────────────────────────────────────
         this.railG.attr("transform", `translate(0, ${bodyY})`);
-        renderSwimlanes(this.railG, vm.areaGroups, rowHeight, colors,
-            this.settings.swimlanes.show.value, leftRailWidth,
-            this.settings.swimlanes.wrapText.value);
+        renderSwimlanes(this.railG, vm.areaGroups, rowHeight, colors, leftRailWidth, {
+            show: this.settings.swimlanes.show.value,
+            wrapText: this.settings.swimlanes.wrapText.value,
+            useAreaColor: this.settings.swimlanes.useAreaColor.value,
+            labelColor: this.settings.swimlanes.labelColor.value.value,
+            font: fontFromCard(this.settings.swimlanes),
+        });
 
+        // ── Activity labels + lollipops ───────────────────────────────────────
         const labelsLayout: ActivityLabelsLayout = {
             areaStartX: leftRailWidth + 8,
         };
@@ -243,19 +309,19 @@ export class Visual implements IVisual {
             show: this.settings.activityLabels.show.value,
             fillMode: this.settings.activityLabels.fillMode.value.value as "grey" | "area",
             customColor: this.settings.activityLabels.customColor.value.value,
-            fontSize: this.settings.activityLabels.fontSize.value,
+            font: fontFromCard(this.settings.activityLabels),
             areaWidth: activityLabelWidth,
             wrapText: this.settings.activityLabels.wrapText.value,
             overflowBehavior: this.settings.activityLabels.overflowBehavior.value.value as "truncate" | "hide" | "overflow",
         }, colors);
 
-        // Bars + markers + labels
+        // ── Bars + markers + milestone labels ─────────────────────────────────
         const chartLeftEdge = leftMargin;
         const chartRightEdge = width - 10;
-        const labelFontSize = this.settings.milestoneLabels.fontSize.value;
+        const milestoneLabelFont = fontFromCard(this.settings.milestoneLabels);
         const milestoneOverflow = this.settings.milestoneLabels.overflowBehavior.value.value as "truncate" | "hide" | "overflow";
         const renderedLabels = computeVisibleLabels(
-            vm.milestones, colors, xScale, rowHeight, chartLeftEdge, chartRightEdge, labelFontSize, milestoneOverflow
+            vm.milestones, colors, xScale, rowHeight, chartLeftEdge, chartRightEdge, milestoneLabelFont, milestoneOverflow
         );
 
         this.labelBgG.selectAll("*").remove();
@@ -268,7 +334,7 @@ export class Visual implements IVisual {
         );
         renderMilestoneLabels(this.bodyG, renderedLabels, rowHeight, {
             labelColor: this.settings.milestoneLabels.labelColor.value.value,
-            fontSize: labelFontSize,
+            font: milestoneLabelFont,
             overflowBehavior: milestoneOverflow,
         });
 
@@ -277,7 +343,7 @@ export class Visual implements IVisual {
     }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {
-        // Area Colors — one ColorPicker per distinct area, persisted by selector{id}
+        // Swim Lane Colors — one ColorPicker per distinct swim-lane, persisted by selector{id}
         this.settings.areaColors.slices = this.lastDistinctAreas.map(area =>
             new formattingSettings.ColorPicker({
                 name: "fill",
@@ -287,9 +353,7 @@ export class Visual implements IVisual {
             })
         );
 
-        // Milestones — 5 slices per distinct type (color, symbol, size, showMarker, showLabel)
-        // displayName uses the type name as prefix so users see their actual data values.
-        // hoverExpansion stays static at the top of the card.
+        // Milestones — 5 slices per distinct type
         const perTypeSlices: formattingSettings.Slice[] = [];
         for (const typeName of this.lastDistinctTypes) {
             const cfg = this.lastMilestoneConfig[typeName];

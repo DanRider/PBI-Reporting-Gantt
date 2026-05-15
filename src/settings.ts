@@ -6,16 +6,7 @@ import FormattingSettingsCard = formattingSettings.SimpleCard;
 import FormattingSettingsSlice = formattingSettings.Slice;
 import FormattingSettingsModel = formattingSettings.Model;
 
-// Slices populated dynamically in visual.ts getFormattingModel() based on
-// distinct Area values present in the current dataView.
-export class AreaColorsCard extends FormattingSettingsCard {
-    name: string = "areaColors";
-    displayName: string = "Area Colors";
-    slices: Array<FormattingSettingsSlice> = [];
-}
-
-// SYMBOL_DROPDOWN_ITEMS exported because visual.ts builds dynamic Milestones-card
-// slices using this same list (one ItemDropdown per distinct milestone type).
+// Symbol options shared with visual.ts for dynamic Milestones-card slice generation.
 export const SYMBOL_DROPDOWN_ITEMS = [
     { value: "star",     displayName: "Star" },
     { value: "circle",   displayName: "Circle" },
@@ -24,10 +15,80 @@ export const SYMBOL_DROPDOWN_ITEMS = [
     { value: "diamond",  displayName: "Diamond" },
 ];
 
-// Per-type milestone slices (color, symbol, size, showMarker, showLabel) populated
-// dynamically in visual.ts getFormattingModel() — one set of 5 slices per distinct
-// Milestone Type value found in the data, all selector-keyed by type name.
-// Only hoverExpansion stays static here.
+// Title card — custom title at the top of the visual. Standard font + color + alignment controls.
+class TitleCard extends FormattingSettingsCard {
+    show = new formattingSettings.ToggleSwitch({
+        name: "show",
+        displayName: "Show",
+        value: false,
+    });
+    text = new formattingSettings.TextInput({
+        name: "text",
+        displayName: "Text",
+        value: "",
+        placeholder: "Roadmap title",
+    });
+    fontFamily = new formattingSettings.FontPicker({
+        name: "fontFamily",
+        displayName: "Font",
+        value: "Segoe UI",
+    });
+    fontSize = new formattingSettings.NumUpDown({
+        name: "fontSize",
+        displayName: "Size",
+        value: 18,
+    });
+    bold = new formattingSettings.ToggleSwitch({
+        name: "bold",
+        displayName: "Bold",
+        value: true,
+    });
+    italic = new formattingSettings.ToggleSwitch({
+        name: "italic",
+        displayName: "Italic",
+        value: false,
+    });
+    underline = new formattingSettings.ToggleSwitch({
+        name: "underline",
+        displayName: "Underline",
+        value: false,
+    });
+    color = new formattingSettings.ColorPicker({
+        name: "color",
+        displayName: "Color",
+        value: { value: "#222222" },
+    });
+    alignment = new formattingSettings.ItemDropdown({
+        name: "alignment",
+        displayName: "Alignment",
+        items: [
+            { value: "left",   displayName: "Left" },
+            { value: "center", displayName: "Center" },
+            { value: "right",  displayName: "Right" },
+        ],
+        value: { value: "center", displayName: "Center" },
+    });
+    name: string = "title";
+    displayName: string = "Title";
+    slices: Array<FormattingSettingsSlice> = [
+        this.show,
+        this.text,
+        this.fontFamily,
+        this.fontSize,
+        this.bold,
+        this.italic,
+        this.underline,
+        this.color,
+        this.alignment,
+    ];
+}
+
+export class AreaColorsCard extends FormattingSettingsCard {
+    name: string = "areaColors";
+    displayName: string = "Swim Lane Colors";
+    slices: Array<FormattingSettingsSlice> = [];   // populated dynamically
+}
+
 export class MilestonesCard extends FormattingSettingsCard {
     hoverExpansion = new formattingSettings.NumUpDown({
         name: "hoverExpansion",
@@ -42,12 +103,12 @@ export class MilestonesCard extends FormattingSettingsCard {
 class ActivityLabelsCard extends FormattingSettingsCard {
     show = new formattingSettings.ToggleSwitch({
         name: "show",
-        displayName: "Show activity labels",
+        displayName: "Show",
         value: true,
     });
     wrapText = new formattingSettings.ToggleSwitch({
         name: "wrapText",
-        displayName: "Wrap text (up to 2 lines)",
+        displayName: "Wrap (2 lines)",
         value: true,
     });
     overflowBehavior = new formattingSettings.ItemDropdown({
@@ -65,19 +126,39 @@ class ActivityLabelsCard extends FormattingSettingsCard {
         displayName: "Color mode",
         items: [
             { value: "grey", displayName: "Dark grey" },
-            { value: "area", displayName: "Area color" },
+            { value: "area", displayName: "Swim lane color" },
         ],
         value: { value: "grey", displayName: "Dark grey" },
     });
     customColor = new formattingSettings.ColorPicker({
         name: "customColor",
-        displayName: "Custom color (when mode = Dark grey, this overrides)",
+        displayName: "Custom color",
         value: { value: "#2A2A2A" },
+    });
+    fontFamily = new formattingSettings.FontPicker({
+        name: "fontFamily",
+        displayName: "Font",
+        value: "Segoe UI",
     });
     fontSize = new formattingSettings.NumUpDown({
         name: "fontSize",
-        displayName: "Font size",
+        displayName: "Size",
         value: 10,
+    });
+    bold = new formattingSettings.ToggleSwitch({
+        name: "bold",
+        displayName: "Bold",
+        value: true,
+    });
+    italic = new formattingSettings.ToggleSwitch({
+        name: "italic",
+        displayName: "Italic",
+        value: false,
+    });
+    underline = new formattingSettings.ToggleSwitch({
+        name: "underline",
+        displayName: "Underline",
+        value: false,
     });
     name: string = "activityLabels";
     displayName: string = "Activity Labels";
@@ -87,56 +168,127 @@ class ActivityLabelsCard extends FormattingSettingsCard {
         this.overflowBehavior,
         this.fillMode,
         this.customColor,
+        this.fontFamily,
         this.fontSize,
+        this.bold,
+        this.italic,
+        this.underline,
     ];
 }
 
-// Per-label visibility lives on the Milestones card (type1ShowLabel / type2ShowLabel).
-// This card holds the layout properties only.
 class MilestoneLabelsCard extends FormattingSettingsCard {
     overflowBehavior = new formattingSettings.ItemDropdown({
         name: "overflowBehavior",
         displayName: "When labels collide",
         items: [
             { value: "truncate", displayName: "Truncate with …" },
-            { value: "hide",     displayName: "Hide colliding labels" },
+            { value: "hide",     displayName: "Hide colliding" },
             { value: "overflow", displayName: "Show all (may overlap)" },
         ],
         value: { value: "truncate", displayName: "Truncate with …" },
     });
     labelColor = new formattingSettings.ColorPicker({
         name: "labelColor",
-        displayName: "Label color (shared across types)",
+        displayName: "Label color",
         value: { value: "#000000" },
+    });
+    fontFamily = new formattingSettings.FontPicker({
+        name: "fontFamily",
+        displayName: "Font",
+        value: "Segoe UI",
     });
     fontSize = new formattingSettings.NumUpDown({
         name: "fontSize",
-        displayName: "Font size",
+        displayName: "Size",
         value: 8,
+    });
+    bold = new formattingSettings.ToggleSwitch({
+        name: "bold",
+        displayName: "Bold",
+        value: false,
+    });
+    italic = new formattingSettings.ToggleSwitch({
+        name: "italic",
+        displayName: "Italic",
+        value: false,
+    });
+    underline = new formattingSettings.ToggleSwitch({
+        name: "underline",
+        displayName: "Underline",
+        value: false,
     });
     name: string = "milestoneLabels";
     displayName: string = "Milestone Labels";
     slices: Array<FormattingSettingsSlice> = [
         this.overflowBehavior,
         this.labelColor,
+        this.fontFamily,
         this.fontSize,
+        this.bold,
+        this.italic,
+        this.underline,
     ];
 }
 
 class SwimlanesCard extends FormattingSettingsCard {
     show = new formattingSettings.ToggleSwitch({
         name: "show",
-        displayName: "Show left-rail swim lanes",
+        displayName: "Show",
         value: true,
     });
     wrapText = new formattingSettings.ToggleSwitch({
         name: "wrapText",
-        displayName: "Wrap area labels (one word per line)",
+        displayName: "Wrap labels (one word per line)",
         value: true,
+    });
+    useAreaColor = new formattingSettings.ToggleSwitch({
+        name: "useAreaColor",
+        displayName: "Use swim lane color for label",
+        value: true,
+    });
+    labelColor = new formattingSettings.ColorPicker({
+        name: "labelColor",
+        displayName: "Label color (when not using swim lane color)",
+        value: { value: "#222222" },
+    });
+    fontFamily = new formattingSettings.FontPicker({
+        name: "fontFamily",
+        displayName: "Font",
+        value: "Segoe UI",
+    });
+    fontSize = new formattingSettings.NumUpDown({
+        name: "fontSize",
+        displayName: "Size",
+        value: 13,
+    });
+    bold = new formattingSettings.ToggleSwitch({
+        name: "bold",
+        displayName: "Bold",
+        value: true,
+    });
+    italic = new formattingSettings.ToggleSwitch({
+        name: "italic",
+        displayName: "Italic",
+        value: false,
+    });
+    underline = new formattingSettings.ToggleSwitch({
+        name: "underline",
+        displayName: "Underline",
+        value: false,
     });
     name: string = "swimlanes";
     displayName: string = "Swim Lanes";
-    slices: Array<FormattingSettingsSlice> = [this.show, this.wrapText];
+    slices: Array<FormattingSettingsSlice> = [
+        this.show,
+        this.wrapText,
+        this.useAreaColor,
+        this.labelColor,
+        this.fontFamily,
+        this.fontSize,
+        this.bold,
+        this.italic,
+        this.underline,
+    ];
 }
 
 class LegendCard extends FormattingSettingsCard {
@@ -145,9 +297,47 @@ class LegendCard extends FormattingSettingsCard {
         displayName: "Show legend (upper-left)",
         value: true,
     });
+    labelColor = new formattingSettings.ColorPicker({
+        name: "labelColor",
+        displayName: "Label color",
+        value: { value: "#222222" },
+    });
+    fontFamily = new formattingSettings.FontPicker({
+        name: "fontFamily",
+        displayName: "Font",
+        value: "Segoe UI",
+    });
+    fontSize = new formattingSettings.NumUpDown({
+        name: "fontSize",
+        displayName: "Size",
+        value: 12,
+    });
+    bold = new formattingSettings.ToggleSwitch({
+        name: "bold",
+        displayName: "Bold",
+        value: false,
+    });
+    italic = new formattingSettings.ToggleSwitch({
+        name: "italic",
+        displayName: "Italic",
+        value: false,
+    });
+    underline = new formattingSettings.ToggleSwitch({
+        name: "underline",
+        displayName: "Underline",
+        value: false,
+    });
     name: string = "legend";
     displayName: string = "Legend";
-    slices: Array<FormattingSettingsSlice> = [this.show];
+    slices: Array<FormattingSettingsSlice> = [
+        this.show,
+        this.labelColor,
+        this.fontFamily,
+        this.fontSize,
+        this.bold,
+        this.italic,
+        this.underline,
+    ];
 }
 
 class LayoutCard extends FormattingSettingsCard {
@@ -221,6 +411,36 @@ class TimeAxisCard extends FormattingSettingsCard {
         displayName: "Future shading opacity (%)",
         value: 50,
     });
+    axisLabelColor = new formattingSettings.ColorPicker({
+        name: "axisLabelColor",
+        displayName: "Year/Quarter label color",
+        value: { value: "#333333" },
+    });
+    fontFamily = new formattingSettings.FontPicker({
+        name: "fontFamily",
+        displayName: "Font",
+        value: "Segoe UI",
+    });
+    fontSize = new formattingSettings.NumUpDown({
+        name: "fontSize",
+        displayName: "Size",
+        value: 12,
+    });
+    bold = new formattingSettings.ToggleSwitch({
+        name: "bold",
+        displayName: "Bold",
+        value: true,
+    });
+    italic = new formattingSettings.ToggleSwitch({
+        name: "italic",
+        displayName: "Italic",
+        value: false,
+    });
+    underline = new formattingSettings.ToggleSwitch({
+        name: "underline",
+        displayName: "Underline",
+        value: false,
+    });
     name: string = "timeAxis";
     displayName: string = "Time Axis";
     slices: Array<FormattingSettingsSlice> = [
@@ -233,10 +453,17 @@ class TimeAxisCard extends FormattingSettingsCard {
         this.showFutureShading,
         this.futureShadingColor,
         this.futureShadingOpacityPct,
+        this.axisLabelColor,
+        this.fontFamily,
+        this.fontSize,
+        this.bold,
+        this.italic,
+        this.underline,
     ];
 }
 
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
+    title = new TitleCard();
     layout = new LayoutCard();
     areaColors = new AreaColorsCard();
     milestones = new MilestonesCard();
@@ -247,6 +474,7 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     timeAxis = new TimeAxisCard();
 
     cards = [
+        this.title,
         this.layout,
         this.areaColors,
         this.milestones,

@@ -5,9 +5,9 @@ import { ScaleTime } from "d3-scale";
 import { Milestone } from "../viewmodel";
 import { typeColor, ColorContext } from "../utils/colors";
 import { symbolPath, readableStrokeColor } from "../utils/symbols";
+import { FontStyle, applyFont, canvasFontString } from "../utils/font";
 
 const LABEL_GAP_PX = 8;
-const LABEL_FONT_FAMILY = "Segoe UI, sans-serif";
 const ARROW_LEFT = "\u2190 ";
 const ARROW_RIGHT = " \u2192";
 
@@ -22,7 +22,7 @@ export type MilestoneOverflowBehavior = "truncate" | "hide" | "overflow";
 
 export interface MilestoneLabelOptions {
     labelColor: string;
-    fontSize: number;
+    font: FontStyle;
     overflowBehavior: MilestoneOverflowBehavior;
 }
 
@@ -30,21 +30,21 @@ function rowCenterY(parentRowIndex: number, rowHeight: number): number {
     return parentRowIndex * rowHeight + rowHeight / 2;
 }
 
-function measureTextWidth(text: string, fontSize: number, family: string): number {
+function measureTextWidthFont(text: string, font: FontStyle): number {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    if (!ctx) return text.length * fontSize * 0.55;
-    ctx.font = `${fontSize}px ${family}`;
+    if (!ctx) return text.length * font.fontSize * 0.55;
+    ctx.font = canvasFontString(font);
     return ctx.measureText(text).width;
 }
 
-function truncateToWidth(text: string, maxWidth: number, fontSize: number, family: string): string | null {
-    const fullWidth = measureTextWidth(text, fontSize, family);
+function truncateToWidth(text: string, maxWidth: number, font: FontStyle): string | null {
+    const fullWidth = measureTextWidthFont(text, font);
     if (fullWidth <= maxWidth) return text;
     let lo = 1, hi = text.length;
     while (lo < hi) {
         const mid = Math.floor((lo + hi) / 2);
-        if (measureTextWidth(text.slice(0, mid) + "…", fontSize, family) <= maxWidth) lo = mid + 1;
+        if (measureTextWidthFont(text.slice(0, mid) + "…", font) <= maxWidth) lo = mid + 1;
         else hi = mid;
     }
     const truncLen = Math.max(0, lo - 1);
@@ -120,9 +120,10 @@ export function computeVisibleLabels(
     rowHeight: number,
     chartLeftEdge: number,
     chartRightEdge: number,
-    fontSize: number,
+    font: FontStyle,
     overflowBehavior: MilestoneOverflowBehavior = "truncate"
 ): RenderedLabel[] {
+    const fontSize = font.fontSize;
     const candidates = milestones.filter(m => {
         if (m.parentRowIndex === -1) return false;
         if (m.labelPos === "none") return false;
@@ -153,13 +154,13 @@ export function computeVisibleLabels(
 
             let pos: "L" | "R" = m.labelPos === "L" ? "L" : "R";
             const rText = decorate(rawLabel, "R");
-            const rWidth = measureTextWidth(rText, fontSize, LABEL_FONT_FAMILY);
+            const rWidth = measureTextWidthFont(rText, font);
             if (pos === "R" && cx + markerSize + LABEL_GAP_PX + rWidth > chartRightEdge) {
                 pos = "L";
             }
 
             let decorated = decorate(rawLabel, pos);
-            let width = measureTextWidth(decorated, fontSize, LABEL_FONT_FAMILY);
+            let width = measureTextWidthFont(decorated, font);
 
             let startX: number;
             let endX: number;
@@ -181,16 +182,16 @@ export function computeVisibleLabels(
                     if (availableWidth < minTruncWidth) continue;
 
                     const arrowExtra = pos === "L"
-                        ? measureTextWidth(ARROW_RIGHT, fontSize, LABEL_FONT_FAMILY)
-                        : measureTextWidth(ARROW_LEFT, fontSize, LABEL_FONT_FAMILY);
+                        ? measureTextWidthFont(ARROW_RIGHT, font)
+                        : measureTextWidthFont(ARROW_LEFT, font);
                     const labelBudget = availableWidth - arrowExtra;
                     if (labelBudget < minTruncWidth * 0.6) continue;
 
-                    const trunc = truncateToWidth(rawLabel, labelBudget, fontSize, LABEL_FONT_FAMILY);
+                    const trunc = truncateToWidth(rawLabel, labelBudget, font);
                     if (!trunc) continue;
 
                     decorated = decorate(trunc, pos);
-                    width = measureTextWidth(decorated, fontSize, LABEL_FONT_FAMILY);
+                    width = measureTextWidthFont(decorated, font);
                     if (pos === "L") {
                         startX = endX - width;
                     } else {
@@ -224,7 +225,7 @@ export function renderMilestoneLabels(
 ): void {
     g.selectAll("text.milestone-label").remove();
 
-    g.selectAll<SVGTextElement, RenderedLabel>("text.milestone-label")
+    const sel = g.selectAll<SVGTextElement, RenderedLabel>("text.milestone-label")
         .data(rendered, (d: RenderedLabel) => d.milestone.id)
         .join("text")
         .attr("class", "milestone-label")
@@ -233,8 +234,7 @@ export function renderMilestoneLabels(
         .attr("y", d => rowCenterY(d.milestone.parentRowIndex, rowHeight))
         .attr("text-anchor", d => d.anchor)
         .attr("dominant-baseline", "central")
-        .attr("font-size", opts.fontSize)
-        .attr("font-family", LABEL_FONT_FAMILY)
         .attr("fill", opts.labelColor)
         .text(d => d.text);
+    applyFont(sel, opts.font);
 }

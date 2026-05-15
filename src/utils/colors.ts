@@ -20,61 +20,75 @@ export interface ColorContext {
 
 const FALLBACK_COLOR = "#888888";
 
-// Built-in palette — theme-independent so colors stay consistent across reports/themes.
-// Same area name always hashes to the same slot, so the same dataset always renders the
-// same colors regardless of which PBI report or theme it's viewed in.
-// D3 category10 — broadly used categorical palette, good contrast across hues.
-const DEFAULT_PALETTE = [
-    "#1F77B4", // blue
-    "#FF7F0E", // orange
-    "#2CA02C", // green
-    "#D62728", // red
-    "#9467BD", // purple
-    "#8C564B", // brown
-    "#E377C2", // pink
-    "#7F7F7F", // grey
-    "#BCBD22", // olive
-    "#17BECF", // cyan
+// Built-in palettes — theme-independent so colors stay consistent across reports/themes.
+// Index-based assignment: the N-th distinct value in source-row order receives PALETTE[N % len].
+// This means: any 3-area dataset gets [green, pink, blue]; any 2-milestone-type dataset gets
+// [gold, black] — matching the consultant-grade brand defaults out-of-the-box without any
+// per-value overrides or .pbip pre-persist needed.
+//
+// AREA + MILESTONE palettes are SEPARATE so areas and milestones never collide on the same
+// color (with one shared palette, 3 areas + 2 milestones at indexes 0,1,2,0,1 would put
+// green stars on green bars — visually broken).
+
+const AREA_PALETTE = [
+    "#5C8A1C",  // green   — Humana Tech Modernization signature
+    "#C1004F",  // pink    — Humana Transformation Office signature
+    "#00A0DC",  // blue    — Humana Priority Investments signature
+    "#9467BD",  // purple
+    "#8C564B",  // brown
+    "#E377C2",  // pink-light
+    "#7F7F7F",  // grey
+    "#BCBD22",  // olive
+    "#17BECF",  // cyan
+    "#FF7F0E",  // orange
 ];
 
-// FNV-1a 32-bit hash → palette index. Deterministic per string.
-function paletteIndex(name: string, len: number): number {
-    let hash = 0x811c9dc5;  // FNV offset basis
-    for (let i = 0; i < name.length; i++) {
-        hash ^= name.charCodeAt(i);
-        hash = Math.imul(hash, 0x01000193) >>> 0;  // FNV prime, force unsigned
-    }
-    return hash % len;
+const MILESTONE_PALETTE = [
+    "#FFC000",  // gold     — Humana Traceable Value signature
+    "#000000",  // black    — Humana Capability Enabler signature
+    "#1F77B4",  // blue
+    "#D62728",  // red
+    "#2CA02C",  // green-darker
+    "#9467BD",  // purple
+    "#FF7F0E",  // orange
+    "#17BECF",  // cyan
+];
+
+export function defaultAreaColorFor(_name: string, index: number): string {
+    return AREA_PALETTE[index % AREA_PALETTE.length];
 }
 
-export function defaultColorFor(areaName: string): string {
-    return DEFAULT_PALETTE[paletteIndex(areaName, DEFAULT_PALETTE.length)];
+export function defaultMilestoneColorFor(_name: string, index: number): string {
+    return MILESTONE_PALETTE[index % MILESTONE_PALETTE.length];
 }
 
-// Build the per-area color map: persisted overrides win, else built-in palette default per area name.
+// Build the per-area color map: persisted overrides win, else AREA_PALETTE default by source-order index.
 export function buildAreaColorMap(
     distinctAreas: string[],
     persistedOverrides: Record<string, string>
 ): Record<string, string> {
     const out: Record<string, string> = {};
-    for (const area of distinctAreas) {
-        out[area] = persistedOverrides[area] ?? defaultColorFor(area);
+    for (let i = 0; i < distinctAreas.length; i++) {
+        const area = distinctAreas[i];
+        out[area] = persistedOverrides[area] ?? defaultAreaColorFor(area, i);
     }
     return out;
 }
 
 // Build per-type milestone config: persisted-overrides win per-property, else defaults.
-// Defaults: color from DEFAULT_PALETTE (hashed by type name), symbol="star", size=11, both shows=true.
+// Defaults: color from MILESTONE_PALETTE (by source-order index), symbol="star" (slot 0)
+// or "circle" (slot 1+) for visual differentiation, size=11, both shows=true.
 export function buildMilestoneConfigMap(
     distinctTypes: string[],
     persistedOverrides: Record<string, Partial<MilestoneTypeConfig>>
 ): Record<string, MilestoneTypeConfig> {
     const out: Record<string, MilestoneTypeConfig> = {};
-    for (const t of distinctTypes) {
+    for (let i = 0; i < distinctTypes.length; i++) {
+        const t = distinctTypes[i];
         const o = persistedOverrides[t] ?? {};
         out[t] = {
-            color:      o.color ?? defaultColorFor(t),
-            symbol:     o.symbol ?? "star",
+            color:      o.color ?? defaultMilestoneColorFor(t, i),
+            symbol:     o.symbol ?? (i === 0 ? "star" : "circle"),
             size:       o.size ?? 11,
             showMarker: o.showMarker ?? true,
             showLabel:  o.showLabel ?? true,

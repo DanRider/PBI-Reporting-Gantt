@@ -4,81 +4,97 @@
             "name": "activity",
             "displayName": "Activity",
             "kind": "Grouping",
-            "description": "Activity name (PK on the activities table)."
+            "description": "The bar's identity. Each unique value renders as one horizontal bar (e.g., a project task, a campaign phase, a product release, a clinical trial)."
         },
         {
             "name": "area",
-            "displayName": "Area",
+            "displayName": "Swim Lane",
             "kind": "Grouping",
-            "description": "Grouping field — drives swim-lane segmentation. Any text value."
+            "description": "Optional grouping that segments bars into swim lanes (e.g., team, department, workstream, portfolio area)."
         },
         {
             "name": "startDate",
             "displayName": "Start Date",
             "kind": "Grouping",
-            "description": "Activity start date."
+            "description": "When the bar starts. Date column."
         },
         {
             "name": "endDate",
             "displayName": "End Date",
             "kind": "Grouping",
-            "description": "Activity end date."
+            "description": "When the bar ends. Date column."
         },
         {
             "name": "milestoneActivity",
             "displayName": "Milestone Activity",
             "kind": "Grouping",
-            "description": "FK to the parent activity name."
+            "description": "FK to the parent activity name. Each milestone attaches to the bar with the matching name."
         },
         {
             "name": "milestoneDate",
             "displayName": "Milestone Date",
             "kind": "Grouping",
-            "description": "Milestone date."
+            "description": "When the milestone marker is placed on its parent bar."
         },
         {
             "name": "milestoneType",
             "displayName": "Milestone Type",
             "kind": "Grouping",
-            "description": "Milestone classifier — drives marker symbol/color via Format pane (max 2 distinct values rendered; extras dropped with console warning)."
+            "description": "Marker classifier — distinct values appear as one slice each in the Format pane (color/symbol/size/visibility per type)."
         },
         {
             "name": "milestoneLabel",
             "displayName": "Milestone Label",
             "kind": "Grouping",
-            "description": "Optional milestone text (nullable)."
+            "description": "Optional milestone text (nullable). Shown next to the marker per Label Position."
         },
         {
             "name": "labelPosition",
             "displayName": "Label Position",
             "kind": "Grouping",
-            "description": "L | R | none. Author-controlled position relative to the marker."
+            "description": "L | R | none. Author-controlled position of the label relative to the marker."
         }
     ],
     "objects": {
+        "title": {
+            "displayName": "Title",
+            "description": "Custom visual title rendered at the top of the chart. Disable PBI's native title (in General formatting) when using this.",
+            "properties": {
+                "show":       { "displayName": "Show",       "type": { "bool": true } },
+                "text":       { "displayName": "Text",       "type": { "text": true } },
+                "fontFamily": { "displayName": "Font",       "type": { "formatting": { "fontFamily": true } } },
+                "fontSize":   { "displayName": "Size",       "type": { "formatting": { "fontSize": true } } },
+                "bold":       { "displayName": "Bold",       "type": { "bool": true } },
+                "italic":     { "displayName": "Italic",     "type": { "bool": true } },
+                "underline":  { "displayName": "Underline",  "type": { "bool": true } },
+                "color":      { "displayName": "Color",      "type": { "fill": { "solid": { "color": true } } } },
+                "alignment":  { "displayName": "Alignment", "type": { "enumeration": [
+                    { "value": "left",   "displayName": "Left" },
+                    { "value": "center", "displayName": "Center" },
+                    { "value": "right",  "displayName": "Right" }
+                ]}}
+            }
+        },
         "layout": {
             "displayName": "Layout",
             "properties": {
-                "leftRailWidthPercent":      { "displayName": "Left rail width (%)",     "type": { "numeric": true } },
-                "activityLabelWidthPercent": { "displayName": "Activity label width (%)","type": { "numeric": true } },
-                "rightMarginPercent":        { "displayName": "Right margin (%)",        "type": { "numeric": true } }
+                "leftRailWidthPercent":      { "displayName": "Left rail width (%)",      "type": { "numeric": true } },
+                "activityLabelWidthPercent": { "displayName": "Activity label width (%)", "type": { "numeric": true } },
+                "rightMarginPercent":        { "displayName": "Right margin (%)",         "type": { "numeric": true } }
             }
         },
         "areaColors": {
-            "displayName": "Area Colors",
-            "description": "Color override per distinct Area value. Defaults derive from the report theme palette.",
+            "displayName": "Swim Lane Colors",
+            "description": "Color override per distinct Swim Lane value. Defaults follow the built-in palette (green/pink/blue/...) by source-order index.",
             "properties": {
-                "fill": {
-                    "displayName": "Color",
-                    "type": { "fill": { "solid": { "color": true } } }
-                }
+                "fill": { "displayName": "Color", "type": { "fill": { "solid": { "color": true } } } }
             }
         },
         "milestones": {
             "displayName": "Milestones",
-            "description": "Marker shape, size, color, and visibility per distinct Milestone Type value found in your data. One subgroup of controls per type.",
+            "description": "Marker shape, size, color, and visibility per distinct Milestone Type value found in your data.",
             "properties": {
-                "fill":       { "displayName": "Color",        "type": { "fill": { "solid": { "color": true } } } },
+                "fill":           { "displayName": "Color",       "type": { "fill": { "solid": { "color": true } } } },
                 "symbol": {
                     "displayName": "Symbol",
                     "type": { "enumeration": [
@@ -98,19 +114,23 @@
         "activityLabels": {
             "displayName": "Activity Labels",
             "properties": {
-                "show":      { "displayName": "Show",            "type": { "bool": true } },
-                "wrapText":  { "displayName": "Wrap (2 lines)",  "type": { "bool": true } },
+                "show":             { "displayName": "Show",            "type": { "bool": true } },
+                "wrapText":         { "displayName": "Wrap (2 lines)",  "type": { "bool": true } },
                 "overflowBehavior": { "displayName": "When text doesn't fit", "type": { "enumeration": [
                     { "value": "truncate", "displayName": "Truncate with …" },
                     { "value": "hide",     "displayName": "Hide" },
                     { "value": "overflow", "displayName": "Show (may overflow)" }
                 ]}},
-                "fillMode":  { "displayName": "Color mode", "type": { "enumeration": [
+                "fillMode": { "displayName": "Color mode", "type": { "enumeration": [
                     { "value": "grey", "displayName": "Dark grey" },
-                    { "value": "area", "displayName": "Area color" }
+                    { "value": "area", "displayName": "Swim lane color" }
                 ]}},
-                "customColor": { "displayName": "Custom color", "type": { "fill": { "solid": { "color": true } } } },
-                "fontSize":    { "displayName": "Font size",   "type": { "numeric": true } }
+                "customColor":  { "displayName": "Custom color", "type": { "fill": { "solid": { "color": true } } } },
+                "fontFamily":   { "displayName": "Font",        "type": { "formatting": { "fontFamily": true } } },
+                "fontSize":     { "displayName": "Size",        "type": { "formatting": { "fontSize": true } } },
+                "bold":         { "displayName": "Bold",        "type": { "bool": true } },
+                "italic":       { "displayName": "Italic",      "type": { "bool": true } },
+                "underline":    { "displayName": "Underline",   "type": { "bool": true } }
             }
         },
         "milestoneLabels": {
@@ -121,35 +141,58 @@
                     { "value": "hide",     "displayName": "Hide colliding" },
                     { "value": "overflow", "displayName": "Show all (may overlap)" }
                 ]}},
-                "fontSize":  { "displayName": "Font size",   "type": { "numeric": true } },
-                "labelColor":{ "displayName": "Label color", "type": { "fill": { "solid": { "color": true } } } }
+                "labelColor": { "displayName": "Label color", "type": { "fill": { "solid": { "color": true } } } },
+                "fontFamily": { "displayName": "Font",        "type": { "formatting": { "fontFamily": true } } },
+                "fontSize":   { "displayName": "Size",        "type": { "formatting": { "fontSize": true } } },
+                "bold":       { "displayName": "Bold",        "type": { "bool": true } },
+                "italic":     { "displayName": "Italic",      "type": { "bool": true } },
+                "underline":  { "displayName": "Underline",   "type": { "bool": true } }
             }
         },
         "swimlanes": {
             "displayName": "Swim Lanes",
             "properties": {
-                "show":      { "displayName": "Show", "type": { "bool": true } },
-                "wrapText":  { "displayName": "Wrap area labels", "type": { "bool": true } }
+                "show":       { "displayName": "Show",        "type": { "bool": true } },
+                "wrapText":   { "displayName": "Wrap labels", "type": { "bool": true } },
+                "labelColor": { "displayName": "Label color (default = swim lane color)", "type": { "fill": { "solid": { "color": true } } } },
+                "useAreaColor":{"displayName": "Use swim lane color for label", "type": { "bool": true } },
+                "fontFamily": { "displayName": "Font",        "type": { "formatting": { "fontFamily": true } } },
+                "fontSize":   { "displayName": "Size",        "type": { "formatting": { "fontSize": true } } },
+                "bold":       { "displayName": "Bold",        "type": { "bool": true } },
+                "italic":     { "displayName": "Italic",      "type": { "bool": true } },
+                "underline":  { "displayName": "Underline",   "type": { "bool": true } }
             }
         },
         "legend": {
             "displayName": "Legend",
             "properties": {
-                "show":      { "displayName": "Show (upper-left)", "type": { "bool": true } }
+                "show":       { "displayName": "Show (upper-left)", "type": { "bool": true } },
+                "labelColor": { "displayName": "Label color",       "type": { "fill": { "solid": { "color": true } } } },
+                "fontFamily": { "displayName": "Font",              "type": { "formatting": { "fontFamily": true } } },
+                "fontSize":   { "displayName": "Size",              "type": { "formatting": { "fontSize": true } } },
+                "bold":       { "displayName": "Bold",              "type": { "bool": true } },
+                "italic":     { "displayName": "Italic",            "type": { "bool": true } },
+                "underline":  { "displayName": "Underline",         "type": { "bool": true } }
             }
         },
         "timeAxis": {
             "displayName": "Time Axis",
             "properties": {
-                "showTodayLine":            { "displayName": "TODAY line",                "type": { "bool": true } },
-                "showTodayLabel":           { "displayName": "TODAY label",               "type": { "bool": true } },
-                "todayLabelColor":          { "displayName": "TODAY color",               "type": { "fill": { "solid": { "color": true } } } },
-                "showPastShading":          { "displayName": "Past shading",              "type": { "bool": true } },
-                "pastShadingColor":         { "displayName": "Past shading color",        "type": { "fill": { "solid": { "color": true } } } },
-                "pastShadingOpacityPct":    { "displayName": "Past shading opacity (%)",  "type": { "numeric": true } },
-                "showFutureShading":        { "displayName": "Future shading",            "type": { "bool": true } },
-                "futureShadingColor":       { "displayName": "Future shading color",      "type": { "fill": { "solid": { "color": true } } } },
-                "futureShadingOpacityPct":  { "displayName": "Future shading opacity (%)","type": { "numeric": true } }
+                "showTodayLine":           { "displayName": "TODAY line",                "type": { "bool": true } },
+                "showTodayLabel":          { "displayName": "TODAY label",               "type": { "bool": true } },
+                "todayLabelColor":         { "displayName": "TODAY color",               "type": { "fill": { "solid": { "color": true } } } },
+                "showPastShading":         { "displayName": "Past shading",              "type": { "bool": true } },
+                "pastShadingColor":        { "displayName": "Past shading color",        "type": { "fill": { "solid": { "color": true } } } },
+                "pastShadingOpacityPct":   { "displayName": "Past shading opacity (%)",  "type": { "numeric": true } },
+                "showFutureShading":       { "displayName": "Future shading",            "type": { "bool": true } },
+                "futureShadingColor":      { "displayName": "Future shading color",      "type": { "fill": { "solid": { "color": true } } } },
+                "futureShadingOpacityPct": { "displayName": "Future shading opacity (%)","type": { "numeric": true } },
+                "axisLabelColor":          { "displayName": "Year/Quarter label color",  "type": { "fill": { "solid": { "color": true } } } },
+                "fontFamily":              { "displayName": "Font",                     "type": { "formatting": { "fontFamily": true } } },
+                "fontSize":                { "displayName": "Size",                     "type": { "formatting": { "fontSize": true } } },
+                "bold":                    { "displayName": "Bold",                     "type": { "bool": true } },
+                "italic":                  { "displayName": "Italic",                   "type": { "bool": true } },
+                "underline":               { "displayName": "Underline",                "type": { "bool": true } }
             }
         }
     },

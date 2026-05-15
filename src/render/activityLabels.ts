@@ -4,9 +4,8 @@ import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
 import { Activity } from "../viewmodel";
 import { areaColor, ColorContext } from "../utils/colors";
+import { FontStyle, applyFont, canvasFontString } from "../utils/font";
 
-const LABEL_FONT_FAMILY = "'Segoe UI Variable Display', 'Arial Narrow', 'Segoe UI', sans-serif";
-const LABEL_FONT_WEIGHT = "bold";
 const LOLLIPOP_CIRCLE_R = 4;
 const LOLLIPOP_STROKE_WIDTH = 2;
 const LABEL_TO_LOLLIPOP_GAP = 14;   // generous breathing room — no crowding
@@ -28,7 +27,7 @@ export interface ActivityLabelOptions {
     show: boolean;
     fillMode: "grey" | "area";
     customColor: string;
-    fontSize: number;
+    font: FontStyle;
     areaWidth: number;   // dynamic — from LayoutCard percentage
     wrapText: boolean;
     overflowBehavior: OverflowBehavior;
@@ -38,21 +37,21 @@ export interface ActivityLabelsLayout {
     areaStartX: number;
 }
 
-function measureTextWidth(text: string, fontSize: number, family: string, weight = "normal"): number {
+function measureWidth(text: string, font: FontStyle): number {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    if (!ctx) return text.length * fontSize * 0.55;
-    ctx.font = `${weight} ${fontSize}px ${family}`;
+    if (!ctx) return text.length * font.fontSize * 0.55;
+    ctx.font = canvasFontString(font);
     return ctx.measureText(text).width;
 }
 
-function truncateToWidth(text: string, maxWidth: number, fontSize: number, family: string): string {
-    const fullWidth = measureTextWidth(text, fontSize, family, LABEL_FONT_WEIGHT);
+function truncateToWidth(text: string, maxWidth: number, font: FontStyle): string {
+    const fullWidth = measureWidth(text, font);
     if (fullWidth <= maxWidth) return text;
     let lo = 1, hi = text.length;
     while (lo < hi) {
         const mid = Math.floor((lo + hi) / 2);
-        const w = measureTextWidth(text.slice(0, mid) + "…", fontSize, family, LABEL_FONT_WEIGHT);
+        const w = measureWidth(text.slice(0, mid) + "…", font);
         if (w <= maxWidth) lo = mid + 1;
         else hi = mid;
     }
@@ -64,12 +63,8 @@ interface WrappedLabel {
     maxLineWidth: number;
 }
 
-/**
- * Greedy word-break into up to 2 lines. If even one word doesn't fit, truncate.
- * Returns the lines + the widest line's measured width for lollipop positioning.
- */
-function wrapToLines(text: string, maxWidth: number, fontSize: number, family: string): WrappedLabel {
-    const fullWidth = measureTextWidth(text, fontSize, family, LABEL_FONT_WEIGHT);
+function wrapToLines(text: string, maxWidth: number, font: FontStyle): WrappedLabel {
+    const fullWidth = measureWidth(text, font);
     if (fullWidth <= maxWidth) {
         return { lines: [text], maxLineWidth: fullWidth };
     }
@@ -77,14 +72,13 @@ function wrapToLines(text: string, maxWidth: number, fontSize: number, family: s
     const words = text.split(/\s+/).filter(w => w.length > 0);
     if (words.length === 0) return { lines: [text], maxLineWidth: fullWidth };
 
-    // Try greedy fill of line 1
     let line1 = "";
     let line1Width = 0;
     let splitIdx = 0;
 
     for (let i = 0; i < words.length; i++) {
         const trial = i === 0 ? words[i] : line1 + " " + words[i];
-        const trialWidth = measureTextWidth(trial, fontSize, family, LABEL_FONT_WEIGHT);
+        const trialWidth = measureWidth(trial, font);
         if (trialWidth <= maxWidth) {
             line1 = trial;
             line1Width = trialWidth;
@@ -95,20 +89,17 @@ function wrapToLines(text: string, maxWidth: number, fontSize: number, family: s
     }
 
     if (splitIdx === 0) {
-        // Not even the first word fits — truncate it.
-        const trunc = truncateToWidth(words[0], maxWidth, fontSize, family);
+        const trunc = truncateToWidth(words[0], maxWidth, font);
         return { lines: [trunc], maxLineWidth: maxWidth };
     }
 
     if (splitIdx >= words.length) {
-        // Everything fit in line 1 (shouldn't reach here given the early exit, but safe)
         return { lines: [line1], maxLineWidth: line1Width };
     }
 
-    // Build line 2 from remaining words, truncating if too long
     const remaining = words.slice(splitIdx).join(" ");
-    const line2 = truncateToWidth(remaining, maxWidth, fontSize, family);
-    const line2Width = measureTextWidth(line2, fontSize, family, LABEL_FONT_WEIGHT);
+    const line2 = truncateToWidth(remaining, maxWidth, font);
+    const line2Width = measureWidth(line2, font);
 
     return {
         lines: [line1, line2],
@@ -127,7 +118,7 @@ export function renderActivityLabels(
 ): void {
     g.selectAll("*").remove();
 
-    const fontSize = opts.fontSize;
+    const font = opts.font;
     const maxLabelWidth = opts.areaWidth;
 
     for (const a of activities) {
@@ -135,14 +126,12 @@ export function renderActivityLabels(
         const lollipopColor = areaColor(a.area, colors);
         const labelFill = opts.fillMode === "area" ? lollipopColor : opts.customColor;
 
-        // Decide what to render based on wrap + overflow settings
         let renderLines: string[];
         let renderMaxWidth: number;
-        const fullWidth = measureTextWidth(a.name, fontSize, LABEL_FONT_FAMILY, LABEL_FONT_WEIGHT);
+        const fullWidth = measureWidth(a.name, font);
 
         if (opts.wrapText) {
-            const wrapped = wrapToLines(a.name, maxLabelWidth, fontSize, LABEL_FONT_FAMILY);
-            // If still doesn't fully fit after wrap (truncated tail in line 2) and overflowBehavior=hide
+            const wrapped = wrapToLines(a.name, maxLabelWidth, font);
             const truncated = wrapped.lines.length > 1 && wrapped.lines[1].endsWith("…");
             const lineOneTruncated = wrapped.lines[0].endsWith("…");
             if ((truncated || lineOneTruncated) && opts.overflowBehavior === "hide") {
@@ -151,7 +140,6 @@ export function renderActivityLabels(
             renderLines = wrapped.lines;
             renderMaxWidth = wrapped.maxLineWidth;
         } else {
-            // Single line — honor overflow behavior
             if (fullWidth <= maxLabelWidth) {
                 renderLines = [a.name];
                 renderMaxWidth = fullWidth;
@@ -161,52 +149,45 @@ export function renderActivityLabels(
                 renderLines = [a.name];
                 renderMaxWidth = fullWidth;
             } else {
-                // truncate
-                const trunc = truncateToWidth(a.name, maxLabelWidth, fontSize, LABEL_FONT_FAMILY);
+                const trunc = truncateToWidth(a.name, maxLabelWidth, font);
                 renderLines = [trunc];
-                renderMaxWidth = measureTextWidth(trunc, fontSize, LABEL_FONT_FAMILY, LABEL_FONT_WEIGHT);
+                renderMaxWidth = measureWidth(trunc, font);
             }
         }
 
         if (opts.show) {
             if (renderLines.length === 1) {
-                g.append("text")
+                const sel = g.append("text")
                     .attr("class", "activity-label")
                     .attr("data-activity", a.name)
                     .attr("x", layout.areaStartX)
                     .attr("y", cy)
                     .attr("text-anchor", "start")
                     .attr("dominant-baseline", "central")
-                    .attr("font-size", fontSize)
-                    .attr("font-family", LABEL_FONT_FAMILY)
-                    .attr("font-weight", LABEL_FONT_WEIGHT)
                     .attr("fill", labelFill)
                     .text(renderLines[0]);
+                applyFont(sel, font);
             } else {
-                g.append("text")
+                const sel1 = g.append("text")
                     .attr("class", "activity-label")
                     .attr("data-activity", a.name)
                     .attr("x", layout.areaStartX)
                     .attr("y", cy - LINE_OFFSET_PX)
                     .attr("text-anchor", "start")
                     .attr("dominant-baseline", "central")
-                    .attr("font-size", fontSize)
-                    .attr("font-family", LABEL_FONT_FAMILY)
-                    .attr("font-weight", LABEL_FONT_WEIGHT)
                     .attr("fill", labelFill)
                     .text(renderLines[0]);
-                g.append("text")
+                applyFont(sel1, font);
+                const sel2 = g.append("text")
                     .attr("class", "activity-label")
                     .attr("data-activity", a.name)
                     .attr("x", layout.areaStartX)
                     .attr("y", cy + LINE_OFFSET_PX)
                     .attr("text-anchor", "start")
                     .attr("dominant-baseline", "central")
-                    .attr("font-size", fontSize)
-                    .attr("font-family", LABEL_FONT_FAMILY)
-                    .attr("font-weight", LABEL_FONT_WEIGHT)
                     .attr("fill", labelFill)
                     .text(renderLines[1]);
+                applyFont(sel2, font);
             }
         }
 

@@ -3,6 +3,7 @@
 import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
 import { yearsInRange, quartersInRange } from "../utils/dateScale";
+import { FontStyle, applyFont } from "../utils/font";
 
 export interface AxisLayout {
     yearBandY: number;
@@ -31,12 +32,18 @@ export interface TodayLabelOpts {
     color: string;
 }
 
+export interface TimeAxisOpts {
+    todayLabel: TodayLabelOpts;
+    axisLabelColor: string;
+    font: FontStyle;        // applied to year + quarter labels (and TODAY label)
+}
+
 export function renderTimeAxis(
     g: Selection<SVGGElement, unknown, null, undefined>,
     xScale: ScaleTime<number, number>,
     domain: [Date, Date],
-    now: Date | null = null,
-    todayLabel: TodayLabelOpts = { show: true, color: "#444" },
+    now: Date | null,
+    opts: TimeAxisOpts,
     layout: AxisLayout = AXIS_DEFAULTS
 ): void {
     g.selectAll("*").remove();
@@ -63,33 +70,32 @@ export function renderTimeAxis(
             .attr("stroke", "#bbb")
             .attr("stroke-width", 0.5);
 
-        g.append("text")
+        const textSel = g.append("text")
             .attr("class", "year-label")
             .attr("x", x1 + w / 2)
             .attr("y", layout.yearBandY + layout.yearBandH / 2)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "central")
-            .attr("font-size", 13)
-            .attr("font-weight", "bold")
-            .attr("fill", "#333")
+            .attr("fill", opts.axisLabelColor)
             .text(String(yb.year));
+        applyFont(textSel, opts.font);
     }
 
-    // TODAY label in its dedicated slot between year and quarter bands.
-    // Right-anchored at xNow so the "|" sits ON the dashed-line position and "TODAY"
-    // extends to the LEFT — the line never bisects the text.
-    if (todayLabel.show && now && now.getTime() >= domain[0].getTime() && now.getTime() <= domain[1].getTime()) {
+    if (opts.todayLabel.show && now && now.getTime() >= domain[0].getTime() && now.getTime() <= domain[1].getTime()) {
         const xNow = xScale(now);
-        g.append("text")
+        const todayFont: FontStyle = {
+            ...opts.font,
+            fontSize: Math.max(9, Math.round(opts.font.fontSize * 0.85)),
+        };
+        const tSel = g.append("text")
             .attr("class", "today-axis-label")
             .attr("x", xNow + 2)
             .attr("y", layout.todaySlotY + layout.todaySlotH / 2)
             .attr("text-anchor", "end")
             .attr("dominant-baseline", "central")
-            .attr("font-size", 10)
-            .attr("font-weight", "bold")
-            .attr("fill", todayLabel.color)
+            .attr("fill", opts.todayLabel.color)
             .text("TODAY |");
+        applyFont(tSel, todayFont);
     }
 
     const TIP_PX = 10;
@@ -120,14 +126,18 @@ export function renderTimeAxis(
             .attr("stroke", "#999")
             .attr("stroke-width", 0.5);
 
-        g.append("text")
+        const qFont: FontStyle = {
+            ...opts.font,
+            fontSize: Math.max(9, Math.round(opts.font.fontSize * 0.92)),
+        };
+        const qSel = g.append("text")
             .attr("class", "quarter-label")
             .attr("x", x1 + (w - tip) / 2)
             .attr("y", y0 + h / 2)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "central")
-            .attr("font-size", 11)
-            .attr("fill", "#444")
+            .attr("fill", opts.axisLabelColor)
             .text(`Q${qb.quarter}`);
+        applyFont(qSel, qFont);
     }
 }
