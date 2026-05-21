@@ -6,16 +6,24 @@
 // Health / External URL when those bindings exist.
 
 import type { RoadmapViewModel } from "../../viewmodel";
-import { fmtDate, makeH3, makeP, makeLabeledLine, INSPECTOR_FONT } from "./shared";
+import { fmtDate, makeH3, makeP, makeLabeledLine, INSPECTOR_FONT, makeBreadcrumb, OnSelect } from "./shared";
 
 export function renderMilestoneDetail(
     milestoneLabel: string,
     activityName: string,
     vm: RoadmapViewModel,
+    onSelect?: OnSelect,
 ): HTMLElement {
     const root = document.createElement("div");
     root.className = "inspector-milestone";
     root.style.cssText = `font-family:${INSPECTOR_FONT};`;
+
+    // Breadcrumb back to the activity that owns this milestone.
+    if (onSelect && activityName) {
+        root.appendChild(makeBreadcrumb(activityName, () => {
+            onSelect({ kind: "activity", activityName });
+        }));
+    }
 
     // Match by label + activity. (label, activity) is a near-unique key in
     // practice; for true uniqueness in pathological data (same label twice

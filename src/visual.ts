@@ -327,22 +327,31 @@ export class Visual implements IVisual {
         // BEFORE opening it (so the panel never slides in with stale or
         // empty content). For "none", just close. requestRerender so the
         // layout coordinator recomputes against the new widthPct().
+        // onSelect: passed to every Inspector renderer so they can navigate
+        // by mutating the same selection store. Clicking an activity row in
+        // the lane Inspector fires this, which triggers THIS subscriber
+        // again, which swaps content to activityDetail — the panel never
+        // closes between navigations.
+        const onSelect = (next: Selection): void => {
+            this.selectionStore.set(next);
+        };
         this.selectionStore.subscribe((sel: Selection) => {
             if (sel.kind === "none") {
                 this.controls.setOpen(false);
             } else if (this.lastViewmodel) {
                 switch (sel.kind) {
                     case "lane":
-                        this.controls.setContent(renderLaneDetail(sel.laneName, this.lastViewmodel));
+                        this.controls.setContent(renderLaneDetail(sel.laneName, this.lastViewmodel, onSelect));
                         break;
                     case "activity":
-                        this.controls.setContent(renderActivityDetail(sel.activityName, this.lastViewmodel));
+                        this.controls.setContent(renderActivityDetail(sel.activityName, this.lastViewmodel, onSelect));
                         break;
                     case "milestone":
                         this.controls.setContent(renderMilestoneDetail(
                             sel.milestoneLabel,
                             sel.activityName,
                             this.lastViewmodel,
+                            onSelect,
                         ));
                         break;
                 }

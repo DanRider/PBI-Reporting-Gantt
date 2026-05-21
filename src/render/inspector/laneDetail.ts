@@ -5,9 +5,13 @@
 // milestone summary lines.
 
 import type { RoadmapViewModel } from "../../viewmodel";
-import { fmtDate, makeH3, makeP, makeLabeledLine, partitionMilestones, INSPECTOR_FONT } from "./shared";
+import { fmtDate, makeH3, makeP, makeLabeledLine, partitionMilestones, INSPECTOR_FONT, OnSelect } from "./shared";
 
-export function renderLaneDetail(laneName: string, vm: RoadmapViewModel): HTMLElement {
+export function renderLaneDetail(
+    laneName: string,
+    vm: RoadmapViewModel,
+    onSelect?: OnSelect,
+): HTMLElement {
     const root = document.createElement("div");
     root.className = "inspector-lane";
     root.style.cssText = `font-family:${INSPECTOR_FONT};`;
@@ -35,30 +39,52 @@ export function renderLaneDetail(laneName: string, vm: RoadmapViewModel): HTMLEl
 
     for (const activity of activitiesInLane) {
         const item = document.createElement("div");
-        item.style.cssText = "margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #eee;";
+        // v2.1 audit-fix — compact, clickable activity row in the lane
+        // Inspector. Click narrows focus to that activity; the activity
+        // detail will render with a "← {laneName}" breadcrumb back.
+        const isClickable = onSelect != null;
+        item.style.cssText = [
+            "margin-bottom:6px",
+            "padding:4px 6px",
+            "border-bottom:1px solid #f0f0f0",
+            "border-radius:3px",
+            isClickable ? "cursor:pointer" : "cursor:default",
+            "transition:background 100ms ease",
+        ].join(";");
+        if (isClickable) {
+            item.addEventListener("mouseenter", () => { item.style.background = "#f4f7fb"; });
+            item.addEventListener("mouseleave", () => { item.style.background = "transparent"; });
+            item.addEventListener("click", (e) => {
+                e.stopPropagation();
+                onSelect!({ kind: "activity", activityName: activity.name });
+            });
+        }
 
         const nameLine = document.createElement("div");
         nameLine.textContent = activity.name;
-        nameLine.style.cssText = "font-weight:600;font-size:12px;color:#222;margin-bottom:4px;";
+        nameLine.style.cssText = "font-weight:600;font-size:11px;color:#222;margin-bottom:2px;line-height:1.3;";
         item.appendChild(nameLine);
 
         const { mostRecent, next } = partitionMilestones(vm.milestones, activity.name, today);
+        const compactLines = document.createElement("div");
+        compactLines.style.cssText = "font-size:10px;color:#666;line-height:1.4;";
         if (mostRecent) {
-            item.appendChild(makeLabeledLine(
-                "\u2713",
-                `${mostRecent.label ?? "(unlabeled)"} · ${fmtDate(mostRecent.date)}`,
-            ));
-        } else {
-            item.appendChild(makeLabeledLine("\u2713", "(none yet)"));
+            const d = document.createElement("div");
+            d.textContent = `\u2713 ${mostRecent.label ?? "(unlabeled)"} \u00b7 ${fmtDate(mostRecent.date)}`;
+            compactLines.appendChild(d);
         }
         if (next) {
-            item.appendChild(makeLabeledLine(
-                "\u23ed",
-                `${next.label ?? "(unlabeled)"} · ${fmtDate(next.date)}`,
-            ));
-        } else {
-            item.appendChild(makeLabeledLine("\u23ed", "(none upcoming)"));
+            const d = document.createElement("div");
+            d.textContent = `\u23ed ${next.label ?? "(unlabeled)"} \u00b7 ${fmtDate(next.date)}`;
+            compactLines.appendChild(d);
         }
+        if (!mostRecent && !next) {
+            const d = document.createElement("div");
+            d.textContent = "(no milestones)";
+            d.style.fontStyle = "italic";
+            compactLines.appendChild(d);
+        }
+        item.appendChild(compactLines);
 
         list.appendChild(item);
     }

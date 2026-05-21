@@ -8,9 +8,14 @@ import type { RoadmapViewModel } from "../../viewmodel";
 import {
     fmtDate, makeH3, makeP, makeLabeledLine,
     partitionMilestones, activityProgressPct, INSPECTOR_FONT,
+    makeBreadcrumb, OnSelect,
 } from "./shared";
 
-export function renderActivityDetail(activityName: string, vm: RoadmapViewModel): HTMLElement {
+export function renderActivityDetail(
+    activityName: string,
+    vm: RoadmapViewModel,
+    onSelect?: OnSelect,
+): HTMLElement {
     const root = document.createElement("div");
     root.className = "inspector-activity";
     root.style.cssText = `font-family:${INSPECTOR_FONT};`;
@@ -20,6 +25,13 @@ export function renderActivityDetail(activityName: string, vm: RoadmapViewModel)
         root.appendChild(makeH3(activityName));
         root.appendChild(makeP("(activity not found in current viewmodel)", { muted: true }));
         return root;
+    }
+
+    // Breadcrumb back to the lane that owns this activity.
+    if (onSelect && activity.area) {
+        root.appendChild(makeBreadcrumb(activity.area, () => {
+            onSelect({ kind: "lane", laneName: activity.area });
+        }));
     }
 
     root.appendChild(makeH3(activity.name));
@@ -54,19 +66,41 @@ export function renderActivityDetail(activityName: string, vm: RoadmapViewModel)
     milestoneSection.style.cssText = "margin-top:8px;";
 
     const { mostRecent, next } = partitionMilestones(vm.milestones, activity.name, today);
+    const makeMilestoneClickable = (line: HTMLElement, m: typeof mostRecent): void => {
+        if (onSelect == null || m == null) return;
+        line.style.cursor = "pointer";
+        line.addEventListener("mouseenter", () => { line.style.background = "#f4f7fb"; });
+        line.addEventListener("mouseleave", () => { line.style.background = "transparent"; });
+        line.addEventListener("click", (e) => {
+            e.stopPropagation();
+            onSelect({
+                kind: "milestone",
+                milestoneLabel: m.label ?? "(unlabeled)",
+                activityName: activity.name,
+            });
+        });
+        // Tighten padding for hover affordance
+        line.style.padding = "2px 4px";
+        line.style.borderRadius = "3px";
+        line.style.transition = "background 100ms ease";
+    };
     if (mostRecent) {
-        milestoneSection.appendChild(makeLabeledLine(
+        const ln = makeLabeledLine(
             "\u2713 Most recent:",
             `${mostRecent.label ?? "(unlabeled)"} · ${mostRecent.type} · ${fmtDate(mostRecent.date)}`,
-        ));
+        );
+        makeMilestoneClickable(ln, mostRecent);
+        milestoneSection.appendChild(ln);
     } else {
         milestoneSection.appendChild(makeLabeledLine("\u2713 Most recent:", "(none yet)"));
     }
     if (next) {
-        milestoneSection.appendChild(makeLabeledLine(
+        const ln = makeLabeledLine(
             "\u23ed Next upcoming:",
             `${next.label ?? "(unlabeled)"} · ${next.type} · ${fmtDate(next.date)}`,
-        ));
+        );
+        makeMilestoneClickable(ln, next);
+        milestoneSection.appendChild(ln);
     } else {
         milestoneSection.appendChild(makeLabeledLine("\u23ed Next upcoming:", "(none upcoming)"));
     }
