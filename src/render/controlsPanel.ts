@@ -156,13 +156,15 @@ export function mountControlsPanel(
             while (body.firstChild) body.removeChild(body.firstChild);
             body.appendChild(node);
         },
-        // Orchestrator audit: "leave the bottom visual spanning the entire
-        // visual" — the panel is now an OVERLAY (z-index 10 over the SVG),
-        // not a region that reserves layout space. widthPct returns 0 so
-        // the layout coordinator never shrinks Gantt + table when the panel
-        // opens. The panel's CSS width still animates 0% → 20% (visual
-        // slide-in) but it floats over the data, not beside it.
-        widthPct: () => PANEL_WIDTH_PCT_CLOSED,
+        // Orchestrator audit (reversal of prior overlay attempt):
+        //   "now you are expanding that pannel over text the user still
+        //    needs to see..... previously we were shrinking the container
+        //    for the ghantt..... every state should be a state that they
+        //    could take screenshot for a powerpoint"
+        // Reverted to the original behavior: panel reserves 20% of the
+        // viewport when open, 0% when closed. The layout coordinator uses
+        // this to shrink the Gantt + table regions so nothing is occluded.
+        widthPct: () => (open ? PANEL_WIDTH_PCT_OPEN : PANEL_WIDTH_PCT_CLOSED),
         element: panel,
     };
 }

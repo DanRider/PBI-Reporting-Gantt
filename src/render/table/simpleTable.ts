@@ -65,13 +65,11 @@ function buildRow(
     const rowActivity = activityColIndex >= 0 ? String(row[activityColIndex] ?? "").trim() : "";
     const isHighlighted = highlightActivityName != null && rowActivity === highlightActivityName;
     const baseBg = isHighlighted ? SELECTED_BG : stripeBg;
-    tr.style.cssText = `border-bottom:1px solid #f0f0f0; background:${baseBg}; cursor:${onSelectActivity ? "pointer" : "default"};`;
-    // Hover handlers attached EVERY row build (initial + re-renders after
-    // sort) so the highlight persists across sort interactions.
+    // v2.1 audit-fix — compact P&L-style row: tight cell padding, no
+    // per-row border (stripes provide separation), uniform 18px row height.
+    tr.style.cssText = `background:${baseBg}; cursor:${onSelectActivity ? "pointer" : "default"}; height:18px;`;
     tr.addEventListener("mouseenter", () => { tr.style.background = HOVER_BG; });
     tr.addEventListener("mouseleave", () => { tr.style.background = baseBg; });
-    // v2.1 W1.5b — selection: clicking the row sets activity selection.
-    // stopPropagation so the click doesn't bubble to root and clear.
     if (onSelectActivity && activityColIndex >= 0) {
         tr.addEventListener("click", (e) => {
             e.stopPropagation();
@@ -83,8 +81,11 @@ function buildRow(
     row.forEach((cell, ci) => {
         const td = document.createElement("td");
         const { text, align } = formatCell(cell, cols[ci]);
-        td.style.cssText = `padding:6px 12px; border-right:1px solid #f4f4f4; vertical-align:top; text-align:${align};`;
+        // v2.1 audit-fix — compact paddings, tighter line-height, no
+        // right-border (visual noise on a dense P&L grid).
+        td.style.cssText = `padding:2px 6px; vertical-align:middle; text-align:${align}; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;`;
         td.textContent = text;
+        td.title = text;
         tr.appendChild(td);
     });
     return tr;
@@ -142,11 +143,15 @@ export function renderSimpleTable(
     }
 
     const table = document.createElement("table");
+    // v2.1 audit-fix — compact P&L density: 11px font, tight cells, fixed
+    // table-layout so columns share width evenly across the full container
+    // and don't reflow on selection-driven filter changes.
     table.style.cssText = [
         "width: 100%",
         "border-collapse: collapse",
+        "table-layout: auto",
         "font-family: 'Segoe UI', system-ui, sans-serif",
-        "font-size: 12px",
+        "font-size: 11px",
         "color: #222",
     ].join(";");
 
@@ -159,17 +164,21 @@ export function renderSimpleTable(
     const headerCells: HTMLTableCellElement[] = [];
     cols.forEach((col, i) => {
         const th = document.createElement("th");
+        // v2.1 audit-fix — compact header: 3px vertical padding, single
+        // bottom border (no per-column right border), 11px uppercase-ish
+        // styling to match a finance-grade dense grid.
         th.style.cssText = [
             "position:sticky",
             "top:0",
             "z-index:5",
-            "padding:8px 12px",
+            "padding:3px 6px",
             "text-align:left",
             "font-weight:600",
-            "color:#444",
+            "font-size:10px",
+            "letter-spacing:0.02em",
+            "color:#555",
             "background:#f5f5f7",
-            "border-right:1px solid #e6e6e6",
-            "border-bottom:2px solid #d0d0d0",
+            "border-bottom:1px solid #c8c8c8",
             "white-space:nowrap",
             "cursor:pointer",
             "user-select:none",

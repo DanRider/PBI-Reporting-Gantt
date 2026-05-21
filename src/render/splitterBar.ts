@@ -27,13 +27,10 @@ const BAR_Z_INDEX = 6;
 const GRIP_DOT_SIZE_PX = 2;
 const GRIP_DOT_COLOR = "#888";
 
-// v2.1 W1.5e — hide-region chevrons at bar ends. Hover-revealed (opacity
-// transitions 200ms on bar hover); click toggles the corresponding
-// region's collapseMode. Positioned at the far edges so they don't
-// compete with the bar's drag area or the center grip dots.
-const CHEVRON_WIDTH_PX = 16;
-const CHEVRON_FADE_MS = 200;
-const CHEVRON_COLOR = "#444";
+// Chevron constants removed in audit-fix #4 — drag-to-resize already
+// handles proportional resizing, and the top-right "Hide Gantt" /
+// "Hide Table" buttons handle full-collapse with self-recall. The
+// splitter is now just a draggable separator with grip dots.
 
 export type CollapseMode = "none" | "gantt" | "table";
 /** v2.1 audit-fix — fully-hidden mode (orthogonal to collapseMode).
@@ -120,76 +117,6 @@ export function mountSplitterBar(
     let visible = true;
 
     const bar = buildBar();
-
-    // v2.1 W1.5e — left/right chevron buttons at bar ends, hover-revealed.
-    // pointer-events:auto + position:absolute so they catch their own
-    // clicks (with stopPropagation on pointerdown to avoid starting a drag).
-    function buildChevron(side: "left" | "right", char: string): HTMLButtonElement {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = `splitter-chevron-${side}`;
-        btn.textContent = char;
-        btn.style.cssText = [
-            "position:absolute",
-            "top:50%",
-            `${side}:2px`,
-            "transform:translateY(-50%)",
-            `width:${CHEVRON_WIDTH_PX}px`,
-            "height:14px",
-            "padding:0",
-            "border:none",
-            "background:transparent",
-            `color:${CHEVRON_COLOR}`,
-            "font-size:11px",
-            "line-height:1",
-            "cursor:pointer",
-            "opacity:0",
-            `transition:opacity ${CHEVRON_FADE_MS}ms ease`,
-            "pointer-events:auto",
-            "display:flex",
-            "align-items:center",
-            "justify-content:center",
-        ].join(";");
-        // Critical: stopPropagation on pointerdown so clicks on the chevron
-        // don't start a drag on the bar (which would jump the split fraction).
-        btn.addEventListener("pointerdown", (e) => e.stopPropagation());
-        return btn;
-    }
-    const leftChevron = buildChevron("left", "\u25c0");   // ◀ collapses Gantt to its min (showing only the table-leaning split)
-    const rightChevron = buildChevron("right", "\u25b6"); // ▶ collapses Table to its min (showing only the Gantt-leaning split)
-    bar.appendChild(leftChevron);
-    bar.appendChild(rightChevron);
-
-    function updateChevronLabels(): void {
-        // Reflect current action in aria/title so screen readers see the role change.
-        leftChevron.setAttribute("aria-label", mode === "gantt" ? "Restore Gantt" : "Collapse Gantt");
-        leftChevron.title = mode === "gantt" ? "Restore Gantt" : "Collapse Gantt";
-        rightChevron.setAttribute("aria-label", mode === "table" ? "Restore Table" : "Collapse Table");
-        rightChevron.title = mode === "table" ? "Restore Table" : "Collapse Table";
-    }
-    updateChevronLabels();
-
-    leftChevron.addEventListener("click", (e) => {
-        e.stopPropagation();
-        mode = mode === "gantt" ? "none" : "gantt";
-        updateChevronLabels();
-        options.onChange();
-    });
-    rightChevron.addEventListener("click", (e) => {
-        e.stopPropagation();
-        mode = mode === "table" ? "none" : "table";
-        updateChevronLabels();
-        options.onChange();
-    });
-
-    bar.addEventListener("mouseenter", () => {
-        leftChevron.style.opacity = "1";
-        rightChevron.style.opacity = "1";
-    });
-    bar.addEventListener("mouseleave", () => {
-        leftChevron.style.opacity = "0";
-        rightChevron.style.opacity = "0";
-    });
 
     // Drag: pointerdown anywhere on the bar. Capture the pointer so
     // mousemove keeps firing if the cursor leaves the bar while dragging.
