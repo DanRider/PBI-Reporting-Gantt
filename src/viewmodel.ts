@@ -50,6 +50,13 @@ export interface Milestone {
     id: string;
     parentRowIndex: number;
     note: string | null;    // optional per-row status note from Milestone Note role
+    // v2.1 W1.5d — optional milestone metadata. Each is non-null only when
+    // the corresponding well is bound AND the row value is non-empty.
+    // The milestone-detail Inspector renders rows for each conditionally.
+    owner:       string | null;
+    status:      string | null;
+    externalUrl: string | null;
+    health:      string | null;
 }
 
 export interface AreaGroup {
@@ -145,6 +152,11 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
                 type: mType,
                 label: strAt(row, idx.milestoneLabel),
                 labelPos: (strAt(row, idx.labelPosition) ?? "none") as LabelPos,
+                // v2.1 W1.5d — read 4 optional metadata fields when bound.
+                owner:       strAt(row, idx.milestoneOwner),
+                status:      strAt(row, idx.milestoneStatus),
+                externalUrl: strAt(row, idx.milestoneExternalUrl),
+                health:      strAt(row, idx.milestoneHealth),
                 id: `m${milestoneCounter++}`,
                 parentRowIndex: -1,
                 note: strAt(row, idx.milestoneNote),

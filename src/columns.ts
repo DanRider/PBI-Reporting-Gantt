@@ -15,6 +15,12 @@ export const ROLE = {
     labelPosition:     "labelPosition",
     activityNote:      "activityNote",
     milestoneNote:     "milestoneNote",
+    // v2.1 W1.5d (INF-3735) — 4 optional milestone metadata wells
+    // surfaced in the milestone-detail Inspector panel when bound.
+    milestoneOwner:       "milestoneOwner",
+    milestoneStatus:      "milestoneStatus",
+    milestoneExternalUrl: "milestoneExternalUrl",
+    milestoneHealth:      "milestoneHealth",
 } as const;
 
 export type RoleName = typeof ROLE[keyof typeof ROLE];

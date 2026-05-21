@@ -65,6 +65,30 @@
             "displayName": "Milestone Note",
             "kind": "Grouping",
             "description": "Optional per-milestone status note (free text). Shown in the milestone tooltip on hover. Source: a text column on the Milestones table."
+        },
+        {
+            "name": "milestoneOwner",
+            "displayName": "Milestone Owner",
+            "kind": "Grouping",
+            "description": "(Optional) Person or team accountable for the milestone. Surfaced in the milestone Inspector when bound."
+        },
+        {
+            "name": "milestoneStatus",
+            "displayName": "Milestone Status",
+            "kind": "Grouping",
+            "description": "(Optional) Current state — e.g. Planned / In Progress / Complete / Blocked / Skipped. Surfaced in the milestone Inspector when bound."
+        },
+        {
+            "name": "milestoneExternalUrl",
+            "displayName": "Milestone External URL",
+            "kind": "Grouping",
+            "description": "(Optional) Clickable link surfaced in the milestone Inspector when bound."
+        },
+        {
+            "name": "milestoneHealth",
+            "displayName": "Milestone Health",
+            "kind": "Grouping",
+            "description": "(Optional) Status indicator — e.g. Green / Yellow / Red. Surfaced in the milestone Inspector when bound."
         }
     ],
     "objects": {
@@ -1108,6 +1132,26 @@
                         {
                             "for": {
                                 "in": "milestoneNote"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "milestoneOwner"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "milestoneStatus"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "milestoneExternalUrl"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "milestoneHealth"
                             }
                         }
                     ],
