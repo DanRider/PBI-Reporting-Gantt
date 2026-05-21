@@ -1,13 +1,16 @@
-// W1.5 of INF-3728 — vertical splitter between Gantt and table regions.
+// W1 of INF-3728 — vertical splitter between Gantt and table regions.
 //
 // Owns: a horizontal bar (8px tall) that sits between the Gantt scroll
-// wrapper and the matrix table region. The bar carries three buttons
-// (collapse-gantt, reset, collapse-table) and a drag handle covering
-// the rest of its width. Drag = manual resize. Buttons = preset states.
+// wrapper and the matrix table region. The bar is drag-only — three small
+// grip-dot indicators in the center signal "draggable" but have
+// pointer-events:none so they don't interfere with capture. The drag
+// fraction clamps so neither region falls below its minimum px (1 row of
+// visible content + the splitter bar) — the user always sees enough of
+// each region to remember it exists.
 //
-// Collapse semantics: neither side ever drops below its minimum px so
-// the user always sees enough of the collapsed region to remember it
-// exists (1 row of content + the splitter bar).
+// collapseMode state is retained on the handle for a future hide-region
+// affordance (orchestrator: "we may want a way to completely hide one of
+// the 2"). Driven programmatically; no in-bar buttons.
 //
 // Pure DOM, pointer events for drag (with setPointerCapture so the cursor
 // can leave the bar mid-drag without losing the gesture). Strict-TS clean.
@@ -17,9 +20,12 @@ const BAR_BG = "#e8e8ec";
 const BAR_BG_HOVER = "#d4d4d8";
 const BAR_BORDER = "#c0c0c0";
 const BAR_Z_INDEX = 6;
-const BUTTON_SIZE_PX = 14;
-const BUTTON_BG = "#ffffff";
-const BUTTON_BG_HOVER = "#f0f0f3";
+// Subtle center indicator — three dots so the bar reads as a grab handle.
+// Removed the ▲ ⇕ ▼ buttons (orchestrator: "the reset button had me confused
+// i thought it was something to drag... i am thinking we dont need any of
+// the 2 visible controls"). Drag-to-resize is the sole interaction.
+const GRIP_DOT_SIZE_PX = 2;
+const GRIP_DOT_COLOR = "#888";
 
 export type CollapseMode = "none" | "gantt" | "table";
 
@@ -64,43 +70,27 @@ function buildBar(): HTMLDivElement {
         "display:flex",
         "align-items:center",
         "justify-content:center",
-        "gap:4px",
+        "gap:3px",
         "box-sizing:border-box",
         "user-select:none",
         "touch-action:none",
     ].join(";");
+    // Three small dots in the middle: a conventional grab-handle visual that
+    // signals "draggable" without competing with the cursor:ns-resize hint.
+    for (let i = 0; i < 3; i++) {
+        const dot = document.createElement("div");
+        dot.style.cssText = [
+            `width:${GRIP_DOT_SIZE_PX}px`,
+            `height:${GRIP_DOT_SIZE_PX}px`,
+            "border-radius:50%",
+            `background:${GRIP_DOT_COLOR}`,
+            "pointer-events:none",
+        ].join(";");
+        bar.appendChild(dot);
+    }
     bar.addEventListener("mouseenter", () => { bar.style.background = BAR_BG_HOVER; });
     bar.addEventListener("mouseleave", () => { bar.style.background = BAR_BG; });
     return bar;
-}
-
-function buildIconButton(label: string, ariaLabel: string): HTMLButtonElement {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = label;
-    btn.setAttribute("aria-label", ariaLabel);
-    btn.title = ariaLabel;
-    btn.style.cssText = [
-        `width:${BUTTON_SIZE_PX + 6}px`,
-        `height:${BUTTON_SIZE_PX}px`,
-        "padding:0",
-        "font-size:10px",
-        "line-height:1",
-        "color:#444",
-        `background:${BUTTON_BG}`,
-        `border:1px solid ${BAR_BORDER}`,
-        "border-radius:2px",
-        "cursor:pointer",
-        "display:flex",
-        "align-items:center",
-        "justify-content:center",
-        "box-sizing:border-box",
-    ].join(";");
-    btn.addEventListener("mouseenter", () => { btn.style.background = BUTTON_BG_HOVER; });
-    btn.addEventListener("mouseleave", () => { btn.style.background = BUTTON_BG; });
-    // The buttons sit inside the drag bar; their clicks must not start a drag.
-    btn.addEventListener("pointerdown", (e) => e.stopPropagation());
-    return btn;
 }
 
 export function mountSplitterBar(
@@ -114,31 +104,11 @@ export function mountSplitterBar(
 
     const bar = buildBar();
 
-    const collapseGanttBtn = buildIconButton("▲", "Collapse Gantt");
-    const resetBtn = buildIconButton("⇕", "Reset Gantt/Table split");
-    const collapseTableBtn = buildIconButton("▼", "Collapse Table");
-
-    collapseGanttBtn.addEventListener("click", () => {
-        mode = mode === "gantt" ? "none" : "gantt";
-        options.onChange();
-    });
-    resetBtn.addEventListener("click", () => {
-        mode = "none";
-        userPct = clampPct(options.initialPct);
-        options.onChange();
-    });
-    collapseTableBtn.addEventListener("click", () => {
-        mode = mode === "table" ? "none" : "table";
-        options.onChange();
-    });
-
-    bar.appendChild(collapseGanttBtn);
-    bar.appendChild(resetBtn);
-    bar.appendChild(collapseTableBtn);
-
-    // Drag: pointerdown on the bar (NOT on a button — buttons stopPropagation
-    // pointerdown). Capture the pointer so mousemove keeps firing if the
-    // cursor leaves the bar while dragging.
+    // Drag: pointerdown anywhere on the bar. Capture the pointer so
+    // mousemove keeps firing if the cursor leaves the bar while dragging.
+    // (Buttons were removed per orchestrator feedback — the grab-dots are
+    // purely visual indicators, pointer-events:none, so they don't
+    // interfere with drag capture.)
     let dragStartY = 0;
     let dragStartPct = userPct;
     let dragRootTop = 0;
