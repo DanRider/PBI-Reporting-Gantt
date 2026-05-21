@@ -3,7 +3,7 @@
 import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
 import { Activity } from "../../viewmodel";
-import { areaColor, ColorContext } from "../../utils/colors";
+import { activityColor, ColorContext } from "../../utils/colors";
 
 const BAR_RADIUS = 6;
 
@@ -33,5 +33,5 @@ export function renderBars(
         .attr("height", barH)
         .attr("rx", rx)
         .attr("ry", rx)
-        .attr("fill", a => areaColor(a.area, colors));
+        .attr("fill", a => activityColor(a.name, a.area, colors));
 }

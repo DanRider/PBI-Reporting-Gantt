@@ -3,7 +3,7 @@
 import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
 import { Activity } from "../../viewmodel";
-import { areaColor, ColorContext } from "../../utils/colors";
+import { activityColor, ColorContext } from "../../utils/colors";
 import { FontStyle, applyFont, canvasFontString } from "../../utils/font";
 
 const LOLLIPOP_CIRCLE_R = 4;
@@ -127,7 +127,7 @@ export function renderActivityLabels(
 
     for (const a of activities) {
         const cy = a.index * rowHeight + rowHeight / 2;
-        const lollipopColor = areaColor(a.area, colors);
+        const lollipopColor = activityColor(a.name, a.area, colors);
         const labelFill = opts.fillMode === "area" ? lollipopColor : opts.customColor;
 
         let renderLines: string[];

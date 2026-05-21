@@ -5,7 +5,7 @@
 // milestone summary lines.
 
 import type { RoadmapViewModel } from "../../viewmodel";
-import { fmtDate, makeH3, makeP, makeLabeledLine, partitionMilestones, INSPECTOR_FONT, OnSelect } from "./shared";
+import { fmtDate, makeH3, makeP, makeLabeledLine, partitionMilestones, INSPECTOR_FONT, OnSelect, makeBreadcrumb } from "./shared";
 
 export function renderLaneDetail(
     laneName: string,
@@ -15,6 +15,13 @@ export function renderLaneDetail(
     const root = document.createElement("div");
     root.className = "inspector-lane";
     root.style.cssText = `font-family:${INSPECTOR_FONT};`;
+
+    // Breadcrumb back to the unfiltered "all lanes" view.
+    if (onSelect) {
+        root.appendChild(makeBreadcrumb("All lanes", () => {
+            onSelect({ kind: "none" });
+        }));
+    }
 
     root.appendChild(makeH3(laneName));
 

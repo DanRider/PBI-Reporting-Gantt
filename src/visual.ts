@@ -518,15 +518,82 @@ export class Visual implements IVisual {
         this.ganttScrollWrapper.style.height = height + "px";
         this.svg.attr("width", width).attr("height", height);
 
-        const vm: RoadmapViewModel = convertDataView(dataView);
+        let vm: RoadmapViewModel = convertDataView(dataView);
+
+        // v2.1 audit-fix #7 — lane focus mode. When the user has selected
+        // a lane (directly, or transitively via activity/milestone), filter
+        // the Gantt vm to ONLY that lane's activities + milestones, AND
+        // assign each surviving activity a distinct palette color so they
+        // can be visually correlated bar ↔ label ↔ table.
+        //
+        // Focused lane is derived from current selection:
+        //   kind=lane     → sel.laneName
+        //   kind=activity → activity.area lookup
+        //   kind=milestone→ milestone.activity → activity.area lookup
+        const selForFocus = this.selectionStore.get();
+        let focusedLaneName: string | null = null;
+        if (selForFocus.kind === "lane") {
+            focusedLaneName = selForFocus.laneName;
+        } else if (selForFocus.kind === "activity") {
+            focusedLaneName = vm.activities.find(a => a.name === selForFocus.activityName)?.area ?? null;
+        } else if (selForFocus.kind === "milestone") {
+            const m = vm.milestones.find(mm =>
+                (mm.label ?? "(unlabeled)") === selForFocus.milestoneLabel &&
+                mm.activity === selForFocus.activityName);
+            focusedLaneName = m ? (vm.activities.find(a => a.name === m.activity)?.area ?? null) : null;
+        }
+
+        // Distinct palette for activity colors inside lane focus. Tableau10-ish.
+        const ACTIVITY_PALETTE = [
+            "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+            "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+        ];
+
+        let activityColors: Record<string, string> | undefined;
+        if (focusedLaneName != null) {
+            // Filter to the focused lane. Re-index activities to be contiguous
+            // (0..N-1) so the bar renderer's y = index * rowHeight math packs
+            // them at the top of the body region with no gaps. Re-base milestone
+            // parentRowIndex against the new indices. Recompute the lane's
+            // areaGroup span.
+            const oldToNewIndex = new Map<string, number>();
+            const filteredActivities = vm.activities
+                .filter(a => a.area === focusedLaneName)
+                .map((a, i) => {
+                    oldToNewIndex.set(a.name, i);
+                    return { ...a, index: i };
+                });
+            const activityNames = new Set(filteredActivities.map(a => a.name));
+            const filteredMilestones = vm.milestones
+                .filter(m => activityNames.has(m.activity))
+                .map(m => ({ ...m, parentRowIndex: oldToNewIndex.get(m.activity) ?? -1 }));
+            const filteredAreaGroups = filteredActivities.length > 0 ? [{
+                area: focusedLaneName,
+                startRowIndex: 0,
+                endRowIndex: filteredActivities.length - 1,
+            }] : [];
+            vm = {
+                ...vm,
+                activities: filteredActivities,
+                milestones: filteredMilestones,
+                areaGroups: filteredAreaGroups,
+            };
+
+            // Build per-activity color map. Cycle the palette if more than 10.
+            activityColors = {};
+            filteredActivities.forEach((a, i) => {
+                activityColors![a.name] = ACTIVITY_PALETTE[i % ACTIVITY_PALETTE.length];
+            });
+        }
+
         // v2.1 W1.5c — cache vm so the selection subscriber (which fires on
         // user clicks, not update()) can feed Inspector renderers with the
-        // current data.
+        // current data. In lane focus mode this is the filtered vm.
         this.lastViewmodel = vm;
 
         const areaColorMap = buildAreaColorMap(vm.areaBindings, this.settings.swimlanes);
         const milestoneConfig = buildMilestoneConfigMap(vm.typeBindings, this.settings.milestones);
-        const colors: ColorContext = buildColorContext(areaColorMap, milestoneConfig);
+        const colors: ColorContext = buildColorContext(areaColorMap, milestoneConfig, activityColors);
 
         // Override SwimlanesCard slot color displayNames from bound area names so the
         // Format pane shows actual data values ("Tech Modernization" not "Slot 1 color").

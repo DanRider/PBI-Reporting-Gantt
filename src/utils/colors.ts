@@ -15,6 +15,11 @@ export interface MilestoneTypeConfig {
 export interface ColorContext {
     areaColors: Record<string, string>;
     milestoneConfig: Record<string, MilestoneTypeConfig>;
+    /** v2.1 audit-fix #7 — when set, per-activity colors override the
+     *  per-area color. Used in lane-focus mode (when selection.kind ===
+     *  "lane") to give each activity within the lane a distinct palette
+     *  color so the user can visually correlate bar ↔ label ↔ table row. */
+    activityColors?: Record<string, string>;
 }
 
 const FALLBACK_COLOR = "#888888";
@@ -82,13 +87,21 @@ export function buildMilestoneConfigMap(
 
 export function buildColorContext(
     areaColors: Record<string, string>,
-    milestoneConfig: Record<string, MilestoneTypeConfig>
+    milestoneConfig: Record<string, MilestoneTypeConfig>,
+    activityColors?: Record<string, string>,
 ): ColorContext {
-    return { areaColors, milestoneConfig };
+    return { areaColors, milestoneConfig, activityColors };
 }
 
 export function areaColor(area: string, ctx: ColorContext): string {
     return ctx.areaColors[area] ?? FALLBACK_COLOR;
+}
+
+/** v2.1 audit-fix #7 — prefer the per-activity override (lane-focus mode)
+ *  over the area color. Falls back to the area color (default behavior)
+ *  when no override is provided. */
+export function activityColor(activityName: string, area: string, ctx: ColorContext): string {
+    return ctx.activityColors?.[activityName] ?? areaColor(area, ctx);
 }
 
 export function typeColor(typeName: string, ctx: ColorContext): string {
