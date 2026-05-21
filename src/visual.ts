@@ -237,6 +237,12 @@ export class Visual implements IVisual {
     // update(). Built in lane focus mode; passed into Inspector renderers
     // so each card / h3 shows the same color bubble as the Gantt rail.
     private lastActivityColors: Record<string, string> | undefined = undefined;
+    // v2.1 audit-fix #9 — milestone types the user has toggled OFF via the
+    // legend. Members render at 30% opacity (legend entry, milestones,
+    // milestone labels, milestone hit targets, table rows). Survives
+    // across selection changes; cleared only on dataset change OR by
+    // re-clicking the legend entry.
+    private hiddenMilestoneTypes: Set<string> = new Set();
     private lastOptions: VisualUpdateOptions | null = null;
 
     constructor(options?: VisualConstructorOptions) {
@@ -805,6 +811,17 @@ export class Visual implements IVisual {
             mc.legendShow.value,
             legendFont,
             mc.legendLabelColor.value.value,
+            this.hiddenMilestoneTypes,
+            (typeName: string) => {
+                // Toggle membership in the hidden set + re-render. Triggers
+                // milestone opacity changes (post-render selections below).
+                if (this.hiddenMilestoneTypes.has(typeName)) {
+                    this.hiddenMilestoneTypes.delete(typeName);
+                } else {
+                    this.hiddenMilestoneTypes.add(typeName);
+                }
+                this.requestRerender();
+            },
         );
 
         // ── Swim-lane rails ───────────────────────────────────────────────────
@@ -933,18 +950,39 @@ export class Visual implements IVisual {
                 ? `${selForHighlight.milestoneLabel}|${selForHighlight.activityName}`
                 : null;
 
+        // v2.1 audit-fix #9 — selected-bar outline uses the activity's
+        // PALETTE color (the same blue/orange/green seen in the rail
+        // bullet + panel bubble + table tint). The hardcoded #FF8C00
+        // orange was a leftover from before activityColors existed.
+        // Falls back to #FF8C00 outside lane focus (no palette assigned).
         barsSel
-            .attr("stroke", (a: Activity) => a.name === selectedActivityName ? "#FF8C00" : "none")
+            .attr("stroke", (a: Activity) => {
+                if (a.name !== selectedActivityName) return "none";
+                return activityColors?.[a.name] ?? "#FF8C00";
+            })
             .attr("stroke-width", (a: Activity) => a.name === selectedActivityName ? 3 : 0);
         this.bodyG.selectAll<SVGPathElement, Milestone>("path.milestone-marker")
             .attr("stroke", (m: Milestone) => {
                 const k = `${m.label ?? "(unlabeled)"}|${m.activity}`;
-                return k === selectedMilestoneKey ? "#FF8C00" : "none";
+                if (k !== selectedMilestoneKey) return "none";
+                return activityColors?.[m.activity] ?? "#FF8C00";
             })
             .attr("stroke-width", (m: Milestone) => {
                 const k = `${m.label ?? "(unlabeled)"}|${m.activity}`;
                 return k === selectedMilestoneKey ? 3 : 0;
             });
+
+        // v2.1 audit-fix #9 — dim milestones whose type is in the hidden
+        // set (toggled OFF via the legend). Applies to the visible marker,
+        // the wider hit target, and the labels.
+        const hiddenTypes = this.hiddenMilestoneTypes;
+        const dimOpacity = (m: Milestone): number => hiddenTypes.has(m.type) ? 0.3 : 1;
+        this.bodyG.selectAll<SVGPathElement, Milestone>("path.milestone-marker")
+            .style("opacity", dimOpacity);
+        this.bodyG.selectAll<SVGCircleElement, Milestone>("circle.milestone-hit")
+            .style("opacity", dimOpacity);
+        this.bodyG.selectAll<SVGTextElement, { milestone: Milestone }>("text.milestone-label")
+            .style("opacity", (d) => hiddenTypes.has(d.milestone.type) ? 0.3 : 1);
         // Swim-lane label bold-when-selected. Match by data-area.
         this.railG.selectAll<SVGTextElement, unknown>("text.swimlane-label")
             .attr("font-weight", function (this: SVGTextElement) {
