@@ -36,6 +36,11 @@ const CHEVRON_FADE_MS = 200;
 const CHEVRON_COLOR = "#444";
 
 export type CollapseMode = "none" | "gantt" | "table";
+/** v2.1 audit-fix — fully-hidden mode (orthogonal to collapseMode).
+ *  When hiddenMode !== "none", the named region is given 0px and the
+ *  other fills the entire usable height; the splitter bar itself hides
+ *  too (no meaningful boundary when one region is gone). */
+export type HiddenMode = "none" | "gantt" | "table";
 
 export interface SplitterOptions {
     /** Initial fraction of usable height (viewport minus bar) given to Gantt. 0..1. */
@@ -61,6 +66,9 @@ export interface SplitterHandle {
     setVisible(visible: boolean): void;
     /** Current collapse mode (for diagnostics / future persistence). */
     collapseMode(): CollapseMode;
+    /** v2.1 audit-fix — fully hide one region (0px) or restore both. */
+    setHidden(mode: HiddenMode): void;
+    hiddenMode(): HiddenMode;
     element: HTMLElement;
 }
 
@@ -107,6 +115,7 @@ export function mountSplitterBar(
 ): SplitterHandle {
     let userPct = clampPct(options.initialPct);
     let mode: CollapseMode = "none";
+    let hidden: HiddenMode = "none";
     let lastViewportHeight = 0;
     let visible = true;
 
@@ -229,6 +238,11 @@ export function mountSplitterBar(
 
     function ganttHeightPx(viewportHeight: number): number {
         lastViewportHeight = viewportHeight;
+        // v2.1 audit-fix — fully-hidden mode takes precedence over collapseMode.
+        // Bar takes 0 height when one region is fully hidden so the visible
+        // region fills the full viewport.
+        if (hidden === "gantt") return 0;
+        if (hidden === "table") return viewportHeight;
         const usable = Math.max(0, viewportHeight - BAR_HEIGHT_PX);
         if (mode === "gantt") return Math.min(options.minGanttPx, usable - options.minMatrixPx);
         if (mode === "table") return Math.max(options.minGanttPx, usable - options.minMatrixPx);
@@ -237,6 +251,8 @@ export function mountSplitterBar(
     }
 
     function matrixHeightPx(viewportHeight: number): number {
+        if (hidden === "table") return 0;
+        if (hidden === "gantt") return viewportHeight;
         const usable = Math.max(0, viewportHeight - BAR_HEIGHT_PX);
         return Math.max(0, usable - ganttHeightPx(viewportHeight));
     }
@@ -249,16 +265,32 @@ export function mountSplitterBar(
 
     function setVisible(v: boolean): void {
         visible = v;
-        bar.style.display = v ? "flex" : "none";
+        // v2.1 audit-fix — also hide when a region is fully hidden (no
+        // meaningful boundary). External setVisible(false) for table-unbound
+        // case still wins; hidden-mode-driven hide overrides only when the
+        // caller wanted visible.
+        const effectiveVisible = v && hidden === "none";
+        bar.style.display = effectiveVisible ? "flex" : "none";
+    }
+
+    function barHeightPx(): number {
+        return hidden === "none" ? BAR_HEIGHT_PX : 0;
     }
 
     return {
         ganttHeightPx,
         matrixHeightPx,
-        barHeightPx: () => BAR_HEIGHT_PX,
+        barHeightPx,
         layout,
         setVisible,
         collapseMode: () => mode,
+        setHidden(next: HiddenMode): void {
+            hidden = next;
+            // Re-apply visibility so the bar element follows the new state.
+            setVisible(visible);
+            options.onChange();
+        },
+        hiddenMode: () => hidden,
         element: bar,
     };
 }

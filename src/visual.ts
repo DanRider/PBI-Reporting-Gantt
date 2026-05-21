@@ -63,6 +63,10 @@ import { mountControlsPanel, ControlsPanelHandle } from "./render/controlsPanel"
 // to remember it exists (1 row of content + the splitter bar).
 import { mountSplitterBar, SplitterHandle } from "./render/splitterBar";
 
+// v2.1 audit-fix — top-right hover-revealed controls to fully hide either
+// region. Self-recall — same buttons toggle hide/show.
+import { mountTopRightControls, TopRightControlsHandle } from "./render/topRightControls";
+
 // v2.1 W1.5a (INF-3730) — selection state model. Drives the controls panel
 // (open/close + content). Clicks on selectable elements write to the store;
 // the panel + (future) renderers subscribe to react. Root-level click
@@ -218,6 +222,8 @@ export class Visual implements IVisual {
     // v2.1 W1 — vertical splitter handle owns the Gantt/Table split fraction
     // and collapse mode. Same cached-options re-render pattern as controls.
     private splitter: SplitterHandle;
+    // v2.1 audit-fix — top-right hover controls for fully hiding either region.
+    private topRight: TopRightControlsHandle;
     // v2.1 W1.5a — selection state store. Single source of truth for what
     // the user has clicked; drives the panel + (future) renderer highlights.
     private selectionStore: SelectionStore;
@@ -364,6 +370,18 @@ export class Visual implements IVisual {
             minGanttPx: MIN_GANTT_PX,
             minMatrixPx: MIN_MATRIX_PX,
             onChange: () => this.requestRerender(),
+        });
+
+        // v2.1 audit-fix — top-right cluster of "Hide Gantt" / "Hide Table"
+        // buttons. Hover-revealed (opacity 0.25 → 1). Same buttons toggle
+        // hide/show — self-recall, no separate affordance needed.
+        this.topRight = mountTopRightControls(this.root, {
+            isHidden: (region) => this.splitter.hiddenMode() === region,
+            onToggleHidden: (region) => {
+                const next = this.splitter.hiddenMode() === region ? "none" : region;
+                this.splitter.setHidden(next);
+                this.topRight.refresh();
+            },
         });
 
         this.bgG = this.svg.append("g").attr("class", "background-layer");
