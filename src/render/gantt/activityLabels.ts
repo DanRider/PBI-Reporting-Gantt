@@ -123,6 +123,16 @@ export function renderActivityLabels(
     g.selectAll("*").remove();
 
     const font = opts.font;
+    // v2.1 audit-fix #13 — when the activity is selected, the label text
+    // becomes bold (post-render attribute set in visual.ts). Bold renders
+    // ~8-12% wider than normal weight; using the user-config font for
+    // measurement caused the BOLD selected text to overflow into the
+    // lollipop/bar zone. Fix: always MEASURE with the bold version so the
+    // layout slot reserves enough width for either state. We still APPLY
+    // the user's actual weight at render time (applyFont below), so
+    // non-selected text renders as configured — just with extra slot space
+    // to its right that's invisible until selection.
+    const measureFont = font.bold ? font : { ...font, bold: true };
     const maxLabelWidth = opts.areaWidth;
 
     for (const a of activities) {
@@ -132,10 +142,10 @@ export function renderActivityLabels(
 
         let renderLines: string[];
         let renderMaxWidth: number;
-        const fullWidth = measureWidth(a.name, font);
+        const fullWidth = measureWidth(a.name, measureFont);
 
         if (opts.wrapText) {
-            const wrapped = wrapToLines(a.name, maxLabelWidth, font);
+            const wrapped = wrapToLines(a.name, maxLabelWidth, measureFont);
             const truncated = wrapped.lines.length > 1 && wrapped.lines[1].endsWith("…");
             const lineOneTruncated = wrapped.lines[0].endsWith("…");
             if ((truncated || lineOneTruncated) && opts.overflowBehavior === "hide") {
@@ -153,9 +163,9 @@ export function renderActivityLabels(
                 renderLines = [a.name];
                 renderMaxWidth = fullWidth;
             } else {
-                const trunc = truncateToWidth(a.name, maxLabelWidth, font);
+                const trunc = truncateToWidth(a.name, maxLabelWidth, measureFont);
                 renderLines = [trunc];
-                renderMaxWidth = measureWidth(trunc, font);
+                renderMaxWidth = measureWidth(trunc, measureFont);
             }
         }
 
