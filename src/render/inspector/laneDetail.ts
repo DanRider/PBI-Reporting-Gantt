@@ -93,24 +93,53 @@ export function renderLaneDetail(
 
         const { mostRecent, next } = partitionMilestones(vm.milestones, activity.name, today);
         const compactLines = document.createElement("div");
-        compactLines.style.cssText = "font-size:10px;color:#666;line-height:1.4;";
-        // v2.1 audit-fix #18 — relative-time label (e.g. "4 mos ago", "in 2
-        // wks") appended to each summary line so the user doesn't do date
-        // math in their head.
-        if (mostRecent) {
+        compactLines.style.cssText = "font-size:10px;line-height:1.5;";
+
+        // v2.1 audit-fix #19 — visual hierarchy. Single line per milestone
+        // summary; the LABEL is bold + dark (the WHAT — what the eye should
+        // catch first), then a muted em-dash as visual breath, then the
+        // relative-time (the WHEN), then the absolute date in parens as
+        // fine-print supporting detail. One em-dash per line, not three.
+        const buildSummaryLine = (icon: string, label: string, date: Date): HTMLDivElement => {
             const d = document.createElement("div");
-            d.textContent = `\u2713 ${mostRecent.label ?? "(unlabeled)"} \u00b7 ${fmtDate(mostRecent.date)} \u00b7 ${fmtRelative(mostRecent.date, today)}`;
-            compactLines.appendChild(d);
+            const iconSpan = document.createElement("span");
+            iconSpan.textContent = `${icon} `;
+            iconSpan.style.color = "#666";
+            d.appendChild(iconSpan);
+
+            const labelEl = document.createElement("strong");
+            labelEl.textContent = label;
+            labelEl.style.cssText = "color:#222;font-weight:600;";
+            d.appendChild(labelEl);
+
+            const dashEl = document.createElement("span");
+            dashEl.textContent = " \u2014 "; // em-dash with surrounding spaces
+            dashEl.style.color = "#bbb";
+            d.appendChild(dashEl);
+
+            const relEl = document.createElement("span");
+            relEl.textContent = fmtRelative(date, today);
+            relEl.style.color = "#666";
+            d.appendChild(relEl);
+
+            const dateEl = document.createElement("span");
+            dateEl.textContent = ` (${fmtDate(date)})`;
+            dateEl.style.color = "#999";
+            d.appendChild(dateEl);
+
+            return d;
+        };
+
+        if (mostRecent) {
+            compactLines.appendChild(buildSummaryLine("\u2713", mostRecent.label ?? "(unlabeled)", mostRecent.date));
         }
         if (next) {
-            const d = document.createElement("div");
-            d.textContent = `\u23ed ${next.label ?? "(unlabeled)"} \u00b7 ${fmtDate(next.date)} \u00b7 ${fmtRelative(next.date, today)}`;
-            compactLines.appendChild(d);
+            compactLines.appendChild(buildSummaryLine("\u23ed", next.label ?? "(unlabeled)", next.date));
         }
         if (!mostRecent && !next) {
             const d = document.createElement("div");
             d.textContent = "(no milestones)";
-            d.style.fontStyle = "italic";
+            d.style.cssText = "font-style:italic;color:#888;";
             compactLines.appendChild(d);
         }
         item.appendChild(compactLines);

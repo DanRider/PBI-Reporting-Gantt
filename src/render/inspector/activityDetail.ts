@@ -207,11 +207,27 @@ export function renderActivityDetail(
         label.style.cssText = "font-size:11px;font-weight:600;color:#222;line-height:1.3;overflow:hidden;text-overflow:ellipsis;";
         textWrap.appendChild(label);
 
-        // v2.1 audit-fix #18 — meta line includes relative-time so the
-        // user doesn't compute "how far away is this?" in their head.
+        // v2.1 audit-fix #19 — meta line with visual hierarchy. Type +
+        // em-dash + relative-time (medium) + date in parens (light).
+        // Single em-dash per line; date as supporting fine-print.
         const meta = document.createElement("div");
-        meta.textContent = `${m.type} · ${fmtDate(m.date)} · ${fmtRelative(m.date, today)}`;
-        meta.style.cssText = "font-size:10px;color:#666;line-height:1.3;";
+        meta.style.cssText = "font-size:10px;line-height:1.3;";
+        const typeSpan = document.createElement("span");
+        typeSpan.textContent = m.type;
+        typeSpan.style.color = "#666";
+        meta.appendChild(typeSpan);
+        const dashSpan = document.createElement("span");
+        dashSpan.textContent = " \u2014 ";
+        dashSpan.style.color = "#bbb";
+        meta.appendChild(dashSpan);
+        const relSpan = document.createElement("span");
+        relSpan.textContent = fmtRelative(m.date, today);
+        relSpan.style.color = "#666";
+        meta.appendChild(relSpan);
+        const dateSpan = document.createElement("span");
+        dateSpan.textContent = ` (${fmtDate(m.date)})`;
+        dateSpan.style.color = "#999";
+        meta.appendChild(dateSpan);
         textWrap.appendChild(meta);
 
         if (m.note) {
