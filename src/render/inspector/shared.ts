@@ -67,27 +67,10 @@ export function fmtRelative(date: Date, today: Date): string {
     return isFuture ? `${months} ${u} until` : `${months} ${u} ago`;
 }
 
-/** v2.1 audit-fix #18 — time slicer preset for the activity Inspector
- *  gallery. Range expressed as offsets from "today" in days. */
-export type GalleryTimeRange = "past-qtr" | "both-qtrs" | "next-qtr" | "all";
-
-export interface RangeWindow {
-    readonly fromMs: number;  // start of window (inclusive)
-    readonly toMs: number;    // end of window (inclusive)
-}
-
-/** Compute concrete date window for a GalleryTimeRange relative to today.
- *  "all" returns ±100 years window (effectively unfiltered). */
-export function computeRangeWindow(range: GalleryTimeRange, today: Date): RangeWindow {
-    const day = 24 * 60 * 60 * 1000;
-    const t = today.getTime();
-    switch (range) {
-        case "past-qtr":  return { fromMs: t - 90 * day, toMs: t };
-        case "both-qtrs": return { fromMs: t - 90 * day, toMs: t + 90 * day };
-        case "next-qtr":  return { fromMs: t, toMs: t + 90 * day };
-        case "all":       return { fromMs: -Infinity, toMs: Infinity };
-    }
-}
+// v2.1 audit-fix #22 — chip-preset enum (GalleryTimeRange) +
+// computeRangeWindow REMOVED. Replaced by the SliderRange / rangeToWindow
+// pair in timeSlider.ts. Lane Inspector now uses a two-thumb quarterly
+// slider with Show-All toggle instead of the chip row.
 
 export function makeH3(text: string): HTMLHeadingElement {
     const h = document.createElement("h3");

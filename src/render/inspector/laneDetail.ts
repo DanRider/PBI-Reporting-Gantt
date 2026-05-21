@@ -8,23 +8,19 @@ import type { Milestone, RoadmapViewModel } from "../../viewmodel";
 import {
     fmtDate, fmtRelative, makeH3, makeP, makeLabeledLine,
     INSPECTOR_FONT, OnSelect, makeBreadcrumb, makeColorBubble,
-    GalleryTimeRange, computeRangeWindow,
 } from "./shared";
+import { mountTimeSlider, rangeToWindow, SliderRange } from "./timeSlider";
 
-const RANGE_PRESETS: ReadonlyArray<readonly [GalleryTimeRange, string]> = [
-    ["past-qtr",  "Past Qtr"],
-    ["both-qtrs", "\u00b11 Qtr"],
-    ["next-qtr",  "Next Qtr"],
-    ["all",       "All"],
-];
+const DEFAULT_PAST_QUARTERS = 4;
+const DEFAULT_FUTURE_QUARTERS = 4;
 
 export function renderLaneDetail(
     laneName: string,
     vm: RoadmapViewModel,
     onSelect?: OnSelect,
     activityColors?: Record<string, string>,
-    timeRange?: GalleryTimeRange,
-    onTimeRangeChange?: (next: GalleryTimeRange) => void,
+    sliderRange?: SliderRange,
+    onRangeChange?: (next: SliderRange) => void,
 ): HTMLElement {
     const root = document.createElement("div");
     root.className = "inspector-lane";
@@ -43,15 +39,17 @@ export function renderLaneDetail(
     const activityNamesInLane = new Set(activitiesInLane.map(a => a.name));
     const milestonesInLane = vm.milestones.filter(m => activityNamesInLane.has(m.activity));
 
-    // v2.1 audit-fix #20 — time slicer at the LANE level. Filters which
-    // milestones appear in the per-activity ✓ / ⏭ summary lines AND in
-    // the count badges. Default "±1 Qtr". Affects only this panel; main
-    // Gantt + table are unchanged.
+    // v2.1 audit-fix #22 — quarterly time slider (replaces chip row).
+    // Two-thumb slider with snap-to-quarter, hover-tooltip labels on every
+    // tick, endpoint labels visible by default, "Show All" button to
+    // bypass the window filter entirely.
     const today = new Date();
-    const activeRange: GalleryTimeRange = timeRange ?? "both-qtrs";
-    const window = computeRangeWindow(activeRange, today);
+    const activeRange: SliderRange = sliderRange ?? { kind: "range", startOffset: -1, endOffset: 1 };
+    const window = rangeToWindow(activeRange, today);
     const inWindow = (m: Milestone): boolean =>
-        m.date.getTime() >= window.fromMs && m.date.getTime() <= window.toMs;
+        window == null
+            ? true
+            : (m.date.getTime() >= window.fromMs && m.date.getTime() <= window.toMs);
     const milestonesInLaneWindowed = milestonesInLane.filter(inWindow);
 
     root.appendChild(makeP(
@@ -61,37 +59,15 @@ export function renderLaneDetail(
         { muted: true, small: true },
     ));
 
-    const slicerRow = document.createElement("div");
-    slicerRow.style.cssText = "display:flex;gap:4px;align-items:center;margin:6px 0 10px 0;flex-wrap:wrap;";
-    const slicerLabel = document.createElement("span");
-    slicerLabel.textContent = "WINDOW:";
-    slicerLabel.style.cssText = "font-size:9px;color:#666;font-weight:600;letter-spacing:0.04em;margin-right:4px;";
-    slicerRow.appendChild(slicerLabel);
-    for (const [rangeKey, labelText] of RANGE_PRESETS) {
-        const chip = document.createElement("button");
-        chip.type = "button";
-        chip.textContent = labelText;
-        const isActive = activeRange === rangeKey;
-        chip.style.cssText = [
-            "padding:2px 8px",
-            "font-size:10px",
-            "line-height:1.3",
-            "border-radius:10px",
-            "cursor:" + (isActive ? "default" : "pointer"),
-            "border:1px solid " + (isActive ? "#1968c8" : "#ccc"),
-            "background:" + (isActive ? "#e6f0fb" : "#ffffff"),
-            "color:" + (isActive ? "#1968c8" : "#555"),
-            "font-weight:" + (isActive ? "600" : "400"),
-        ].join(";");
-        if (onTimeRangeChange && !isActive) {
-            chip.addEventListener("click", (e) => {
-                e.stopPropagation();
-                onTimeRangeChange(rangeKey);
-            });
-        }
-        slicerRow.appendChild(chip);
+    if (onRangeChange) {
+        const slider = mountTimeSlider({
+            pastQuarters: DEFAULT_PAST_QUARTERS,
+            futureQuarters: DEFAULT_FUTURE_QUARTERS,
+            value: activeRange,
+            onChange: onRangeChange,
+        });
+        root.appendChild(slider.element);
     }
-    root.appendChild(slicerRow);
 
     if (activitiesInLane.length === 0) {
         root.appendChild(makeP("(no activities in this lane)", { muted: true }));

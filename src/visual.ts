@@ -247,10 +247,14 @@ export class Visual implements IVisual {
     // black, etc.) cached for the activity Inspector's milestone gallery
     // tiles, which front each milestone with a type-colored ★.
     private lastTypeColors: Record<string, string> | undefined = undefined;
-    // v2.1 audit-fix #18 — time slicer for the activity Inspector gallery.
-    // Filters which milestones appear in the gallery (Gantt + table NOT
-    // affected). Default "both-qtrs" = today ±90 days.
-    private galleryTimeRange: "past-qtr" | "both-qtrs" | "next-qtr" | "all" = "both-qtrs";
+    // v2.1 audit-fix #22 — quarterly time slider state for the lane
+    // Inspector. Range = { startOffset, endOffset } in quarter offsets
+    // from today's quarter. "all" disables the window filter entirely.
+    // Default: ±1 quarter centered on today.
+    private galleryRange:
+        | { kind: "all" }
+        | { kind: "range"; startOffset: number; endOffset: number }
+        = { kind: "range", startOffset: -1, endOffset: 1 };
     // v2.1 audit-fix #11 — 3-state milestone-type cycle per legend entry.
     // Click sequence: visible → transparent → hidden → visible.
     //   "visible"     → opacity 1, normal render
@@ -414,14 +418,12 @@ export class Visual implements IVisual {
                 if (this.lastViewmodel) {
                     switch (sel.kind) {
                         case "lane": {
-                            // v2.1 audit-fix #21 — slicer chip handler must
-                            // RE-PASS ITSELF on re-render so chips stay
-                            // clickable across multiple selections. The prior
-                            // "recursion guard = undefined" stripped the
-                            // handler from the re-rendered chips, locking
-                            // the user to one chip click per panel open.
-                            const onRangeChange = (nextRange: "past-qtr" | "both-qtrs" | "next-qtr" | "all"): void => {
-                                this.galleryTimeRange = nextRange;
+                            // v2.1 audit-fix #22 — quarterly slider replaces
+                            // chips. Range handler self-references so the
+                            // slider stays interactive across multiple drags
+                            // (lesson banked from audit-fix #21).
+                            const onRangeChange = (nextRange: typeof this.galleryRange): void => {
+                                this.galleryRange = nextRange;
                                 if (this.lastViewmodel) {
                                     const s = this.selectionStore.get();
                                     if (s.kind === "lane") {
@@ -430,8 +432,8 @@ export class Visual implements IVisual {
                                             this.lastViewmodel,
                                             onSelect,
                                             this.lastActivityColors,
-                                            this.galleryTimeRange,
-                                            onRangeChange,  // self-reference — chips stay clickable
+                                            this.galleryRange,
+                                            onRangeChange,
                                         ));
                                     }
                                 }
@@ -441,7 +443,7 @@ export class Visual implements IVisual {
                                 this.lastViewmodel,
                                 onSelect,
                                 this.lastActivityColors,
-                                this.galleryTimeRange,
+                                this.galleryRange,
                                 onRangeChange,
                             ));
                             break;
