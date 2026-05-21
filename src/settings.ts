@@ -292,8 +292,8 @@ class LayoutCard extends SimpleCard {
     bottomMarginPercent = new formattingSettings.NumUpDown({ name: "bottomMarginPercent", displayName: "Bottom margin (%)", value: 1 });
     leftMarginPercent = new formattingSettings.NumUpDown({ name: "leftMarginPercent", displayName: "Left margin (%)", value: 1 });
     rightMarginPercent = new formattingSettings.NumUpDown({ name: "rightMarginPercent", displayName: "Right margin (%)", value: 1 });
-    name: string = "layout";
-    displayName: string = "Layout";
+    name: string = "ganttLayout";
+    displayName: string = "Gantt Layout";
     slices: Array<FormattingSettingsSlice> = [
         this.topMarginPercent, this.bottomMarginPercent, this.leftMarginPercent, this.rightMarginPercent,
     ];

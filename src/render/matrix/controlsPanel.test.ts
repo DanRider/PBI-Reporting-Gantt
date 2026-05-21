@@ -97,7 +97,7 @@ describe('renderControlsPanel — persistence through host.persistProperties', (
     box.checked = false;
     box.dispatchEvent(new Event('change'));
     expect(host.persisted).toContainEqual({
-      objectName: 'layout',
+      objectName: 'tableLayout',
       properties: { showLetter: false },
     });
   });

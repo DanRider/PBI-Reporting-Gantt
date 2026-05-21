@@ -28,7 +28,7 @@ const MONTH_ABBR = [
 const OBJ_REPORTING = 'reportingDate';
 const OBJ_PERIODS = 'computedColumns';
 const OBJ_COMPARE = 'compareAgainst';
-const OBJ_LAYOUT = 'layout';
+const OBJ_LAYOUT = 'tableLayout';
 const OBJ_APPEARANCE = 'appearance';
 
 const COMPARE_OPTIONS: ReadonlyArray<readonly [CompareAgainstMode, string]> = [

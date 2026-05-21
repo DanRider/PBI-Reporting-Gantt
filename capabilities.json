@@ -65,6 +65,24 @@
             "displayName": "Milestone Note",
             "kind": "Grouping",
             "description": "Optional per-milestone status note (free text). Shown in the milestone tooltip on hover. Source: a text column on the Milestones table."
+        },
+        {
+            "name": "tableActivityRows",
+            "displayName": "Activity (Table)",
+            "kind": "Grouping",
+            "description": "v2.0 — Activity column for the matrix-substrate table region below the Gantt. Each unique value renders as a parent row in the table; matching Milestones (via the Milestone (Table) well) attach as expandable child rows."
+        },
+        {
+            "name": "tableMilestoneRows",
+            "displayName": "Milestone (Table)",
+            "kind": "Grouping",
+            "description": "v2.0 — Milestone column for the matrix-substrate table region. Bound rows become expandable child rows under their parent Activity (Table) row, joined on the matching Activity name."
+        },
+        {
+            "name": "tableValues",
+            "displayName": "Values",
+            "kind": "Measure",
+            "description": "v2.0 — Measures rendered as columns in the matrix-substrate table region. Bind any number of measures (Budget, Actual, %Complete, etc.); each becomes a sortable column with IBCS variance encoding when comparison columns are also bound."
         }
     ],
     "objects": {
@@ -117,9 +135,9 @@
                 "emptyPlaceholder": { "displayName": "Placeholder for empty notes", "type": { "text": true } }
             }
         },
-        "layout": {
-            "displayName": "Layout",
-            "description": "Outer margins around the chart, as percentages of viewport.",
+        "ganttLayout": {
+            "displayName": "Gantt Layout",
+            "description": "Outer margins around the Gantt chart region (top half of the composed visual when the table region is also bound). Percentages of viewport.",
             "properties": {
                 "topMarginPercent":    { "displayName": "Top margin (%)",    "type": { "numeric": true } },
                 "bottomMarginPercent": { "displayName": "Bottom margin (%)", "type": { "numeric": true } },
@@ -276,6 +294,138 @@
                 "italic":                  { "displayName": "Italic",                   "type": { "bool": true } },
                 "underline":               { "displayName": "Underline",                "type": { "bool": true } }
             }
+        },
+        "themeColors": {
+            "displayName": "Table — Theme Colors",
+            "description": "v2.0 — Color overrides for the matrix-substrate table region (bottom half of the composed visual). Active appearance theme is the default; each override here is layered on top.",
+            "properties": {
+                "headerBg": { "displayName": "Header background", "type": { "fill": { "solid": { "color": true } } } },
+                "headerFg": { "displayName": "Header text",       "type": { "fill": { "solid": { "color": true } } } },
+                "bodyFg":   { "displayName": "Body text",         "type": { "fill": { "solid": { "color": true } } } },
+                "borderFg": { "displayName": "Border",            "type": { "fill": { "solid": { "color": true } } } },
+                "altRowBg": { "displayName": "Alternate row background", "type": { "fill": { "solid": { "color": true } } } }
+            }
+        },
+        "totals": {
+            "displayName": "Table — Totals",
+            "description": "v2.0 — Grand-total row for the matrix-substrate table region.",
+            "properties": {
+                "showGrandTotal": { "displayName": "Show grand total", "type": { "bool": true } }
+            }
+        },
+        "tableLayout": {
+            "displayName": "Table Layout",
+            "description": "v2.0 — Row height, body font size, denomination, decimal places, and K/M letter suffix for the matrix-substrate table region.",
+            "properties": {
+                "rowHeight":    { "displayName": "Row height (px)",   "type": { "numeric": true } },
+                "bodyFontSize": { "displayName": "Body font size (px)", "type": { "numeric": true } },
+                "denomination": {
+                    "displayName": "Denomination",
+                    "type": { "enumeration": [
+                        { "value": "dollars",   "displayName": "Dollars" },
+                        { "value": "thousands", "displayName": "Thousands (K)" },
+                        { "value": "millions",  "displayName": "Millions (M)" }
+                    ]}
+                },
+                "decimals":   { "displayName": "Decimal places", "type": { "numeric": true } },
+                "showLetter": { "displayName": "Append K/M letter", "type": { "bool": true } }
+            }
+        },
+        "reportingDate": {
+            "displayName": "Table — Reporting date",
+            "description": "v2.0 — Reporting month anchor (YYYY-MM-DD) used by the matrix-substrate table region for MTD/QTD/YTD/FY period synthesis.",
+            "properties": {
+                "selectedDate": { "displayName": "Reporting month (YYYY-MM-DD)", "type": { "text": true } }
+            }
+        },
+        "compareAgainst": {
+            "displayName": "Table — Compare against",
+            "description": "v2.0 — Comparison mode for IBCS variance encoding in the matrix-substrate table region.",
+            "properties": {
+                "mode": {
+                    "displayName": "Mode",
+                    "type": { "enumeration": [
+                        { "value": "priorYear",          "displayName": "Prior year (AvA)" },
+                        { "value": "budget",             "displayName": "Budget (BvA)" },
+                        { "value": "forecast",           "displayName": "Forecast (FvA)" },
+                        { "value": "forecastVsForecast", "displayName": "Forecast vs forecast (FvF)" }
+                    ]}
+                }
+            }
+        },
+        "appearance": {
+            "displayName": "Table — Appearance theme",
+            "description": "v2.0 — Built-in appearance theme for the matrix-substrate table region (Bloomberg / Launch / Newsprint / Quartz).",
+            "properties": {
+                "theme": {
+                    "displayName": "Theme",
+                    "type": { "enumeration": [
+                        { "value": "bloomberg", "displayName": "Bloomberg" },
+                        { "value": "launch",    "displayName": "Launch" },
+                        { "value": "newsprint", "displayName": "Newsprint" },
+                        { "value": "quartz",    "displayName": "Quartz" }
+                    ]}
+                }
+            }
+        },
+        "columnVisibility": {
+            "displayName": "Table — Column visibility",
+            "description": "v2.0 — Per-measure column visibility for the matrix-substrate table region. When false the column is excluded from headers, data cells, and the grand total.",
+            "properties": {
+                "visible": { "displayName": "Visible", "type": { "bool": true } }
+            }
+        },
+        "columnHeaders": {
+            "displayName": "Table — Column headers",
+            "properties": {
+                "groupLabel": {
+                    "displayName": "Column group",
+                    "description": "Outer-span group label. Consecutive measures sharing the same label cluster under one synthetic header row above the leaves.",
+                    "type": { "text": true }
+                }
+            }
+        },
+        "columnFavorability": {
+            "displayName": "Table — Favorability direction",
+            "description": "v2.0 — Per-measure semantic direction for IBCS variance coloring in the matrix-substrate table region. 'higherIsBetter' maps positive variance to the positive color; 'lowerIsBetter' inverts it for cost measures; 'neutral' suppresses coloring.",
+            "properties": {
+                "direction": {
+                    "displayName": "Favorability direction",
+                    "type": { "enumeration": [
+                        { "value": "higherIsBetter", "displayName": "Higher is better" },
+                        { "value": "lowerIsBetter",  "displayName": "Lower is better" },
+                        { "value": "neutral",        "displayName": "No coloring" }
+                    ]}
+                }
+            }
+        },
+        "computedColumns": {
+            "displayName": "Table — Computed columns",
+            "description": "v2.0 — Period synthesis (MTD/QTD/YTD/FY) and variance (Δ, %Δ) auto-generated columns for the matrix-substrate table region.",
+            "properties": {
+                "showDelta":     { "displayName": "Show Δ columns",     "type": { "bool": true } },
+                "showDeltaPct":  { "displayName": "Show %Δ columns",    "type": { "bool": true } },
+                "showMtd":       { "displayName": "Show MTD",           "type": { "bool": true } },
+                "showQtd":       { "displayName": "Show QTD",           "type": { "bool": true } },
+                "showYtd":       { "displayName": "Show YTD",           "type": { "bool": true } },
+                "showFy":        { "displayName": "Show FY",            "type": { "bool": true } },
+                "showPriorYear": { "displayName": "Show prior year",    "type": { "bool": true } },
+                "fyStartMonth":  { "displayName": "Fiscal year start month (1-12)", "type": { "numeric": true } }
+            }
+        },
+        "ibcs": {
+            "displayName": "Table — IBCS variance encoding",
+            "description": "v2.0 — IBCS-style variance arrows + color encoding for synthesized Δ and %Δ columns in the matrix-substrate table region.",
+            "properties": {
+                "enabled":    { "displayName": "Enable IBCS arrows + colors", "type": { "bool": true } },
+                "arrowStyle": {
+                    "displayName": "Arrow style",
+                    "type": { "enumeration": [
+                        { "value": "classic", "displayName": "Classic (glyph + color)" },
+                        { "value": "minimal", "displayName": "Minimal (color only)" }
+                    ]}
+                }
+            }
         }
     },
     "dataViewMappings": [
@@ -315,10 +465,25 @@
                     }
                 }
             }
+        },
+        {
+            "matrix": {
+                "rows": {
+                    "select": [
+                        { "for": { "in": "tableActivityRows" } },
+                        { "for": { "in": "tableMilestoneRows" } }
+                    ]
+                },
+                "values": {
+                    "select": [
+                        { "for": { "in": "tableValues" } }
+                    ]
+                }
+            }
         }
     ],
-    "supportsHighlight": false,
+    "supportsHighlight": true,
     "supportsLandingPage": false,
-    "supportsMultiVisualSelection": false,
+    "supportsMultiVisualSelection": true,
     "privileges": []
 }
