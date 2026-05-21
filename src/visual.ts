@@ -248,18 +248,16 @@ export class Visual implements IVisual {
             dataView
         );
 
-        // v2.0 configuration guide gate — if the v1.8 Gantt requirements
-        // (Activity + Start Date + End Date) are not bound, show the
-        // self-documenting help card and skip the Gantt + matrix render
-        // paths entirely. This replaces the v1.8 SVG "Bind Activity..."
-        // prompt with a richer banner that lists EVERY well, marks each
-        // ✓ / ✗ / ○, and explains what each contributes.
-        if (!ganttRequirementsMet(dataView)) {
-            this.guideDiv.style.display = "flex";
-            renderConfigurationGuide(this.guideDiv, dataView);
-            this.matrixDiv.style.display = "none";
-            return;
-        }
+        // v2.0 configuration guide — kept hidden by default. The earlier
+        // Wave 4 gate (early-return on !ganttRequirementsMet) was wrong:
+        // PBI calls update() with empty-data dataViews during the pre-
+        // refresh state where bindings exist in visual.json but data has
+        // not been delivered yet, and the gate incorrectly treated that
+        // as "wells unbound" — blocking v1.8's own empty-state render
+        // path. The fix: always let v1.8 render (it handles empty data
+        // gracefully), and reserve the guide for a less-aggressive use.
+        // The guide module is still exported and available for a future
+        // explicit "show help" toggle from the format pane.
         this.guideDiv.style.display = "none";
 
         // v2.0 minimal layout coordinator. When the matrix-side wells are
