@@ -56,7 +56,21 @@ import { renderSimpleTable } from "./render/table/simpleTable";
 // v2.0. When open, every region's left edge shifts right by panel.widthPct().
 import { mountControlsPanel, ControlsPanelHandle } from "./render/controlsPanel";
 
-const GANTT_FRACTION_BOTH_BOUND = 0.6;
+// v2.1 Wave 1 — vertical splitter between the Gantt region and the table
+// region. Replaces the hardcoded 60/40 split with a drag-resize bar that
+// has collapse-gantt / reset / collapse-table buttons. Each side has a
+// minimum height so the user always sees enough of the collapsed region
+// to remember it exists (1 row of content + the splitter bar).
+import { mountSplitterBar, SplitterHandle } from "./render/splitterBar";
+
+// v2.1 W1 — initial Gantt/Table split (fraction of usable height given to
+// Gantt) before the user drags the splitter or hits the collapse buttons.
+const INITIAL_GANTT_PCT = 0.6;
+// Minimum px each region holds when collapsed or dragged to its limit.
+// Gantt min = chart title (~30) + axis band (~40) + 1 row (~24) ≈ 100px
+// of visible content. Table min = header row (~32) + 1 data row (~32) ≈ 64.
+const MIN_GANTT_PX = 100;
+const MIN_MATRIX_PX = 64;
 
 const SWIM_LANE_MIN = 100;
 const SWIM_LANE_MAX = 200;
@@ -187,6 +201,9 @@ export class Visual implements IVisual {
     // v2.1 W1 — controls panel chrome handle + last-update cache (for re-render
     // when the panel toggles, since PBI's host re-call isn't guaranteed).
     private controls: ControlsPanelHandle;
+    // v2.1 W1 — vertical splitter handle owns the Gantt/Table split fraction
+    // and collapse mode. Same cached-options re-render pattern as controls.
+    private splitter: SplitterHandle;
     private lastOptions: VisualUpdateOptions | null = null;
 
     constructor(options?: VisualConstructorOptions) {
@@ -272,6 +289,17 @@ export class Visual implements IVisual {
             onToggle: () => this.requestRerender(),
         });
 
+        // v2.1 W1 — splitter bar mounts between the Gantt region and the
+        // matrix region. Its onChange callback triggers a full re-render so
+        // both regions resize against the new ganttHeightPx / matrixHeightPx
+        // and the splitter bar itself repositions to the new boundary.
+        this.splitter = mountSplitterBar(this.root, {
+            initialPct: INITIAL_GANTT_PCT,
+            minGanttPx: MIN_GANTT_PX,
+            minMatrixPx: MIN_MATRIX_PX,
+            onChange: () => this.requestRerender(),
+        });
+
         this.bgG = this.svg.append("g").attr("class", "background-layer");
         this.axisG = this.svg.append("g").attr("class", "time-axis");
         this.railG = this.svg.append("g").attr("class", "swimlane-rail-group");
@@ -315,26 +343,41 @@ export class Visual implements IVisual {
         const panelWidthPct = this.controls.widthPct();
         const panelWidthPx = options.viewport.width * (panelWidthPct / 100);
 
-        // v2.0 layout coordinator. The simple-table renderer reads from
-        // dataView.table.rows (the v1.8 binding shape that's already
-        // populated), so the matrix region mounts below the Gantt
-        // whenever the v1.8 wells are bound — no additional matrix-side
-        // wells required. Gantt fills the top 60%, matrix the bottom 40%.
-        // When v1.8 wells are unbound, dataView.table.rows is empty;
-        // renderSimpleTable handles that with an inline empty-state.
+        // v2.1 W1 — layout coordinator now defers Gantt/Table height to the
+        // splitter handle (initial 60/40, draggable, collapsible). When the
+        // v1.8 wells are unbound the table region isn't rendered and the
+        // splitter bar hides — Gantt occupies the full viewport height as
+        // in v2.0. When bound, the splitter sits between the regions and
+        // its barHeightPx() is taken out of the available height so the
+        // bar itself never overlaps either region's content.
         const tableRowsPresent = !!(dataView?.table?.rows?.length);
-        const ganttFraction = tableRowsPresent ? GANTT_FRACTION_BOTH_BOUND : 1;
-        const ganttHeightPx = options.viewport.height * ganttFraction;
-        const matrixHeightPx = options.viewport.height - ganttHeightPx;
+        this.splitter.setVisible(tableRowsPresent);
+        const ganttHeightPx = tableRowsPresent
+            ? this.splitter.ganttHeightPx(options.viewport.height)
+            : options.viewport.height;
+        const matrixHeightPx = tableRowsPresent
+            ? this.splitter.matrixHeightPx(options.viewport.height)
+            : 0;
+        const splitterBarHeightPx = this.splitter.barHeightPx();
 
         if (tableRowsPresent) {
+            // Splitter bar sits AT y = ganttHeightPx, immediately below the
+            // Gantt scroll wrapper. Matrix region starts at ganttHeightPx +
+            // splitterBarHeightPx so the bar lives in its own band.
+            this.splitter.layout({
+                leftPx: panelWidthPx,
+                topPx: ganttHeightPx,
+                widthPx: options.viewport.width - panelWidthPx,
+            });
             this.matrixDiv.style.display = "block";
-            this.matrixDiv.style.top = ganttHeightPx + "px";
+            this.matrixDiv.style.top = (ganttHeightPx + splitterBarHeightPx) + "px";
             this.matrixDiv.style.height = matrixHeightPx + "px";
             this.matrixDiv.style.left = panelWidthPx + "px";
             this.matrixDiv.style.width = (options.viewport.width - panelWidthPx) + "px";
             this.matrixDiv.style.background = "#ffffff";
-            this.matrixDiv.style.borderTop = "2px solid #d0d0d0";
+            // The splitter bar's top/bottom borders replace the matrix
+            // region's prior border-top — removing the doubled divider.
+            this.matrixDiv.style.borderTop = "none";
             renderSimpleTable(this.matrixDiv, dataView);
         } else {
             this.matrixDiv.style.display = "none";
