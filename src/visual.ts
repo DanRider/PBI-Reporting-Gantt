@@ -39,6 +39,15 @@ import {
 import { renderLegend, LEGEND_HEIGHT } from "./render/gantt/legend";
 import { renderTimeNow, GridlineStyle } from "./render/gantt/timeNow";
 
+// v2.0 layout coordinator — matrix render head (cortex-matrix substrate).
+import { MatrixDataviewHtmlFormatter } from "./matrixDataviewHtmlFormatter";
+import { resolveTheme } from "./primitives/theme";
+import { SelectionWiring } from "./primitives/selectionWiring";
+import type { FormatOptions } from "./model/formatOptions";
+import { DEFAULT_FORMAT_HINTS } from "./model/formatOptions";
+
+const GANTT_FRACTION_BOTH_BOUND = 0.6;
+
 const SWIM_LANE_MIN = 100;
 const SWIM_LANE_MAX = 200;
 const ACTIVITY_LABEL_MIN = 100;
@@ -139,6 +148,10 @@ function milestoneLabelFont(card: {
 export class Visual implements IVisual {
     private host: IVisualHost;
     private root: HTMLElement;
+    // v2.0 — two render regions under root; the layout coordinator in
+    // update() sizes them based on which wells are bound.
+    private ganttDiv: HTMLDivElement;
+    private matrixDiv: HTMLDivElement;
     private svg: d3Selection<SVGSVGElement, unknown, null, undefined>;
     private bgG: d3Selection<SVGGElement, unknown, null, undefined>;
     private axisG: d3Selection<SVGGElement, unknown, null, undefined>;
@@ -158,7 +171,30 @@ export class Visual implements IVisual {
         this.settingsService = new FormattingSettingsService();
         this.settings = new VisualFormattingSettingsModel();
 
-        this.svg = d3Select(this.root)
+        // v2.0 layout coordinator — two stacked render regions under root.
+        // Gantt SVG on top, matrix HTML-DOM table below. Update() resizes
+        // them based on which wells are bound on the incoming dataView.
+        this.root.style.display = "flex";
+        this.root.style.flexDirection = "column";
+        this.root.style.width = "100%";
+        this.root.style.height = "100%";
+        this.root.style.overflow = "hidden";
+
+        this.ganttDiv = document.createElement("div");
+        this.ganttDiv.className = "gantt-region";
+        this.ganttDiv.style.width = "100%";
+        this.ganttDiv.style.flex = "1 1 100%";
+        this.ganttDiv.style.overflow = "hidden";
+        this.root.appendChild(this.ganttDiv);
+
+        this.matrixDiv = document.createElement("div");
+        this.matrixDiv.className = "matrix-region";
+        this.matrixDiv.style.width = "100%";
+        this.matrixDiv.style.flex = "0 0 0%";
+        this.matrixDiv.style.overflow = "auto";
+        this.root.appendChild(this.matrixDiv);
+
+        this.svg = d3Select(this.ganttDiv)
             .append("svg")
             .attr("class", "reporting-gantt")
             .attr("width", "100%")
@@ -166,7 +202,7 @@ export class Visual implements IVisual {
 
         this.tooltipService = createTooltipServiceWrapper(
             this.host.tooltipService,
-            this.root
+            this.ganttDiv
         );
 
         this.bgG = this.svg.append("g").attr("class", "background-layer");
@@ -186,9 +222,34 @@ export class Visual implements IVisual {
             dataView
         );
 
+        // v2.0 layout coordinator: detect which render heads to mount based
+        // on which wells are bound. PBI populates dataView.table when the
+        // 11 v1.8 Gantt wells are bound, and dataView.matrix when the 3
+        // v2.0 table-side wells are bound. Both regions can be present at
+        // once when the user binds both well groups.
+        const ganttBound = !!(dataView?.table?.rows?.length);
+        const tableBound = !!(dataView?.matrix?.rows?.root?.children?.length);
+        const ganttFraction = (ganttBound && tableBound)
+            ? GANTT_FRACTION_BOTH_BOUND
+            : (ganttBound ? 1 : 0);
+        const tableFraction = (ganttBound && tableBound) ? (1 - GANTT_FRACTION_BOTH_BOUND) : (tableBound ? 1 : 0);
+        this.ganttDiv.style.flex = `0 0 ${ganttFraction * 100}%`;
+        this.matrixDiv.style.flex = `0 0 ${tableFraction * 100}%`;
+
+        // Mount the matrix render head when the table-side wells are bound.
+        while (this.matrixDiv.firstChild) this.matrixDiv.removeChild(this.matrixDiv.firstChild);
+        if (tableBound && dataView?.matrix) {
+            const matrixEl = MatrixDataviewHtmlFormatter.format(dataView.matrix, this.buildMatrixFormatOptions());
+            this.matrixDiv.appendChild(matrixEl);
+        }
+
+        // Skip the SVG-side Gantt render when no Gantt wells are bound — the
+        // matrix region (if any) already occupies the viewport.
+        if (!ganttBound) return;
+
         const viewport = options.viewport;
         const width = viewport.width;
-        const height = viewport.height;
+        const height = viewport.height * ganttFraction;
 
         this.svg.attr("width", width).attr("height", height);
 
@@ -455,6 +516,23 @@ export class Visual implements IVisual {
         };
         this.tooltipService.addTooltip(barsSel, makeActivityTooltip(tooltipCfg));
         this.tooltipService.addTooltip(starsSel, makeMilestoneTooltip(tooltipCfg));
+    }
+
+    // v2.0 — minimal FormatOptions for the matrix render head. Full
+    // format-pane integration (theme overrides, denomination, IBCS toggles,
+    // period synthesis controls) lands in Wave 6 when the matrix card set
+    // unions into the FormattingSettingsModel. Wave 3/4 baseline provides
+    // defaults so the matrix renders against the resolved palette + a
+    // fresh SelectionWiring with no extras.
+    private buildMatrixFormatOptions(): FormatOptions {
+        return {
+            theme: resolveTheme(this.host.colorPalette, {}),
+            selection: new SelectionWiring(this.host),
+            host: this.host,
+            rowHeight: 28,
+            showGrandTotal: false,
+            formatHints: DEFAULT_FORMAT_HINTS,
+        };
     }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {
