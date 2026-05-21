@@ -156,6 +156,7 @@ export class Visual implements IVisual {
         this.host = options.host;
         this.root = options.element;
         this.settingsService = new FormattingSettingsService();
+        this.settings = new VisualFormattingSettingsModel();
 
         this.svg = d3Select(this.root)
             .append("svg")

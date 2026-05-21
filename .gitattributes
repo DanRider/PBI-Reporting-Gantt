@@ -1,0 +1,4 @@
+# Husky hook scripts MUST be LF on every platform. Windows autocrlf would
+# convert them to CRLF, silently breaking `#!/usr/bin/env sh` interpretation
+# in Git Bash — the hook appears installed and fires nothing.
+.husky/* text=auto eol=lf
