@@ -237,12 +237,15 @@ export class Visual implements IVisual {
     // update(). Built in lane focus mode; passed into Inspector renderers
     // so each card / h3 shows the same color bubble as the Gantt rail.
     private lastActivityColors: Record<string, string> | undefined = undefined;
-    // v2.1 audit-fix #9 — milestone types the user has toggled OFF via the
-    // legend. Members render at 30% opacity (legend entry, milestones,
-    // milestone labels, milestone hit targets, table rows). Survives
-    // across selection changes; cleared only on dataset change OR by
-    // re-clicking the legend entry.
-    private hiddenMilestoneTypes: Set<string> = new Set();
+    // v2.1 audit-fix #11 — 3-state milestone-type cycle per legend entry.
+    // Click sequence: visible → transparent → hidden → visible.
+    //   "visible"     → opacity 1, normal render
+    //   "transparent" → opacity 0.3 in chart, 0.5 in legend
+    //   "hidden"      → opacity 0 in chart + pointer-events none; legend
+    //                   entry rendered grey with international disabled
+    //                   slash overlay (circle + diagonal line)
+    // Absence from the map = "visible" (Map is sparse, only non-default).
+    private milestoneTypeState: Map<string, "transparent" | "hidden"> = new Map();
     private lastOptions: VisualUpdateOptions | null = null;
 
     constructor(options?: VisualConstructorOptions) {
@@ -804,6 +807,11 @@ export class Visual implements IVisual {
             underline:  mc.legendUnderline.value,
         };
         this.legendG.attr("transform", `translate(${leftMarginPx}, ${headerOffset})`);
+        // v2.1 audit-fix #11 — pass a LegendTypeState map (Map<typeName,
+        // "transparent" | "hidden">) built from the sparse internal state.
+        // Click cycles visible → transparent → hidden → visible.
+        const typeStateMap = new Map<string, "visible" | "transparent" | "hidden">();
+        for (const [k, v] of this.milestoneTypeState) typeStateMap.set(k, v);
         renderLegend(
             this.legendG,
             vm.distinctTypes,
@@ -811,14 +819,17 @@ export class Visual implements IVisual {
             mc.legendShow.value,
             legendFont,
             mc.legendLabelColor.value.value,
-            this.hiddenMilestoneTypes,
+            typeStateMap,
             (typeName: string) => {
-                // Toggle membership in the hidden set + re-render. Triggers
-                // milestone opacity changes (post-render selections below).
-                if (this.hiddenMilestoneTypes.has(typeName)) {
-                    this.hiddenMilestoneTypes.delete(typeName);
+                const cur = this.milestoneTypeState.get(typeName) ?? "visible";
+                const next: "visible" | "transparent" | "hidden" =
+                    cur === "visible" ? "transparent"
+                  : cur === "transparent" ? "hidden"
+                  : "visible";
+                if (next === "visible") {
+                    this.milestoneTypeState.delete(typeName);
                 } else {
-                    this.hiddenMilestoneTypes.add(typeName);
+                    this.milestoneTypeState.set(typeName, next);
                 }
                 this.requestRerender();
             },
@@ -972,17 +983,26 @@ export class Visual implements IVisual {
                 return k === selectedMilestoneKey ? 3 : 0;
             });
 
-        // v2.1 audit-fix #9 — dim milestones whose type is in the hidden
-        // set (toggled OFF via the legend). Applies to the visible marker,
-        // the wider hit target, and the labels.
-        const hiddenTypes = this.hiddenMilestoneTypes;
-        const dimOpacity = (m: Milestone): number => hiddenTypes.has(m.type) ? 0.3 : 1;
+        // v2.1 audit-fix #11 — 3-state dim/hide based on milestoneTypeState:
+        //   "visible"     → opacity 1
+        //   "transparent" → opacity 0.3
+        //   "hidden"      → opacity 0 + pointer-events none (no click target)
+        const typeState = this.milestoneTypeState;
+        const opacityForType = (t: string): number => {
+            const s = typeState.get(t);
+            return s === "hidden" ? 0 : s === "transparent" ? 0.3 : 1;
+        };
+        const pointerForType = (t: string): string =>
+            typeState.get(t) === "hidden" ? "none" : "auto";
         this.bodyG.selectAll<SVGPathElement, Milestone>("path.milestone-marker")
-            .style("opacity", dimOpacity);
+            .style("opacity", (m: Milestone) => opacityForType(m.type))
+            .style("pointer-events", (m: Milestone) => pointerForType(m.type));
         this.bodyG.selectAll<SVGCircleElement, Milestone>("circle.milestone-hit")
-            .style("opacity", dimOpacity);
+            .style("opacity", (m: Milestone) => opacityForType(m.type))
+            .style("pointer-events", (m: Milestone) => pointerForType(m.type));
         this.bodyG.selectAll<SVGTextElement, { milestone: Milestone }>("text.milestone-label")
-            .style("opacity", (d) => hiddenTypes.has(d.milestone.type) ? 0.3 : 1);
+            .style("opacity", (d) => opacityForType(d.milestone.type))
+            .style("pointer-events", (d) => pointerForType(d.milestone.type));
         // Swim-lane label bold-when-selected. Match by data-area.
         this.railG.selectAll<SVGTextElement, unknown>("text.swimlane-label")
             .attr("font-weight", function (this: SVGTextElement) {

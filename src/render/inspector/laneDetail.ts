@@ -78,8 +78,17 @@ export function renderLaneDetail(
         }
         const nameSpan = document.createElement("span");
         nameSpan.textContent = activity.name;
-        nameSpan.style.cssText = "font-weight:600;font-size:11px;color:#222;";
+        nameSpan.style.cssText = "font-weight:600;font-size:11px;color:#222;flex:1;";
         nameLine.appendChild(nameSpan);
+        // v2.1 audit-fix #11 — per-activity milestone count badge.
+        const activityMilestoneCount = vm.milestones.filter(m => m.activity === activity.name).length;
+        if (activityMilestoneCount > 0) {
+            const countBadge = document.createElement("span");
+            countBadge.textContent = `${activityMilestoneCount}`;
+            countBadge.title = `${activityMilestoneCount} milestone${activityMilestoneCount === 1 ? "" : "s"}`;
+            countBadge.style.cssText = "font-size:9px;color:#666;background:#eee;padding:1px 5px;border-radius:8px;font-weight:600;flex-shrink:0;";
+            nameLine.appendChild(countBadge);
+        }
         item.appendChild(nameLine);
 
         const { mostRecent, next } = partitionMilestones(vm.milestones, activity.name, today);
