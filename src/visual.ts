@@ -68,6 +68,13 @@ import { mountSplitterBar, SplitterHandle } from "./render/splitterBar";
 // region. Self-recall — same buttons toggle hide/show.
 import { mountTopRightControls, TopRightControlsHandle } from "./render/topRightControls";
 
+// v2.1 audit-fix #24 — master time slider strip in the top row of the
+// visual, above the Gantt/Table toggles. Auto-envelope derived from
+// data extent; window filters milestones (24c) and (in 24b) tear-clips
+// activity bars at the window bounds.
+import { mountMasterTimeSlider, MasterTimeSliderHandle } from "./render/masterTimeSlider";
+import { SliderRange, quarterIndex, rangeToWindow } from "./render/inspector/timeSliderMath";
+
 // v2.1 W1.5a (INF-3730) — selection state model. Drives the controls panel
 // (open/close + content). Clicks on selectable elements write to the store;
 // the panel + (future) renderers subscribe to react. Root-level click
@@ -231,6 +238,14 @@ export class Visual implements IVisual {
     private splitter: SplitterHandle;
     // v2.1 audit-fix — top-right hover controls for fully hiding either region.
     private topRight: TopRightControlsHandle;
+    // v2.1 audit-fix #24 — master time slider strip (top row, above the
+    // Gantt/Table toggles). Drives the WHOLE chart's window. Inspector's
+    // own slider stays independent — lane drill-down ignores master.
+    private masterSlider: MasterTimeSliderHandle;
+    // v2.1 audit-fix #24 — master window state. Default: past 2Q + future
+    // 6Q (forward-biased for roadmap use case). Clamped to envelope in
+    // update() when data is delivered.
+    private masterRange: SliderRange = { kind: "range", startOffset: -2, endOffset: 6 };
     // v2.1 W1.5a — selection state store. Single source of truth for what
     // the user has clicked; drives the panel + (future) renderer highlights.
     private selectionStore: SelectionStore;
@@ -505,6 +520,17 @@ export class Visual implements IVisual {
             },
         });
 
+        // v2.1 audit-fix #24 — master time slider mounts on root above the
+        // Gantt/Table toggles. onChange updates masterRange and triggers a
+        // full re-render so milestones (24c) and activity tears (24b)
+        // recompute against the new window.
+        this.masterSlider = mountMasterTimeSlider(this.root, {
+            onChange: (next: SliderRange) => {
+                this.masterRange = next;
+                this.requestRerender();
+            },
+        });
+
         this.bgG = this.svg.append("g").attr("class", "background-layer");
         this.axisG = this.svg.append("g").attr("class", "time-axis");
         this.railG = this.svg.append("g").attr("class", "swimlane-rail-group");
@@ -547,12 +573,38 @@ export class Visual implements IVisual {
         // 0, panelWidthPx is 0, and the v2.0 render is preserved byte-identical.
         const panelWidthPct = this.controls.widthPct();
         const panelWidthPx = options.viewport.width * (panelWidthPct / 100);
+        // v2.1 audit-fix #24 — master slider strip slides right of the
+        // controls panel when it's open so it never gets covered by the
+        // sliding panel chrome.
+        this.masterSlider.setLeftOffset(panelWidthPx);
 
         // v2.1 audit-fix #8 — vm + focused-lane + activityColors computed
         // EARLY so the layout coordinator (which calls renderSimpleTable for
         // the table region) can read the tint maps. Originally these lived
         // after the layout coordinator, but the table render needs them.
         let vm: RoadmapViewModel = convertDataView(dataView);
+
+        // v2.1 audit-fix #24 — master slider envelope derived from FULL
+        // data extent (before lane focus narrows it). Today is the pivot;
+        // pastQuarters = today.idx − extentStart.idx, futureQuarters =
+        // extentEnd.idx − today.idx. Both clamped to ≥0 so an extent
+        // entirely in the future doesn't create a negative-past slider.
+        // Master range clamped to envelope so a stored range from earlier
+        // data doesn't fall outside the current ticks.
+        const today = new Date();
+        const todayQI = quarterIndex(today);
+        const pastQuarters = Math.max(0, todayQI - quarterIndex(vm.dateExtent[0]));
+        const futureQuarters = Math.max(0, quarterIndex(vm.dateExtent[1]) - todayQI);
+        if (this.masterRange.kind === "range") {
+            const lo = -pastQuarters;
+            const hi = futureQuarters;
+            const s = Math.max(lo, Math.min(hi, this.masterRange.startOffset));
+            const e = Math.max(lo, Math.min(hi, this.masterRange.endOffset));
+            if (s !== this.masterRange.startOffset || e !== this.masterRange.endOffset) {
+                this.masterRange = { kind: "range", startOffset: s, endOffset: e };
+            }
+        }
+        this.masterSlider.update({ pastQuarters, futureQuarters }, this.masterRange);
 
         // Focused lane derived from current selection:
         //   kind=lane     → sel.laneName
@@ -605,6 +657,22 @@ export class Visual implements IVisual {
             filteredActivities.forEach((a, i) => {
                 activityColors![a.name] = ACTIVITY_PALETTE[i % ACTIVITY_PALETTE.length];
             });
+        }
+
+        // v2.1 audit-fix #24c — master window filters milestones globally.
+        // Activities stay full-width for now (24b adds zigzag tear at the
+        // window edges). Inspector's own slider remains independent —
+        // lane drill-down already ignores this filter since it reads from
+        // its own `galleryRange` state via renderLaneDetail.
+        const masterWindow = rangeToWindow(this.masterRange, today);
+        if (masterWindow) {
+            vm = {
+                ...vm,
+                milestones: vm.milestones.filter(m => {
+                    const t = m.date.getTime();
+                    return t >= masterWindow.fromMs && t <= masterWindow.toMs;
+                }),
+            };
         }
 
         this.lastViewmodel = vm;

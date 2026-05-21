@@ -23,6 +23,13 @@ export function quarterLabel(d: Date): string {
     return `Q${q} '${yy}`;
 }
 
+/** Year × 4 + quarter — monotonic, supports subtraction to count whole quarters
+ *  between any two dates. Used by the master slider to size its tick range
+ *  from the data envelope. */
+export function quarterIndex(d: Date): number {
+    return d.getFullYear() * 4 + Math.floor(d.getMonth() / 3);
+}
+
 export function rangeToWindow(range: SliderRange, today: Date): { fromMs: number; toMs: number } | null {
     if (range.kind === "all") return null;
     const todayQ = quarterStart(today);
