@@ -136,7 +136,7 @@ table Milestones
 				            {"Inventory Audit Cycle", #date(2026, 1, 1), "__phantom", null, "none", null}
 				        }
 				    )
-
+				
 				    /*
 				     * EXCEL SOURCE — uncomment to load from your own xlsx instead.
 				     * Both Activities and Milestones sheets must follow the column

@@ -100,7 +100,7 @@ table Activities
 				            {"Inventory Audit Cycle", "Supply Chain", #date(2025, 10, 1), #date(2026, 3, 31), 23, null}
 				        }
 				    )
-
+				
 				    /*
 				     * EXCEL SOURCE — uncomment to load from your own xlsx instead.
 				     * Both Activities and Milestones sheets must follow the column
