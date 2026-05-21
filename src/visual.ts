@@ -377,6 +377,13 @@ export class Visual implements IVisual {
             this.selectionStore.set(next);
         };
         this.selectionStore.subscribe((sel: Selection) => {
+            // v2.1 audit-fix #14 — re-render FIRST so vm + activityColors
+            // are freshly computed BEFORE we read them for setContent. The
+            // prior order (setContent → requestRerender) caused a bug where
+            // a direct lane click rendered with stale (empty) lastActivityColors
+            // because the lane-focus block hadn't run yet. After requestRerender
+            // returns, lastActivityColors reflects the NEW selection's lane.
+            this.requestRerender();
             if (sel.kind === "none") {
                 this.controls.setOpen(false);
             } else if (this.lastViewmodel) {
@@ -399,7 +406,6 @@ export class Visual implements IVisual {
                 }
                 this.controls.setOpen(true);
             }
-            this.requestRerender();
         });
 
         // v2.1 W1.5a — root-level whitespace click. Clicks that bubble
