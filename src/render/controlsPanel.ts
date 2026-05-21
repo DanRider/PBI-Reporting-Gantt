@@ -77,11 +77,14 @@ function buildPanelHeader(onDismiss: () => void): HTMLDivElement {
         "flex-shrink:0",
     ].join(";");
 
-    const title = document.createElement("div");
-    title.className = "section-header";
-    title.style.cssText = "font-weight:bold;font-size:13px;color:#222;";
-    title.textContent = "Controls";
-    header.appendChild(title);
+    // Orchestrator audit: "labeling the menu at the top is largely a waste
+    // of space" — the panel content always provides its own h3 title for
+    // whatever is selected. Header now hosts only the × close affordance,
+    // with the title space replaced by a thin grow spacer so × stays at
+    // the right edge.
+    const spacer = document.createElement("div");
+    spacer.style.cssText = "flex:1;";
+    header.appendChild(spacer);
 
     const closeBtn = document.createElement("button");
     closeBtn.className = "controls-panel-close";
@@ -153,7 +156,13 @@ export function mountControlsPanel(
             while (body.firstChild) body.removeChild(body.firstChild);
             body.appendChild(node);
         },
-        widthPct: () => (open ? PANEL_WIDTH_PCT_OPEN : PANEL_WIDTH_PCT_CLOSED),
+        // Orchestrator audit: "leave the bottom visual spanning the entire
+        // visual" — the panel is now an OVERLAY (z-index 10 over the SVG),
+        // not a region that reserves layout space. widthPct returns 0 so
+        // the layout coordinator never shrinks Gantt + table when the panel
+        // opens. The panel's CSS width still animates 0% → 20% (visual
+        // slide-in) but it floats over the data, not beside it.
+        widthPct: () => PANEL_WIDTH_PCT_CLOSED,
         element: panel,
     };
 }

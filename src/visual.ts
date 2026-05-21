@@ -694,6 +694,12 @@ export class Visual implements IVisual {
             labelColor: this.settings.swimlanes.labelColor.value.value,
             railAlignment: this.settings.swimlanes.railAlignment.value.value as "left" | "center" | "right",
             font: fontFromCard(this.settings.swimlanes),
+            // v2.1 audit-fix — click label to select lane. Renderer attaches
+            // the handler at element creation with pointer-events:bounding-box
+            // (the prior d3-selectAll-after-render path didn't fire reliably).
+            onSelectLane: (laneName: string) => {
+                this.selectionStore.set({ kind: "lane", laneName });
+            },
         });
 
         // ── Activity labels + lollipops ───────────────────────────────────────
@@ -709,6 +715,11 @@ export class Visual implements IVisual {
             areaWidth: activityLabelWidth,
             wrapText: this.settings.activityLabels.wrapText.value,
             overflowBehavior: this.settings.activityLabels.overflowBehavior.value.value as "truncate" | "hide" | "overflow",
+            // v2.1 audit-fix — click the activity TEXT label on the left
+            // rail (not just the bar) to select the activity.
+            onSelectActivity: (activityName: string) => {
+                this.selectionStore.set({ kind: "activity", activityName });
+            },
         }, colors);
 
         // ── Bars + markers + milestone labels ─────────────────────────────────
@@ -776,21 +787,12 @@ export class Visual implements IVisual {
                     activityName: m.activity,
                 });
             });
-        // Swim-lane labels: read the area name from the data-area attribute
-        // set by swimlanes.ts (no d3 datum binding on these — they're built
-        // via a for-loop, multiple text nodes per area name when wrapText is on).
-        // Use an arrow function so `this` resolves to the Visual class; pull
-        // the clicked element off the MouseEvent target.
-        this.railG.selectAll<SVGTextElement, unknown>("text.swimlane-label")
-            .style("cursor", "pointer")
-            .on("click", (e: MouseEvent) => {
-                e.stopPropagation();
-                const el = e.currentTarget as SVGTextElement | null;
-                const laneName = el?.getAttribute("data-area") ?? "";
-                if (laneName) {
-                    this.selectionStore.set({ kind: "lane", laneName });
-                }
-            });
+        // v2.1 audit-fix — swim-lane label click was unreliable via the
+        // post-render selectAll pattern (SVG text pointer-events default).
+        // The handler now lives inside renderSwimlanes via the
+        // onSelectLane callback option. Same for activity labels via
+        // renderActivityLabels' onSelectActivity. The post-render selectAll
+        // calls for those two are removed.
     }
 
     // v2.1 W1 — re-run the full layout + render against the cached lastOptions.

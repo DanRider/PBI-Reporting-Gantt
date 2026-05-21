@@ -23,6 +23,11 @@ export interface SwimlaneOptions {
     labelColor: string;
     railAlignment: RailAlignment;
     font: FontStyle;
+    /** v2.1 W1.5b/audit-fix — optional click handler called when the user
+     *  clicks a swim-lane label text. Replaces the post-render d3 selectAll
+     *  approach which was unreliable when SVG text elements' default
+     *  pointer-events:visiblePainted didn't catch clicks between glyphs. */
+    onSelectLane?: (laneName: string) => void;
 }
 
 export function renderSwimlanes(
@@ -116,10 +121,11 @@ export function renderSwimlanes(
             .attr("fill", railColor);
 
         for (let i = 0; i < lines.length; i++) {
-            // v2.1 W1.5b — data-area attribute lets visual.ts attach a click
-            // handler via d3.selectAll("text.swimlane-label") and resolve
-            // the lane name without changing this renderer's signature.
-            // cursor:pointer surfaces the clickability.
+            // v2.1 W1.5b/audit-fix — attach click DIRECTLY at element creation
+            // (callback pattern, not d3-selectAll-after-render). Add
+            // pointer-events:bounding-box so the click hits anywhere in the
+            // text's bounding rect, not just on painted glyph pixels (the
+            // default visiblePainted was unreliable for thin text).
             const textSel = g.append("text")
                 .attr("class", "swimlane-label")
                 .attr("data-area", group.area)
@@ -128,9 +134,16 @@ export function renderSwimlanes(
                 .attr("text-anchor", "middle")
                 .attr("dominant-baseline", "central")
                 .attr("fill", labelFill)
-                .style("cursor", "pointer")
+                .style("cursor", opts.onSelectLane ? "pointer" : "default")
+                .style("pointer-events", "bounding-box")
                 .text(lines[i]);
             applyFont(textSel, opts.font);
+            if (opts.onSelectLane) {
+                textSel.on("click", (e: MouseEvent) => {
+                    e.stopPropagation();
+                    opts.onSelectLane?.(group.area);
+                });
+            }
         }
     }
 }

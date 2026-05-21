@@ -31,6 +31,10 @@ export interface ActivityLabelOptions {
     areaWidth: number;   // dynamic — from LayoutCard percentage
     wrapText: boolean;
     overflowBehavior: OverflowBehavior;
+    /** v2.1 audit-fix — optional click handler so clicking the activity
+     *  label TEXT (left rail) selects the activity, matching the activity-
+     *  bar click behavior. */
+    onSelectActivity?: (activityName: string) => void;
 }
 
 export interface ActivityLabelsLayout {
@@ -156,6 +160,19 @@ export function renderActivityLabels(
         }
 
         if (opts.show) {
+            // v2.1 audit-fix — click any label text to select the activity.
+            // pointer-events:bounding-box catches clicks anywhere in the
+            // text's rect, not just on painted glyphs.
+            const attachClick = (sel: Selection<SVGTextElement, unknown, null, undefined>): void => {
+                sel.style("cursor", opts.onSelectActivity ? "pointer" : "default")
+                   .style("pointer-events", "bounding-box");
+                if (opts.onSelectActivity) {
+                    sel.on("click", (e: MouseEvent) => {
+                        e.stopPropagation();
+                        opts.onSelectActivity?.(a.name);
+                    });
+                }
+            };
             if (renderLines.length === 1) {
                 const sel = g.append("text")
                     .attr("class", "activity-label")
@@ -167,6 +184,7 @@ export function renderActivityLabels(
                     .attr("fill", labelFill)
                     .text(renderLines[0]);
                 applyFont(sel, font);
+                attachClick(sel);
             } else {
                 const sel1 = g.append("text")
                     .attr("class", "activity-label")
@@ -178,6 +196,7 @@ export function renderActivityLabels(
                     .attr("fill", labelFill)
                     .text(renderLines[0]);
                 applyFont(sel1, font);
+                attachClick(sel1);
                 const sel2 = g.append("text")
                     .attr("class", "activity-label")
                     .attr("data-activity", a.name)
@@ -188,6 +207,7 @@ export function renderActivityLabels(
                     .attr("fill", labelFill)
                     .text(renderLines[1]);
                 applyFont(sel2, font);
+                attachClick(sel2);
             }
         }
 
