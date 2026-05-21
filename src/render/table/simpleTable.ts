@@ -14,14 +14,13 @@ type Col = powerbi.DataViewMetadataColumn;
 const STRIPE_ODD = "#ffffff";
 const STRIPE_EVEN = "#fafafa";
 const HOVER_BG = "#e8f3ff";
-// v2.1 audit-fix — selection-highlight background for the table row whose
-// activity matches the current selection.
-const SELECTED_BG = "#d4e9f7";
-// v2.1 audit-fix #8 — row tint opacities. Two values for alternating band
-// within a same-color group; minimizes "big solid color blocks" per
-// orchestrator note.
-const TINT_ALPHA_LO = 0.08;
-const TINT_ALPHA_HI = 0.18;
+// v2.1 audit-fix #10 — selection signal is now activity-color (no blue
+// override). Stronger alpha + left edge stripe preserves the row's
+// identity color while clearly indicating "this is the selected one."
+const TINT_ALPHA_LO = 0.10;
+const TINT_ALPHA_HI = 0.14;
+const TINT_ALPHA_SELECTED = 0.30;
+const SELECTED_BORDER_PX = 4;
 
 function hexToRgba(hex: string, alpha: number): string {
     const h = hex.replace("#", "");
@@ -79,6 +78,7 @@ function buildRow(
     cols: readonly Col[],
     activityColIndex: number,
     areaColIndex: number,
+    indexWithinGroup: number,
     onSelectActivity: ((activityName: string) => void) | undefined,
     highlightActivityName: string | undefined,
     rowTintByActivity: Record<string, string> | undefined,
@@ -89,24 +89,29 @@ function buildRow(
     const rowArea = areaColIndex >= 0 ? String(row[areaColIndex] ?? "").trim() : "";
     const isHighlighted = highlightActivityName != null && rowActivity === highlightActivityName;
 
-    // v2.1 audit-fix #8 — tint lookup. Activity-tint wins over area-tint
-    // (lane-focus mode supplies activity tints). Selection highlight wins
-    // over tint. No tint = stripe colors (default mode without lane-tint).
+    // v2.1 audit-fix #10 — tint logic with within-group alternation.
+    // Selection NO LONGER swaps to blue background — it bumps the same tint
+    // color to a stronger alpha + adds a 4px left-edge stripe so the row's
+    // identity color is preserved. Alternation indexes by position within
+    // the same-color group (not global row index), so group boundaries don't
+    // create the bacon-stripe effect.
+    const tintHex = (rowTintByActivity && rowActivity && rowTintByActivity[rowActivity])
+        ?? (rowTintByArea && rowArea && rowTintByArea[rowArea])
+        ?? null;
     let baseBg: string;
-    if (isHighlighted) {
-        baseBg = SELECTED_BG;
-    } else {
-        const tintHex = (rowTintByActivity && rowActivity && rowTintByActivity[rowActivity])
-            ?? (rowTintByArea && rowArea && rowTintByArea[rowArea])
-            ?? null;
-        if (tintHex) {
-            const alpha = rowIndex % 2 === 0 ? TINT_ALPHA_LO : TINT_ALPHA_HI;
-            baseBg = hexToRgba(tintHex, alpha);
-        } else {
-            baseBg = rowIndex % 2 === 0 ? STRIPE_ODD : STRIPE_EVEN;
+    let borderLeftCss = "";
+    if (tintHex) {
+        const alpha = isHighlighted
+            ? TINT_ALPHA_SELECTED
+            : (indexWithinGroup % 2 === 0 ? TINT_ALPHA_LO : TINT_ALPHA_HI);
+        baseBg = hexToRgba(tintHex, alpha);
+        if (isHighlighted) {
+            borderLeftCss = `border-left:${SELECTED_BORDER_PX}px solid ${tintHex};`;
         }
+    } else {
+        baseBg = rowIndex % 2 === 0 ? STRIPE_ODD : STRIPE_EVEN;
     }
-    tr.style.cssText = `background:${baseBg}; cursor:${onSelectActivity ? "pointer" : "default"}; height:18px;`;
+    tr.style.cssText = `background:${baseBg}; ${borderLeftCss} cursor:${onSelectActivity ? "pointer" : "default"}; height:18px;`;
     tr.addEventListener("mouseenter", () => { tr.style.background = HOVER_BG; });
     tr.addEventListener("mouseleave", () => { tr.style.background = baseBg; });
     if (onSelectActivity && activityColIndex >= 0) {
@@ -142,11 +147,31 @@ function renderBody(
     rowTintByArea: Record<string, string> | undefined,
 ): void {
     while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
-    rows.forEach((row, ri) => tbody.appendChild(
-        buildRow(row, ri, cols, activityColIndex, areaColIndex,
-                 onSelectActivity, highlightActivityName,
-                 rowTintByActivity, rowTintByArea),
-    ));
+    // v2.1 audit-fix #10 — count rows within each same-color group so the
+    // alternation parity resets at group boundaries. "Same color group"
+    // means same activity (lane focus) or same area (default mode). Reset
+    // detection uses the resolved group-key per row.
+    let prevGroupKey: string | null = null;
+    let indexWithinGroup = 0;
+    rows.forEach((row, ri) => {
+        const rowActivity = activityColIndex >= 0 ? String(row[activityColIndex] ?? "").trim() : "";
+        const rowArea = areaColIndex >= 0 ? String(row[areaColIndex] ?? "").trim() : "";
+        const groupKey = (rowTintByActivity && rowActivity && rowTintByActivity[rowActivity])
+            ? rowActivity
+            : (rowTintByArea && rowArea ? rowArea : "");
+        if (groupKey !== prevGroupKey) {
+            indexWithinGroup = 0;
+            prevGroupKey = groupKey;
+        } else {
+            indexWithinGroup += 1;
+        }
+        tbody.appendChild(
+            buildRow(row, ri, cols, activityColIndex, areaColIndex,
+                     indexWithinGroup,
+                     onSelectActivity, highlightActivityName,
+                     rowTintByActivity, rowTintByArea),
+        );
+    });
 }
 
 export function renderSimpleTable(
