@@ -247,6 +247,10 @@ export class Visual implements IVisual {
     // black, etc.) cached for the activity Inspector's milestone gallery
     // tiles, which front each milestone with a type-colored ★.
     private lastTypeColors: Record<string, string> | undefined = undefined;
+    // v2.1 audit-fix #18 — time slicer for the activity Inspector gallery.
+    // Filters which milestones appear in the gallery (Gantt + table NOT
+    // affected). Default "both-qtrs" = today ±90 days.
+    private galleryTimeRange: "past-qtr" | "both-qtrs" | "next-qtr" | "all" = "both-qtrs";
     // v2.1 audit-fix #11 — 3-state milestone-type cycle per legend entry.
     // Click sequence: visible → transparent → hidden → visible.
     //   "visible"     → opacity 1, normal render
@@ -413,7 +417,37 @@ export class Visual implements IVisual {
                             this.controls.setContent(renderLaneDetail(sel.laneName, this.lastViewmodel, onSelect, this.lastActivityColors));
                             break;
                         case "activity":
-                            this.controls.setContent(renderActivityDetail(sel.activityName, this.lastViewmodel, onSelect, this.lastActivityColors, this.lastTypeColors));
+                            this.controls.setContent(renderActivityDetail(
+                                sel.activityName,
+                                this.lastViewmodel,
+                                onSelect,
+                                this.lastActivityColors,
+                                this.lastTypeColors,
+                                this.galleryTimeRange,
+                                (next) => {
+                                    // Range chip clicked — store + re-render the panel
+                                    // so the slicer + tile filter reflect the new range.
+                                    this.galleryTimeRange = next;
+                                    this.selectionStore.set(this.selectionStore.get());
+                                    // Force re-render even when selection is structurally
+                                    // unchanged (selectionsEqual short-circuits set()):
+                                    this.requestRerender();
+                                    if (this.lastViewmodel && this.selectionStore.get().kind === "activity") {
+                                        const s = this.selectionStore.get();
+                                        if (s.kind === "activity") {
+                                            this.controls.setContent(renderActivityDetail(
+                                                s.activityName,
+                                                this.lastViewmodel,
+                                                onSelect,
+                                                this.lastActivityColors,
+                                                this.lastTypeColors,
+                                                this.galleryTimeRange,
+                                                undefined,  // recursion guard — chip handler doesn't recurse
+                                            ));
+                                        }
+                                    }
+                                },
+                            ));
                             break;
                         case "milestone":
                             this.controls.setContent(renderMilestoneDetail(

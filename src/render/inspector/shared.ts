@@ -44,6 +44,51 @@ export function fmtDate(d: Date): string {
     return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
+/** v2.1 audit-fix #18 — relative-time label so users don't do time math
+ *  in their head. Past dates → "X ago"; future dates → "X until".
+ *  Unit picked by magnitude: <1 wk → days, <8 wks → weeks, else months.
+ *  "today" rendered as "today" rather than "0 days". */
+export function fmtRelative(date: Date, today: Date): string {
+    const ms = date.getTime() - today.getTime();
+    const absDays = Math.round(Math.abs(ms) / (1000 * 60 * 60 * 24));
+    if (absDays === 0) return "today";
+    const isFuture = ms > 0;
+    if (absDays < 7) {
+        const u = absDays === 1 ? "day" : "days";
+        return isFuture ? `${absDays} ${u} until` : `${absDays} ${u} ago`;
+    }
+    if (absDays < 60) {
+        const weeks = Math.round(absDays / 7);
+        const u = weeks === 1 ? "wk" : "wks";
+        return isFuture ? `${weeks} ${u} until` : `${weeks} ${u} ago`;
+    }
+    const months = Math.round(absDays / 30);
+    const u = months === 1 ? "mo" : "mos";
+    return isFuture ? `${months} ${u} until` : `${months} ${u} ago`;
+}
+
+/** v2.1 audit-fix #18 — time slicer preset for the activity Inspector
+ *  gallery. Range expressed as offsets from "today" in days. */
+export type GalleryTimeRange = "past-qtr" | "both-qtrs" | "next-qtr" | "all";
+
+export interface RangeWindow {
+    readonly fromMs: number;  // start of window (inclusive)
+    readonly toMs: number;    // end of window (inclusive)
+}
+
+/** Compute concrete date window for a GalleryTimeRange relative to today.
+ *  "all" returns ±100 years window (effectively unfiltered). */
+export function computeRangeWindow(range: GalleryTimeRange, today: Date): RangeWindow {
+    const day = 24 * 60 * 60 * 1000;
+    const t = today.getTime();
+    switch (range) {
+        case "past-qtr":  return { fromMs: t - 90 * day, toMs: t };
+        case "both-qtrs": return { fromMs: t - 90 * day, toMs: t + 90 * day };
+        case "next-qtr":  return { fromMs: t, toMs: t + 90 * day };
+        case "all":       return { fromMs: -Infinity, toMs: Infinity };
+    }
+}
+
 export function makeH3(text: string): HTMLHeadingElement {
     const h = document.createElement("h3");
     h.textContent = text;

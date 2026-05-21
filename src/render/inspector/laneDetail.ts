@@ -5,7 +5,7 @@
 // milestone summary lines.
 
 import type { RoadmapViewModel } from "../../viewmodel";
-import { fmtDate, makeH3, makeP, makeLabeledLine, partitionMilestones, INSPECTOR_FONT, OnSelect, makeBreadcrumb, makeColorBubble } from "./shared";
+import { fmtDate, fmtRelative, makeH3, makeP, makeLabeledLine, partitionMilestones, INSPECTOR_FONT, OnSelect, makeBreadcrumb, makeColorBubble } from "./shared";
 
 export function renderLaneDetail(
     laneName: string,
@@ -94,14 +94,17 @@ export function renderLaneDetail(
         const { mostRecent, next } = partitionMilestones(vm.milestones, activity.name, today);
         const compactLines = document.createElement("div");
         compactLines.style.cssText = "font-size:10px;color:#666;line-height:1.4;";
+        // v2.1 audit-fix #18 — relative-time label (e.g. "4 mos ago", "in 2
+        // wks") appended to each summary line so the user doesn't do date
+        // math in their head.
         if (mostRecent) {
             const d = document.createElement("div");
-            d.textContent = `\u2713 ${mostRecent.label ?? "(unlabeled)"} \u00b7 ${fmtDate(mostRecent.date)}`;
+            d.textContent = `\u2713 ${mostRecent.label ?? "(unlabeled)"} \u00b7 ${fmtDate(mostRecent.date)} \u00b7 ${fmtRelative(mostRecent.date, today)}`;
             compactLines.appendChild(d);
         }
         if (next) {
             const d = document.createElement("div");
-            d.textContent = `\u23ed ${next.label ?? "(unlabeled)"} \u00b7 ${fmtDate(next.date)}`;
+            d.textContent = `\u23ed ${next.label ?? "(unlabeled)"} \u00b7 ${fmtDate(next.date)} \u00b7 ${fmtRelative(next.date, today)}`;
             compactLines.appendChild(d);
         }
         if (!mostRecent && !next) {
