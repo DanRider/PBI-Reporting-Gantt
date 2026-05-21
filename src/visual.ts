@@ -444,12 +444,32 @@ export class Visual implements IVisual {
             // The splitter bar's top/bottom borders replace the matrix
             // region's prior border-top — removing the doubled divider.
             this.matrixDiv.style.borderTop = "none";
-            // v2.1 W1.5b — table row click → activity selection. simpleTable
-            // resolves activity name from the row's "Activity" column.
+            // v2.1 W1.5b + audit-fix — table row click + selection-driven
+            // filter + highlight. Derive both from current selection:
+            //   kind=lane     → filter to that area; no row highlight
+            //   kind=activity → filter to that activity name; highlight it
+            //   kind=milestone→ filter to milestone's activity; highlight it
+            //   kind=none     → no filter, no highlight
+            const sel = this.selectionStore.get();
+            let filterActivityNames: readonly string[] | undefined;
+            let filterAreaNames: readonly string[] | undefined;
+            let highlightActivityName: string | undefined;
+            if (sel.kind === "lane") {
+                filterAreaNames = [sel.laneName];
+            } else if (sel.kind === "activity") {
+                filterActivityNames = [sel.activityName];
+                highlightActivityName = sel.activityName;
+            } else if (sel.kind === "milestone") {
+                filterActivityNames = [sel.activityName];
+                highlightActivityName = sel.activityName;
+            }
             renderSimpleTable(this.matrixDiv, dataView, {
                 onSelectActivity: (activityName: string) => {
                     this.selectionStore.set({ kind: "activity", activityName });
                 },
+                filterActivityNames,
+                filterAreaNames,
+                highlightActivityName,
             });
         } else {
             this.matrixDiv.style.display = "none";
@@ -793,6 +813,46 @@ export class Visual implements IVisual {
         // onSelectLane callback option. Same for activity labels via
         // renderActivityLabels' onSelectActivity. The post-render selectAll
         // calls for those two are removed.
+
+        // v2.1 audit-fix — visual breadcrumb highlight on the Gantt SVG.
+        // Selected activity bar gets a thick orange stroke. Selected
+        // milestone star gets enlarged stroke. Selected swim-lane label
+        // is bolded via the data-area attribute matched here (no need to
+        // change swimlanes.ts again).
+        const selForHighlight = this.selectionStore.get();
+        const selectedActivityName =
+            selForHighlight.kind === "activity" ? selForHighlight.activityName :
+            selForHighlight.kind === "milestone" ? selForHighlight.activityName :
+            null;
+        const selectedLaneName =
+            selForHighlight.kind === "lane" ? selForHighlight.laneName : null;
+        const selectedMilestoneKey =
+            selForHighlight.kind === "milestone"
+                ? `${selForHighlight.milestoneLabel}|${selForHighlight.activityName}`
+                : null;
+
+        barsSel
+            .attr("stroke", (a: Activity) => a.name === selectedActivityName ? "#FF8C00" : "none")
+            .attr("stroke-width", (a: Activity) => a.name === selectedActivityName ? 3 : 0);
+        this.bodyG.selectAll<SVGPathElement, Milestone>("path.milestone-marker")
+            .attr("stroke", (m: Milestone) => {
+                const k = `${m.label ?? "(unlabeled)"}|${m.activity}`;
+                return k === selectedMilestoneKey ? "#FF8C00" : "none";
+            })
+            .attr("stroke-width", (m: Milestone) => {
+                const k = `${m.label ?? "(unlabeled)"}|${m.activity}`;
+                return k === selectedMilestoneKey ? 3 : 0;
+            });
+        // Swim-lane label bold-when-selected. Match by data-area.
+        this.railG.selectAll<SVGTextElement, unknown>("text.swimlane-label")
+            .attr("font-weight", function (this: SVGTextElement) {
+                return this.getAttribute("data-area") === selectedLaneName ? "bold" : "normal";
+            });
+        // Activity label bold-when-selected. Match by data-activity.
+        this.activityLabelsG.selectAll<SVGTextElement, unknown>("text.activity-label")
+            .attr("font-weight", function (this: SVGTextElement) {
+                return this.getAttribute("data-activity") === selectedActivityName ? "bold" : "normal";
+            });
     }
 
     // v2.1 W1 — re-run the full layout + render against the cached lastOptions.

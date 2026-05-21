@@ -14,6 +14,9 @@ type Col = powerbi.DataViewMetadataColumn;
 const STRIPE_ODD = "#ffffff";
 const STRIPE_EVEN = "#fafafa";
 const HOVER_BG = "#e8f3ff";
+// v2.1 audit-fix — selection-highlight background for the table row whose
+// activity matches the current selection.
+const SELECTED_BG = "#d4e9f7";
 
 function formatCell(cell: powerbi.PrimitiveValue, col: Col | undefined): { text: string; align: "left" | "right" } {
     if (cell == null) return { text: "", align: "left" };
@@ -36,6 +39,17 @@ export interface SimpleTableOptions {
      *  callback is NOT invoked. Click also stopPropagation's so it
      *  doesn't bubble to the root-level whitespace handler. */
     readonly onSelectActivity?: (activityName: string) => void;
+    /** v2.1 audit-fix — when set, ONLY rows whose Activity column matches
+     *  one of these names are rendered. When undefined, all rows render. */
+    readonly filterActivityNames?: readonly string[];
+    /** v2.1 audit-fix — when set, ONLY rows whose Area column matches
+     *  one of these areas are rendered. Combined with filterActivityNames
+     *  by intersection — a row passes only if it passes BOTH filters.
+     *  When undefined, the area filter is bypassed. */
+    readonly filterAreaNames?: readonly string[];
+    /** v2.1 audit-fix — visual breadcrumb. Row whose Activity column
+     *  matches this name gets a stronger background tint. */
+    readonly highlightActivityName?: string;
 }
 
 function buildRow(
@@ -44,9 +58,13 @@ function buildRow(
     cols: readonly Col[],
     activityColIndex: number,
     onSelectActivity: ((activityName: string) => void) | undefined,
+    highlightActivityName: string | undefined,
 ): HTMLTableRowElement {
     const tr = document.createElement("tr");
-    const baseBg = rowIndex % 2 === 0 ? STRIPE_ODD : STRIPE_EVEN;
+    const stripeBg = rowIndex % 2 === 0 ? STRIPE_ODD : STRIPE_EVEN;
+    const rowActivity = activityColIndex >= 0 ? String(row[activityColIndex] ?? "").trim() : "";
+    const isHighlighted = highlightActivityName != null && rowActivity === highlightActivityName;
+    const baseBg = isHighlighted ? SELECTED_BG : stripeBg;
     tr.style.cssText = `border-bottom:1px solid #f0f0f0; background:${baseBg}; cursor:${onSelectActivity ? "pointer" : "default"};`;
     // Hover handlers attached EVERY row build (initial + re-renders after
     // sort) so the highlight persists across sort interactions.
@@ -78,9 +96,12 @@ function renderBody(
     cols: readonly Col[],
     activityColIndex: number,
     onSelectActivity: ((activityName: string) => void) | undefined,
+    highlightActivityName: string | undefined,
 ): void {
     while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
-    rows.forEach((row, ri) => tbody.appendChild(buildRow(row, ri, cols, activityColIndex, onSelectActivity)));
+    rows.forEach((row, ri) => tbody.appendChild(
+        buildRow(row, ri, cols, activityColIndex, onSelectActivity, highlightActivityName),
+    ));
 }
 
 export function renderSimpleTable(
@@ -91,7 +112,27 @@ export function renderSimpleTable(
     while (container.firstChild) container.removeChild(container.firstChild);
 
     const cols = dataView?.table?.columns ?? [];
-    const rows = dataView?.table?.rows ?? [];
+    const allRows = dataView?.table?.rows ?? [];
+    // v2.1 audit-fix — filter by selection. filterActivityNames and
+    // filterAreaNames are AND'd. Row passes iff Activity matches the
+    // activity filter (when set) AND Area matches the area filter (when set).
+    const activityCol = cols.findIndex(c => /^activity$/i.test(c.displayName ?? ""));
+    const areaCol = cols.findIndex(c => /^area$/i.test(c.displayName ?? "") || /swim/i.test(c.displayName ?? ""));
+    const actFilter = options?.filterActivityNames;
+    const areaFilter = options?.filterAreaNames;
+    const rows = (actFilter == null && areaFilter == null)
+        ? allRows
+        : allRows.filter(r => {
+            if (actFilter != null && activityCol >= 0) {
+                const v = String(r[activityCol] ?? "").trim();
+                if (!actFilter.includes(v)) return false;
+            }
+            if (areaFilter != null && areaCol >= 0) {
+                const v = String(r[areaCol] ?? "").trim();
+                if (!areaFilter.includes(v)) return false;
+            }
+            return true;
+        });
     if (cols.length === 0) {
         const empty = document.createElement("div");
         empty.style.cssText = "padding:24px; color:#888; font-family:'Segoe UI', system-ui, sans-serif; font-size:13px;";
@@ -146,12 +187,13 @@ export function renderSimpleTable(
     // each carrying an Activity column; either is acceptable for selection.
     // Case-insensitive name match — works without forcing capabilities.json
     // to declare a `roles.activity` flag.
-    const activityColIndex = cols.findIndex(c => /^activity$/i.test(c.displayName ?? ""));
+    const activityColIndex = activityCol;
     const onSelectActivity = options?.onSelectActivity;
+    const highlightActivityName = options?.highlightActivityName;
 
     // Body rows (initial render)
     const tbody = document.createElement("tbody");
-    renderBody(tbody, rows, cols, activityColIndex, onSelectActivity);
+    renderBody(tbody, rows, cols, activityColIndex, onSelectActivity, highlightActivityName);
     table.appendChild(tbody);
 
     // Sort handler — click a header to sort by that column ascending; click
@@ -171,7 +213,7 @@ export function renderSimpleTable(
                 const cmp = String(av).localeCompare(String(bv), undefined, { numeric: true });
                 return sortState.asc ? cmp : -cmp;
             });
-            renderBody(tbody, sorted, cols, activityColIndex, onSelectActivity);
+            renderBody(tbody, sorted, cols, activityColIndex, onSelectActivity, highlightActivityName);
             // Update header sort indicators
             headerCells.forEach((h, hi) => {
                 const baseName = cols[hi]?.displayName || `Column ${hi + 1}`;
