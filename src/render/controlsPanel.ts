@@ -137,6 +137,12 @@ export function mountControlsPanel(
         // Hide the panel header from layout/AT when fully closed so screen
         // readers don't announce a 0-width region's contents.
         panel.style.visibility = open ? "visible" : "hidden";
+        // Hide the hamburger when the panel is open — the ✕ close button in
+        // the panel header is the canonical close affordance, and the
+        // hamburger sits at z-index 11 on top of the panel header (occluding
+        // the "Controls" title). Re-show when the panel closes so the user
+        // has the open affordance back.
+        hamburger.style.display = open ? "none" : "flex";
     }
 
     function setOpen(next: boolean): void {
