@@ -1,13 +1,19 @@
-// W1.5c of INF-3730 — Inspector activity detail.
+// v2.1 audit-fix #17 — activity Inspector with milestone GALLERY.
 //
-// Rendered when the user clicks an activity bar (Gantt) or a table row.
-// Shows the activity name, swim lane, start/end dates, progress %, and
-// ✓ most-recent / ⏭ next milestone for this activity.
+// Replaces the prior ✓ Most-recent / ⏭ Next-upcoming summary with a
+// gallery of ALL milestones for the activity, sorted by date. Each
+// milestone tile is fronted by a type-colored ★ (matching the top legend's
+// Major/Minor stars) + the milestone label + type · date. Clicking a tile
+// drills the selection down to that milestone.
+//
+// Orchestrator: "lets ditch this most recent and next upcoming.... bring
+// over the star colors as a legend and lets just make this a styalized
+// gallery of all items."
 
-import type { RoadmapViewModel } from "../../viewmodel";
+import type { Milestone, RoadmapViewModel } from "../../viewmodel";
 import {
-    fmtDate, makeH3, makeP, makeLabeledLine,
-    partitionMilestones, activityProgressPct, INSPECTOR_FONT,
+    fmtDate, makeH3, makeP,
+    activityProgressPct, INSPECTOR_FONT,
     makeBreadcrumb, OnSelect, makeColorBubble,
 } from "./shared";
 
@@ -16,6 +22,7 @@ export function renderActivityDetail(
     vm: RoadmapViewModel,
     onSelect?: OnSelect,
     activityColors?: Record<string, string>,
+    typeColors?: Record<string, string>,
 ): HTMLElement {
     const root = document.createElement("div");
     root.className = "inspector-activity";
@@ -35,8 +42,8 @@ export function renderActivityDetail(
         }));
     }
 
-    // v2.1 audit-fix #8 — activity h3 with leading color bubble matching
-    // the Gantt rail bullet + the table row tint.
+    // Activity h3 with leading color bubble matching the Gantt rail bullet
+    // + the table row tint.
     const h3 = makeH3(activity.name);
     const activityHex = activityColors?.[activity.name];
     if (activityHex) {
@@ -73,49 +80,95 @@ export function renderActivityDetail(
         root.appendChild(noteP);
     }
 
-    const milestoneSection = document.createElement("div");
-    milestoneSection.style.cssText = "margin-top:8px;";
+    // v2.1 audit-fix #17 — milestone GALLERY. Filter to this activity,
+    // sort ascending by date. Each tile is a flex row with a colored ★ +
+    // label + meta line ({type} · {date}). Past milestones get a subtle
+    // checkmark prefix on the label; future milestones don't.
+    const activityMilestones: readonly Milestone[] = vm.milestones
+        .filter(m => m.activity === activity.name)
+        .slice()
+        .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-    const { mostRecent, next } = partitionMilestones(vm.milestones, activity.name, today);
-    const makeMilestoneClickable = (line: HTMLElement, m: typeof mostRecent): void => {
-        if (onSelect == null || m == null) return;
-        line.style.cursor = "pointer";
-        line.addEventListener("mouseenter", () => { line.style.background = "#f4f7fb"; });
-        line.addEventListener("mouseleave", () => { line.style.background = "transparent"; });
-        line.addEventListener("click", (e) => {
-            e.stopPropagation();
-            onSelect({
-                kind: "milestone",
-                milestoneLabel: m.label ?? "(unlabeled)",
-                activityName: activity.name,
+    const galleryHeading = document.createElement("div");
+    galleryHeading.style.cssText = "font-size:11px;font-weight:600;color:#555;letter-spacing:0.04em;text-transform:uppercase;margin:8px 0 6px 0;";
+    galleryHeading.textContent = `Milestones (${activityMilestones.length})`;
+    root.appendChild(galleryHeading);
+
+    if (activityMilestones.length === 0) {
+        const empty = document.createElement("div");
+        empty.style.cssText = "font-size:11px;color:#888;font-style:italic;padding:4px 0;";
+        empty.textContent = "(no milestones)";
+        root.appendChild(empty);
+        return root;
+    }
+
+    const gallery = document.createElement("ul");
+    gallery.style.cssText = "list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px;";
+
+    for (const m of activityMilestones) {
+        const isPast = m.date.getTime() <= today.getTime();
+        const typeHex = typeColors?.[m.type] ?? "#888";
+
+        const tile = document.createElement("li");
+        tile.style.cssText = [
+            "display:flex",
+            "align-items:flex-start",
+            "gap:8px",
+            "padding:5px 8px",
+            "border-radius:4px",
+            "background:#fafafa",
+            "border:1px solid #eee",
+            "transition:background 100ms ease",
+            onSelect ? "cursor:pointer" : "cursor:default",
+        ].join(";");
+        if (onSelect) {
+            tile.addEventListener("mouseenter", () => { tile.style.background = "#eef4fb"; });
+            tile.addEventListener("mouseleave", () => { tile.style.background = "#fafafa"; });
+            tile.addEventListener("click", (e) => {
+                e.stopPropagation();
+                onSelect({
+                    kind: "milestone",
+                    milestoneLabel: m.label ?? "(unlabeled)",
+                    activityName: activity.name,
+                });
             });
-        });
-        // Tighten padding for hover affordance
-        line.style.padding = "2px 4px";
-        line.style.borderRadius = "3px";
-        line.style.transition = "background 100ms ease";
-    };
-    if (mostRecent) {
-        const ln = makeLabeledLine(
-            "\u2713 Most recent:",
-            `${mostRecent.label ?? "(unlabeled)"} · ${mostRecent.type} · ${fmtDate(mostRecent.date)}`,
-        );
-        makeMilestoneClickable(ln, mostRecent);
-        milestoneSection.appendChild(ln);
-    } else {
-        milestoneSection.appendChild(makeLabeledLine("\u2713 Most recent:", "(none yet)"));
-    }
-    if (next) {
-        const ln = makeLabeledLine(
-            "\u23ed Next upcoming:",
-            `${next.label ?? "(unlabeled)"} · ${next.type} · ${fmtDate(next.date)}`,
-        );
-        makeMilestoneClickable(ln, next);
-        milestoneSection.appendChild(ln);
-    } else {
-        milestoneSection.appendChild(makeLabeledLine("\u23ed Next upcoming:", "(none upcoming)"));
+        }
+
+        // Colored ★ matching the Gantt legend's type colors.
+        const star = document.createElement("span");
+        star.textContent = "\u2605"; // ★
+        star.style.cssText = `color:${typeHex};font-size:16px;line-height:1;flex-shrink:0;margin-top:1px;`;
+        // If the milestone is in the past, show a tiny ✓ overlay-ish
+        // affordance via opacity + add a unicode ✓ in front of the label.
+        if (isPast) {
+            star.style.opacity = "0.75";
+        }
+        tile.appendChild(star);
+
+        const textWrap = document.createElement("div");
+        textWrap.style.cssText = "display:flex;flex-direction:column;gap:1px;min-width:0;flex:1;";
+
+        const label = document.createElement("div");
+        label.textContent = `${isPast ? "\u2713 " : ""}${m.label ?? "(unlabeled)"}`;
+        label.style.cssText = "font-size:11px;font-weight:600;color:#222;line-height:1.3;overflow:hidden;text-overflow:ellipsis;";
+        textWrap.appendChild(label);
+
+        const meta = document.createElement("div");
+        meta.textContent = `${m.type} · ${fmtDate(m.date)}`;
+        meta.style.cssText = "font-size:10px;color:#666;line-height:1.3;";
+        textWrap.appendChild(meta);
+
+        if (m.note) {
+            const note = document.createElement("div");
+            note.textContent = m.note;
+            note.style.cssText = "font-size:10px;color:#777;font-style:italic;line-height:1.35;margin-top:2px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;";
+            textWrap.appendChild(note);
+        }
+
+        tile.appendChild(textWrap);
+        gallery.appendChild(tile);
     }
 
-    root.appendChild(milestoneSection);
+    root.appendChild(gallery);
     return root;
 }

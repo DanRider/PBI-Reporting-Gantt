@@ -21,6 +21,7 @@ import {
     buildAreaColorMap,
     buildMilestoneConfigMap,
     buildColorContext,
+    typeColor,
     ColorContext,
 } from "./utils/colors";
 import { FontStyle } from "./utils/font";
@@ -242,6 +243,10 @@ export class Visual implements IVisual {
     // update(). Built in lane focus mode; passed into Inspector renderers
     // so each card / h3 shows the same color bubble as the Gantt rail.
     private lastActivityColors: Record<string, string> | undefined = undefined;
+    // v2.1 audit-fix #17 — milestone-type color map (Major→yellow, Minor→
+    // black, etc.) cached for the activity Inspector's milestone gallery
+    // tiles, which front each milestone with a type-colored ★.
+    private lastTypeColors: Record<string, string> | undefined = undefined;
     // v2.1 audit-fix #11 — 3-state milestone-type cycle per legend entry.
     // Click sequence: visible → transparent → hidden → visible.
     //   "visible"     → opacity 1, normal render
@@ -408,7 +413,7 @@ export class Visual implements IVisual {
                             this.controls.setContent(renderLaneDetail(sel.laneName, this.lastViewmodel, onSelect, this.lastActivityColors));
                             break;
                         case "activity":
-                            this.controls.setContent(renderActivityDetail(sel.activityName, this.lastViewmodel, onSelect, this.lastActivityColors));
+                            this.controls.setContent(renderActivityDetail(sel.activityName, this.lastViewmodel, onSelect, this.lastActivityColors, this.lastTypeColors));
                             break;
                         case "milestone":
                             this.controls.setContent(renderMilestoneDetail(
@@ -566,6 +571,16 @@ export class Visual implements IVisual {
         const areaColorMap = buildAreaColorMap(vm.areaBindings, this.settings.swimlanes);
         const milestoneConfig = buildMilestoneConfigMap(vm.typeBindings, this.settings.milestones);
         const colors: ColorContext = buildColorContext(areaColorMap, milestoneConfig, activityColors);
+
+        // v2.1 audit-fix #17 — milestone-type color map for the activity
+        // Inspector's milestone gallery tiles. Cached so the subscriber's
+        // setContent can read it on the next click without an extra
+        // colors-context dependency.
+        const typeColors: Record<string, string> = {};
+        for (const t of vm.distinctTypes) {
+            typeColors[t] = typeColor(t, colors);
+        }
+        this.lastTypeColors = typeColors;
 
         // v2.1 W1 — layout coordinator now defers Gantt/Table height to the
         // splitter handle (initial 60/40, draggable, collapsible). When the
