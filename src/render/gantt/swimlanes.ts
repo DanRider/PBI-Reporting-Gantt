@@ -1,9 +1,9 @@
 "use strict";
 
 import { Selection } from "d3-selection";
-import { AreaGroup } from "../viewmodel";
-import { areaColor, ColorContext } from "../utils/colors";
-import { FontStyle, applyFont } from "../utils/font";
+import { AreaGroup } from "../../viewmodel";
+import { areaColor, ColorContext } from "../../utils/colors";
+import { FontStyle, applyFont } from "../../utils/font";
 
 export const DEFAULT_LEFT_RAIL_WIDTH = 130;
 

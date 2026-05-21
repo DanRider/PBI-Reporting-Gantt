@@ -2,9 +2,9 @@
 
 import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
-import { Activity } from "../viewmodel";
-import { areaColor, ColorContext } from "../utils/colors";
-import { FontStyle, applyFont, canvasFontString } from "../utils/font";
+import { Activity } from "../../viewmodel";
+import { areaColor, ColorContext } from "../../utils/colors";
+import { FontStyle, applyFont, canvasFontString } from "../../utils/font";
 
 const LOLLIPOP_CIRCLE_R = 4;
 const LOLLIPOP_STROKE_WIDTH = 2;

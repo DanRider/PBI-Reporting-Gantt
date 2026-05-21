@@ -2,8 +2,8 @@
 
 import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
-import { Activity } from "../viewmodel";
-import { areaColor, ColorContext } from "../utils/colors";
+import { Activity } from "../../viewmodel";
+import { areaColor, ColorContext } from "../../utils/colors";
 
 const BAR_RADIUS = 6;
 

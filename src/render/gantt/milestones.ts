@@ -2,10 +2,10 @@
 
 import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
-import { Milestone } from "../viewmodel";
-import { typeColor, ColorContext } from "../utils/colors";
-import { symbolPath, readableStrokeColor } from "../utils/symbols";
-import { FontStyle, applyFont, canvasFontString } from "../utils/font";
+import { Milestone } from "../../viewmodel";
+import { typeColor, ColorContext } from "../../utils/colors";
+import { symbolPath, readableStrokeColor } from "../../utils/symbols";
+import { FontStyle, applyFont, canvasFontString } from "../../utils/font";
 
 const LABEL_GAP_PX = 8;
 const ARROW_LEFT = "\u2190 ";

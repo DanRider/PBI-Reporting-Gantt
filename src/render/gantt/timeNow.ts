@@ -2,7 +2,7 @@
 
 import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
-import { quartersInRange, monthsInRange } from "../utils/dateScale";
+import { quartersInRange, monthsInRange } from "../../utils/dateScale";
 
 const NOW_LINE_DASH = "4,3";
 

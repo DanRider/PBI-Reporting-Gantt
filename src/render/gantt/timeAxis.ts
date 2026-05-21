@@ -2,9 +2,9 @@
 
 import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
-import { yearsInRange, quartersInRange, monthsInRange, monthLetter } from "../utils/dateScale";
-import { FontStyle, applyFont } from "../utils/font";
-import { readableStrokeColor } from "../utils/symbols";
+import { yearsInRange, quartersInRange, monthsInRange, monthLetter } from "../../utils/dateScale";
+import { FontStyle, applyFont } from "../../utils/font";
+import { readableStrokeColor } from "../../utils/symbols";
 
 // Three hierarchy levels (Year, Quarter, Month) stack vertically — only the
 // visible ones are drawn, in this top-to-bottom order. The TODAY slot sits

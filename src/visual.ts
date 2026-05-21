@@ -27,17 +27,17 @@ import { FontStyle } from "./utils/font";
 
 import { convertDataView, RoadmapViewModel, Activity, Milestone } from "./viewmodel";
 import { buildScale, quarterAlignedExtent } from "./utils/dateScale";
-import { renderTimeAxis, computeAxisLayout, AxisLayoutInfo, ChevronStyle } from "./render/timeAxis";
-import { renderBars } from "./render/bars";
-import { renderMilestones, renderMilestoneLabels, computeVisibleLabels } from "./render/milestones";
-import { renderSwimlanes } from "./render/swimlanes";
+import { renderTimeAxis, computeAxisLayout, AxisLayoutInfo, ChevronStyle } from "./render/gantt/timeAxis";
+import { renderBars } from "./render/gantt/bars";
+import { renderMilestones, renderMilestoneLabels, computeVisibleLabels } from "./render/gantt/milestones";
+import { renderSwimlanes } from "./render/gantt/swimlanes";
 import {
     renderActivityLabels,
     ACTIVITY_LOLLIPOP_MIN_WIDTH,
     ActivityLabelsLayout,
-} from "./render/activityLabels";
-import { renderLegend, LEGEND_HEIGHT } from "./render/legend";
-import { renderTimeNow, GridlineStyle } from "./render/timeNow";
+} from "./render/gantt/activityLabels";
+import { renderLegend, LEGEND_HEIGHT } from "./render/gantt/legend";
+import { renderTimeNow, GridlineStyle } from "./render/gantt/timeNow";
 
 const SWIM_LANE_MIN = 100;
 const SWIM_LANE_MAX = 200;

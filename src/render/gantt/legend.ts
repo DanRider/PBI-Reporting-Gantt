@@ -1,9 +1,9 @@
 "use strict";
 
 import { Selection } from "d3-selection";
-import { ColorContext, typeColor } from "../utils/colors";
-import { symbolPath, readableStrokeColor } from "../utils/symbols";
-import { FontStyle, applyFont, measureTextWidth } from "../utils/font";
+import { ColorContext, typeColor } from "../../utils/colors";
+import { symbolPath, readableStrokeColor } from "../../utils/symbols";
+import { FontStyle, applyFont, measureTextWidth } from "../../utils/font";
 
 export const LEGEND_HEIGHT = 24;
 
