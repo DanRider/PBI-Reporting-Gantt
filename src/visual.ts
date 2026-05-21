@@ -82,13 +82,14 @@ import { renderActivityDetail } from "./render/inspector/activityDetail";
 import { renderMilestoneDetail } from "./render/inspector/milestoneDetail";
 
 // v2.1 W1 — initial Gantt/Table split (fraction of usable height given to
-// Gantt) before the user drags the splitter or hits the collapse buttons.
+// Gantt) before the user drags the splitter or flips a toggle.
 const INITIAL_GANTT_PCT = 0.6;
-// Minimum px each region holds when collapsed or dragged to its limit.
-// Gantt min = chart title (~30) + axis band (~40) + 1 row (~24) ≈ 100px
-// of visible content. Table min = header row (~32) + 1 data row (~32) ≈ 64.
-const MIN_GANTT_PX = 100;
-const MIN_MATRIX_PX = 64;
+// v2.1 audit-fix #5 — drag minimums removed. Orchestrator: "lets allow
+// the drag to go all the way to the bottom to all the way to the top."
+// Drag now spans 0% to 100%. Toggle sliders at top-left provide the
+// discrete affordance for full hide.
+const MIN_GANTT_PX = 0;
+const MIN_MATRIX_PX = 0;
 
 const SWIM_LANE_MIN = 100;
 const SWIM_LANE_MAX = 200;
