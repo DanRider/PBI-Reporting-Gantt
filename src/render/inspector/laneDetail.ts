@@ -4,14 +4,27 @@
 // activity + milestone counts, and per-activity ✓ most-recent / ⏭ next
 // milestone summary lines.
 
-import type { RoadmapViewModel } from "../../viewmodel";
-import { fmtDate, fmtRelative, makeH3, makeP, makeLabeledLine, partitionMilestones, INSPECTOR_FONT, OnSelect, makeBreadcrumb, makeColorBubble } from "./shared";
+import type { Milestone, RoadmapViewModel } from "../../viewmodel";
+import {
+    fmtDate, fmtRelative, makeH3, makeP, makeLabeledLine,
+    INSPECTOR_FONT, OnSelect, makeBreadcrumb, makeColorBubble,
+    GalleryTimeRange, computeRangeWindow,
+} from "./shared";
+
+const RANGE_PRESETS: ReadonlyArray<readonly [GalleryTimeRange, string]> = [
+    ["past-qtr",  "Past Qtr"],
+    ["both-qtrs", "\u00b11 Qtr"],
+    ["next-qtr",  "Next Qtr"],
+    ["all",       "All"],
+];
 
 export function renderLaneDetail(
     laneName: string,
     vm: RoadmapViewModel,
     onSelect?: OnSelect,
     activityColors?: Record<string, string>,
+    timeRange?: GalleryTimeRange,
+    onTimeRangeChange?: (next: GalleryTimeRange) => void,
 ): HTMLElement {
     const root = document.createElement("div");
     root.className = "inspector-lane";
@@ -30,18 +43,61 @@ export function renderLaneDetail(
     const activityNamesInLane = new Set(activitiesInLane.map(a => a.name));
     const milestonesInLane = vm.milestones.filter(m => activityNamesInLane.has(m.activity));
 
+    // v2.1 audit-fix #20 — time slicer at the LANE level. Filters which
+    // milestones appear in the per-activity ✓ / ⏭ summary lines AND in
+    // the count badges. Default "±1 Qtr". Affects only this panel; main
+    // Gantt + table are unchanged.
+    const today = new Date();
+    const activeRange: GalleryTimeRange = timeRange ?? "both-qtrs";
+    const window = computeRangeWindow(activeRange, today);
+    const inWindow = (m: Milestone): boolean =>
+        m.date.getTime() >= window.fromMs && m.date.getTime() <= window.toMs;
+    const milestonesInLaneWindowed = milestonesInLane.filter(inWindow);
+
     root.appendChild(makeP(
         `${activitiesInLane.length} ${activitiesInLane.length === 1 ? "activity" : "activities"} · ` +
-        `${milestonesInLane.length} ${milestonesInLane.length === 1 ? "milestone" : "milestones"}`,
+        `${milestonesInLaneWindowed.length} of ${milestonesInLane.length} ` +
+        `${milestonesInLane.length === 1 ? "milestone" : "milestones"} in window`,
         { muted: true, small: true },
     ));
+
+    const slicerRow = document.createElement("div");
+    slicerRow.style.cssText = "display:flex;gap:4px;align-items:center;margin:6px 0 10px 0;flex-wrap:wrap;";
+    const slicerLabel = document.createElement("span");
+    slicerLabel.textContent = "WINDOW:";
+    slicerLabel.style.cssText = "font-size:9px;color:#666;font-weight:600;letter-spacing:0.04em;margin-right:4px;";
+    slicerRow.appendChild(slicerLabel);
+    for (const [rangeKey, labelText] of RANGE_PRESETS) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.textContent = labelText;
+        const isActive = activeRange === rangeKey;
+        chip.style.cssText = [
+            "padding:2px 8px",
+            "font-size:10px",
+            "line-height:1.3",
+            "border-radius:10px",
+            "cursor:" + (isActive ? "default" : "pointer"),
+            "border:1px solid " + (isActive ? "#1968c8" : "#ccc"),
+            "background:" + (isActive ? "#e6f0fb" : "#ffffff"),
+            "color:" + (isActive ? "#1968c8" : "#555"),
+            "font-weight:" + (isActive ? "600" : "400"),
+        ].join(";");
+        if (onTimeRangeChange && !isActive) {
+            chip.addEventListener("click", (e) => {
+                e.stopPropagation();
+                onTimeRangeChange(rangeKey);
+            });
+        }
+        slicerRow.appendChild(chip);
+    }
+    root.appendChild(slicerRow);
 
     if (activitiesInLane.length === 0) {
         root.appendChild(makeP("(no activities in this lane)", { muted: true }));
         return root;
     }
 
-    const today = new Date();
     const list = document.createElement("div");
     list.style.cssText = "margin-top:10px;";
 
@@ -80,31 +136,49 @@ export function renderLaneDetail(
         nameSpan.textContent = activity.name;
         nameSpan.style.cssText = "font-weight:600;font-size:11px;color:#222;flex:1;";
         nameLine.appendChild(nameSpan);
-        // v2.1 audit-fix #11 — per-activity milestone count badge.
-        const activityMilestoneCount = vm.milestones.filter(m => m.activity === activity.name).length;
-        if (activityMilestoneCount > 0) {
+        // v2.1 audit-fix #20 — count badge reflects the WINDOW count (vs
+        // total) so the user knows the slicer is filtering this activity.
+        // Format: "3" if all milestones are in window, "1/3" if filtered.
+        const activityMilestonesAll = vm.milestones.filter(m => m.activity === activity.name);
+        const activityMilestonesWindowed = activityMilestonesAll.filter(inWindow);
+        if (activityMilestonesAll.length > 0) {
             const countBadge = document.createElement("span");
-            countBadge.textContent = `${activityMilestoneCount}`;
-            countBadge.title = `${activityMilestoneCount} milestone${activityMilestoneCount === 1 ? "" : "s"}`;
+            const inWin = activityMilestonesWindowed.length;
+            const total = activityMilestonesAll.length;
+            countBadge.textContent = inWin === total ? `${total}` : `${inWin}/${total}`;
+            countBadge.title = inWin === total
+                ? `${total} milestone${total === 1 ? "" : "s"}`
+                : `${inWin} of ${total} milestone${total === 1 ? "" : "s"} in current window`;
             countBadge.style.cssText = "font-size:9px;color:#666;background:#eee;padding:1px 5px;border-radius:8px;font-weight:600;flex-shrink:0;";
             nameLine.appendChild(countBadge);
         }
         item.appendChild(nameLine);
 
-        const { mostRecent, next } = partitionMilestones(vm.milestones, activity.name, today);
+        // v2.1 audit-fix #20 — partition within the SLICER WINDOW.
+        // Most-recent = latest in-window past milestone for this activity.
+        // Next-upcoming = earliest in-window future milestone for this activity.
+        const myMs = activityMilestonesWindowed;
+        let mostRecent: Milestone | null = null;
+        let next: Milestone | null = null;
+        for (const m of myMs) {
+            if (m.date.getTime() <= today.getTime()) {
+                if (!mostRecent || m.date > mostRecent.date) mostRecent = m;
+            } else {
+                if (!next || m.date < next.date) next = m;
+            }
+        }
         const compactLines = document.createElement("div");
         compactLines.style.cssText = "font-size:10px;line-height:1.5;";
 
-        // v2.1 audit-fix #19 — visual hierarchy. Single line per milestone
-        // summary; the LABEL is bold + dark (the WHAT — what the eye should
-        // catch first), then a muted em-dash as visual breath, then the
-        // relative-time (the WHEN), then the absolute date in parens as
-        // fine-print supporting detail. One em-dash per line, not three.
-        const buildSummaryLine = (icon: string, label: string, date: Date): HTMLDivElement => {
+        const buildSummaryLine = (icon: string, iconColor: string, label: string, date: Date): HTMLDivElement => {
             const d = document.createElement("div");
             const iconSpan = document.createElement("span");
             iconSpan.textContent = `${icon} `;
-            iconSpan.style.color = "#666";
+            // v2.1 audit-fix #20 — ⏭ gets the activity's dimension color
+            // (spider-web weaving — same color as the bubble + rail bullet
+            // + table tint + bar). ✓ stays muted (past, less actionable).
+            iconSpan.style.color = iconColor;
+            iconSpan.style.fontWeight = "600";
             d.appendChild(iconSpan);
 
             const labelEl = document.createElement("strong");
@@ -113,7 +187,7 @@ export function renderLaneDetail(
             d.appendChild(labelEl);
 
             const dashEl = document.createElement("span");
-            dashEl.textContent = " \u2014 "; // em-dash with surrounding spaces
+            dashEl.textContent = " \u2014 ";
             dashEl.style.color = "#bbb";
             d.appendChild(dashEl);
 
@@ -130,15 +204,19 @@ export function renderLaneDetail(
             return d;
         };
 
+        const dimColor = activityHex ?? "#666";
         if (mostRecent) {
-            compactLines.appendChild(buildSummaryLine("\u2713", mostRecent.label ?? "(unlabeled)", mostRecent.date));
+            compactLines.appendChild(buildSummaryLine("\u2713", "#666", mostRecent.label ?? "(unlabeled)", mostRecent.date));
         }
         if (next) {
-            compactLines.appendChild(buildSummaryLine("\u23ed", next.label ?? "(unlabeled)", next.date));
+            // ⏭ uses the activity's dimension color to weave the legend.
+            compactLines.appendChild(buildSummaryLine("\u23ed", dimColor, next.label ?? "(unlabeled)", next.date));
         }
         if (!mostRecent && !next) {
             const d = document.createElement("div");
-            d.textContent = "(no milestones)";
+            d.textContent = activityMilestonesAll.length > 0
+                ? "(none in window)"
+                : "(no milestones)";
             d.style.cssText = "font-style:italic;color:#888;";
             compactLines.appendChild(d);
         }

@@ -414,7 +414,32 @@ export class Visual implements IVisual {
                 if (this.lastViewmodel) {
                     switch (sel.kind) {
                         case "lane":
-                            this.controls.setContent(renderLaneDetail(sel.laneName, this.lastViewmodel, onSelect, this.lastActivityColors));
+                            // v2.1 audit-fix #20 — time slicer LIVES HERE
+                            // (lane Inspector). Chip click updates state +
+                            // re-renders the panel only.
+                            this.controls.setContent(renderLaneDetail(
+                                sel.laneName,
+                                this.lastViewmodel,
+                                onSelect,
+                                this.lastActivityColors,
+                                this.galleryTimeRange,
+                                (nextRange: "past-qtr" | "both-qtrs" | "next-qtr" | "all") => {
+                                    this.galleryTimeRange = nextRange;
+                                    if (this.lastViewmodel && this.selectionStore.get().kind === "lane") {
+                                        const s = this.selectionStore.get();
+                                        if (s.kind === "lane") {
+                                            this.controls.setContent(renderLaneDetail(
+                                                s.laneName,
+                                                this.lastViewmodel,
+                                                onSelect,
+                                                this.lastActivityColors,
+                                                this.galleryTimeRange,
+                                                undefined,  // recursion guard
+                                            ));
+                                        }
+                                    }
+                                },
+                            ));
                             break;
                         case "activity":
                             this.controls.setContent(renderActivityDetail(
@@ -423,30 +448,6 @@ export class Visual implements IVisual {
                                 onSelect,
                                 this.lastActivityColors,
                                 this.lastTypeColors,
-                                this.galleryTimeRange,
-                                (next) => {
-                                    // Range chip clicked — store + re-render the panel
-                                    // so the slicer + tile filter reflect the new range.
-                                    this.galleryTimeRange = next;
-                                    this.selectionStore.set(this.selectionStore.get());
-                                    // Force re-render even when selection is structurally
-                                    // unchanged (selectionsEqual short-circuits set()):
-                                    this.requestRerender();
-                                    if (this.lastViewmodel && this.selectionStore.get().kind === "activity") {
-                                        const s = this.selectionStore.get();
-                                        if (s.kind === "activity") {
-                                            this.controls.setContent(renderActivityDetail(
-                                                s.activityName,
-                                                this.lastViewmodel,
-                                                onSelect,
-                                                this.lastActivityColors,
-                                                this.lastTypeColors,
-                                                this.galleryTimeRange,
-                                                undefined,  // recursion guard — chip handler doesn't recurse
-                                            ));
-                                        }
-                                    }
-                                },
                             ));
                             break;
                         case "milestone":

@@ -15,15 +15,11 @@ import {
     fmtDate, fmtRelative, makeH3, makeP,
     activityProgressPct, INSPECTOR_FONT,
     makeBreadcrumb, OnSelect, makeColorBubble,
-    GalleryTimeRange, computeRangeWindow,
 } from "./shared";
 
-const RANGE_PRESETS: ReadonlyArray<readonly [GalleryTimeRange, string]> = [
-    ["past-qtr",  "Past Qtr"],
-    ["both-qtrs", "\u00b11 Qtr"],
-    ["next-qtr",  "Next Qtr"],
-    ["all",       "All"],
-];
+// v2.1 audit-fix #20 — time slicer REMOVED from activity Inspector
+// (orchestrator: "i ONLY want it at the swim lane level"). The gallery
+// here always shows ALL milestones for the activity, ascending by date.
 
 export function renderActivityDetail(
     activityName: string,
@@ -31,8 +27,6 @@ export function renderActivityDetail(
     onSelect?: OnSelect,
     activityColors?: Record<string, string>,
     typeColors?: Record<string, string>,
-    galleryRange?: GalleryTimeRange,
-    onGalleryRangeChange?: (next: GalleryTimeRange) => void,
 ): HTMLElement {
     const root = document.createElement("div");
     root.className = "inspector-activity";
@@ -90,68 +84,23 @@ export function renderActivityDetail(
         root.appendChild(noteP);
     }
 
-    // v2.1 audit-fix #18 — time slicer preset chips. Filters the gallery
-    // only (not Gantt / table). Default = "both-qtrs" (±1 Qtr).
-    const activeRange: GalleryTimeRange = galleryRange ?? "both-qtrs";
-    const window = computeRangeWindow(activeRange, today);
-
-    const slicerRow = document.createElement("div");
-    slicerRow.style.cssText = "display:flex;gap:4px;align-items:center;margin:8px 0 6px 0;flex-wrap:wrap;";
-    const slicerLabel = document.createElement("span");
-    slicerLabel.textContent = "Window:";
-    slicerLabel.style.cssText = "font-size:10px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-right:4px;";
-    slicerRow.appendChild(slicerLabel);
-    for (const [rangeKey, labelText] of RANGE_PRESETS) {
-        const chip = document.createElement("button");
-        chip.type = "button";
-        chip.textContent = labelText;
-        const isActive = activeRange === rangeKey;
-        chip.style.cssText = [
-            "padding:2px 8px",
-            "font-size:10px",
-            "line-height:1.3",
-            "border-radius:10px",
-            "cursor:pointer",
-            "border:1px solid " + (isActive ? "#1968c8" : "#ccc"),
-            "background:" + (isActive ? "#e6f0fb" : "#ffffff"),
-            "color:" + (isActive ? "#1968c8" : "#555"),
-            "font-weight:" + (isActive ? "600" : "400"),
-        ].join(";");
-        if (onGalleryRangeChange && !isActive) {
-            chip.addEventListener("click", (e) => {
-                e.stopPropagation();
-                onGalleryRangeChange(rangeKey);
-            });
-        } else if (isActive) {
-            chip.style.cursor = "default";
-        }
-        slicerRow.appendChild(chip);
-    }
-    root.appendChild(slicerRow);
-
-    // v2.1 audit-fix #17/18 — milestone GALLERY. Filter to this activity
-    // AND the slicer window. Sort ascending by date.
+    // v2.1 audit-fix #17 — milestone GALLERY shows ALL milestones for the
+    // activity, sorted ascending by date. (Slicer moved to lane Inspector
+    // per audit-fix #20.)
     const activityMilestones: readonly Milestone[] = vm.milestones
         .filter(m => m.activity === activity.name)
-        .filter(m => m.date.getTime() >= window.fromMs && m.date.getTime() <= window.toMs)
         .slice()
         .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-    // Show total vs windowed count so user knows the slicer is filtering.
-    const totalForActivity = vm.milestones.filter(m => m.activity === activity.name).length;
-    const headingText = activeRange === "all" || activityMilestones.length === totalForActivity
-        ? `Milestones (${activityMilestones.length})`
-        : `Milestones (${activityMilestones.length} of ${totalForActivity})`;
-
     const galleryHeading = document.createElement("div");
-    galleryHeading.style.cssText = "font-size:11px;font-weight:600;color:#555;letter-spacing:0.04em;text-transform:uppercase;margin:0 0 6px 0;";
-    galleryHeading.textContent = headingText;
+    galleryHeading.style.cssText = "font-size:11px;font-weight:600;color:#555;letter-spacing:0.04em;text-transform:uppercase;margin:8px 0 6px 0;";
+    galleryHeading.textContent = `Milestones (${activityMilestones.length})`;
     root.appendChild(galleryHeading);
 
     if (activityMilestones.length === 0) {
         const empty = document.createElement("div");
         empty.style.cssText = "font-size:11px;color:#888;font-style:italic;padding:4px 0;";
-        empty.textContent = totalForActivity === 0 ? "(no milestones)" : "(none in selected window)";
+        empty.textContent = "(no milestones)";
         root.appendChild(empty);
         return root;
     }
