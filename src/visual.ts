@@ -383,34 +383,44 @@ export class Visual implements IVisual {
             this.selectionStore.set(next);
         };
         this.selectionStore.subscribe((sel: Selection) => {
-            // v2.1 audit-fix #14 — re-render FIRST so vm + activityColors
-            // are freshly computed BEFORE we read them for setContent. The
-            // prior order (setContent → requestRerender) caused a bug where
-            // a direct lane click rendered with stale (empty) lastActivityColors
-            // because the lane-focus block hadn't run yet. After requestRerender
-            // returns, lastActivityColors reflects the NEW selection's lane.
-            this.requestRerender();
+            // v2.1 audit-fix #16 — correct ordering for BOTH layout reflow
+            // AND fresh activityColors:
+            //   1. setOpen(open ? true : false) — flips state so widthPct()
+            //      returns the new value (20% open / 0% closed) when
+            //      update() reads it next.
+            //   2. requestRerender() — update() lays out Gantt + table
+            //      regions against the new widthPct AND populates
+            //      lastActivityColors from the lane-focus block.
+            //   3. setContent(...) — reads fresh lastActivityColors so
+            //      color bubbles render immediately on the FIRST lane click.
+            // Audit-fix #14 inverted (1) and (2), which fixed the bubble
+            // bug but broke layout (Gantt SVG stayed at left:0 while the
+            // panel slid over its labels). This ordering fixes both.
             if (sel.kind === "none") {
                 this.controls.setOpen(false);
-            } else if (this.lastViewmodel) {
-                switch (sel.kind) {
-                    case "lane":
-                        this.controls.setContent(renderLaneDetail(sel.laneName, this.lastViewmodel, onSelect, this.lastActivityColors));
-                        break;
-                    case "activity":
-                        this.controls.setContent(renderActivityDetail(sel.activityName, this.lastViewmodel, onSelect, this.lastActivityColors));
-                        break;
-                    case "milestone":
-                        this.controls.setContent(renderMilestoneDetail(
-                            sel.milestoneLabel,
-                            sel.activityName,
-                            this.lastViewmodel,
-                            onSelect,
-                            this.lastActivityColors,
-                        ));
-                        break;
-                }
+                this.requestRerender();
+            } else {
                 this.controls.setOpen(true);
+                this.requestRerender();
+                if (this.lastViewmodel) {
+                    switch (sel.kind) {
+                        case "lane":
+                            this.controls.setContent(renderLaneDetail(sel.laneName, this.lastViewmodel, onSelect, this.lastActivityColors));
+                            break;
+                        case "activity":
+                            this.controls.setContent(renderActivityDetail(sel.activityName, this.lastViewmodel, onSelect, this.lastActivityColors));
+                            break;
+                        case "milestone":
+                            this.controls.setContent(renderMilestoneDetail(
+                                sel.milestoneLabel,
+                                sel.activityName,
+                                this.lastViewmodel,
+                                onSelect,
+                                this.lastActivityColors,
+                            ));
+                            break;
+                    }
+                }
             }
         });
 
