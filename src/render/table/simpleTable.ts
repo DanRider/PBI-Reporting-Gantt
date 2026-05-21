@@ -75,14 +75,30 @@ export function renderSimpleTable(container: HTMLElement, dataView: DataView | u
         "color: #222",
     ].join(";");
 
-    // Header row
+    // Header row — sticky so it stays pinned to the top of matrixDiv when
+    // the table scrolls vertically. position:sticky on each <th> (not the
+    // <tr>) is the reliable cross-browser pattern; background MUST live on
+    // the th so it stays opaque over scrolling rows underneath.
     const thead = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    headerRow.style.cssText = "background:#f5f5f7; border-bottom:2px solid #d0d0d0;";
     const headerCells: HTMLTableCellElement[] = [];
     cols.forEach((col, i) => {
         const th = document.createElement("th");
-        th.style.cssText = "padding:8px 12px; text-align:left; font-weight:600; color:#444; border-right:1px solid #e6e6e6; white-space:nowrap; cursor:pointer; user-select:none;";
+        th.style.cssText = [
+            "position:sticky",
+            "top:0",
+            "z-index:5",
+            "padding:8px 12px",
+            "text-align:left",
+            "font-weight:600",
+            "color:#444",
+            "background:#f5f5f7",
+            "border-right:1px solid #e6e6e6",
+            "border-bottom:2px solid #d0d0d0",
+            "white-space:nowrap",
+            "cursor:pointer",
+            "user-select:none",
+        ].join(";");
         th.textContent = col.displayName || `Column ${i + 1}`;
         th.dataset.colIndex = String(i);
         headerRow.appendChild(th);
