@@ -205,6 +205,11 @@ export class Visual implements IVisual {
     // squeezed past MIN_ROW_HEIGHT), the SVG grows past the wrapper and
     // rows scroll vertically inside instead of being clipped invisibly.
     private ganttScrollWrapper: HTMLDivElement;
+    // v2.1 audit-fix #12 — thin header strip shown ONLY when the Gantt
+    // region is fully hidden (toggle off). Carries the chart title so the
+    // table-only view still has context. Hidden (display:none) when Gantt
+    // is visible (the SVG renders its own title inside the chart).
+    private ganttHiddenHeader: HTMLDivElement;
     private svg: d3Selection<SVGSVGElement, unknown, null, undefined>;
     private bgG: d3Selection<SVGGElement, unknown, null, undefined>;
     private axisG: d3Selection<SVGGElement, unknown, null, undefined>;
@@ -284,6 +289,29 @@ export class Visual implements IVisual {
         this.ganttScrollWrapper.style.overflowY = "auto";
         this.ganttScrollWrapper.style.overflowX = "hidden";
         this.root.appendChild(this.ganttScrollWrapper);
+
+        // v2.1 audit-fix #12 — Gantt-hidden header. Initially hidden;
+        // shown only when splitter.hiddenMode() === "gantt". Provides a
+        // title strip so the table-only view still has visual context.
+        this.ganttHiddenHeader = document.createElement("div");
+        this.ganttHiddenHeader.className = "gantt-hidden-header";
+        this.ganttHiddenHeader.style.cssText = [
+            "position:absolute",
+            "top:0",
+            "left:0",
+            "width:100%",
+            "height:40px",
+            "display:none",
+            "align-items:center",
+            "justify-content:center",
+            "background:#fafafa",
+            "border-bottom:1px solid #d0d0d0",
+            "box-sizing:border-box",
+            "padding:0 16px",
+            "font-family:'Segoe UI', system-ui, sans-serif",
+            "z-index:7",
+        ].join(";");
+        this.root.appendChild(this.ganttHiddenHeader);
 
         this.svg = d3Select(this.ganttScrollWrapper)
             .append("svg")
@@ -534,6 +562,32 @@ export class Visual implements IVisual {
             : 0;
         const splitterBarHeightPx = this.splitter.barHeightPx();
 
+        // v2.1 audit-fix #12 — when Gantt is fully hidden via the top-left
+        // toggle, render a thin header strip with the chart title so the
+        // table-only view still has visual context. Adjust matrix top to
+        // sit below the header.
+        const ganttHiddenHeaderPx = this.splitter.hiddenMode() === "gantt" ? 40 : 0;
+        if (ganttHiddenHeaderPx > 0) {
+            const ct = this.settings.chartTitle;
+            const ctText = (ct.text.value ?? "").trim();
+            const displayText = (ct.show.value && ctText.length > 0) ? ctText : "(Gantt hidden)";
+            this.ganttHiddenHeader.textContent = displayText;
+            this.ganttHiddenHeader.style.display = "flex";
+            this.ganttHiddenHeader.style.left = panelWidthPx + "px";
+            this.ganttHiddenHeader.style.width = (options.viewport.width - panelWidthPx) + "px";
+            this.ganttHiddenHeader.style.color = ct.show.value ? ct.fontColor.value.value : "#666";
+            this.ganttHiddenHeader.style.fontSize = (ct.fontSize.value ?? 14) + "px";
+            this.ganttHiddenHeader.style.fontWeight = ct.bold.value ? "bold" : "600";
+            this.ganttHiddenHeader.style.fontStyle = ct.italic.value ? "italic" : "normal";
+            this.ganttHiddenHeader.style.textDecoration = ct.underline.value ? "underline" : "none";
+            const align = (ct.alignment.value.value as "left" | "center" | "right") || "center";
+            this.ganttHiddenHeader.style.justifyContent =
+                align === "left" ? "flex-start" :
+                align === "right" ? "flex-end" : "center";
+        } else {
+            this.ganttHiddenHeader.style.display = "none";
+        }
+
         if (tableRowsPresent) {
             // Splitter bar sits AT y = ganttHeightPx, immediately below the
             // Gantt scroll wrapper. Matrix region starts at ganttHeightPx +
@@ -544,8 +598,10 @@ export class Visual implements IVisual {
                 widthPx: options.viewport.width - panelWidthPx,
             });
             this.matrixDiv.style.display = "block";
-            this.matrixDiv.style.top = (ganttHeightPx + splitterBarHeightPx) + "px";
-            this.matrixDiv.style.height = matrixHeightPx + "px";
+            // v2.1 audit-fix #12 — when Gantt is hidden, push matrix down
+            // by the header height so the header stays visible.
+            this.matrixDiv.style.top = (ganttHeightPx + splitterBarHeightPx + ganttHiddenHeaderPx) + "px";
+            this.matrixDiv.style.height = (matrixHeightPx - ganttHiddenHeaderPx) + "px";
             this.matrixDiv.style.left = panelWidthPx + "px";
             this.matrixDiv.style.width = (options.viewport.width - panelWidthPx) + "px";
             this.matrixDiv.style.background = "#ffffff";
