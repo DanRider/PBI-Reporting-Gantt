@@ -39,17 +39,16 @@ import {
 import { renderLegend, LEGEND_HEIGHT } from "./render/gantt/legend";
 import { renderTimeNow, GridlineStyle } from "./render/gantt/timeNow";
 
-// v2.0 layout coordinator — matrix render head (cortex-matrix substrate).
-import { MatrixDataviewHtmlFormatter } from "./matrixDataviewHtmlFormatter";
-import { resolveTheme } from "./primitives/theme";
-import { SelectionWiring } from "./primitives/selectionWiring";
-import type { FormatOptions } from "./model/formatOptions";
-import { DEFAULT_FORMAT_HINTS } from "./model/formatOptions";
+// v2.0 configuration guide module — exported and available for a future
+// explicit "show help" toggle from the format pane. Not gating render now.
+import { renderConfigurationGuide } from "./configGuide";
 
-// v2.0 configuration guide — self-documenting fallback shown when required
-// wells aren't bound. Replaces the v1.8 "Bind Activity..." prompt with a
-// richer in-visual help card so users can debug bindings on their own.
-import { renderConfigurationGuide, ganttRequirementsMet } from "./configGuide";
+// v2.0 simple table renderer — mounts in matrixDiv below the Gantt, reads
+// directly from dataView.table.rows (existing v1.8 binding shape) so the
+// matrix region is visible IMMEDIATELY without requiring v2.0-specific well
+// bindings. The cortex-matrix substrate's full render can replace this in
+// a later wave once matrix-shaped well bindings are reliably wireable.
+import { renderSimpleTable } from "./render/table/simpleTable";
 
 const GANTT_FRACTION_BOTH_BOUND = 0.6;
 
@@ -260,21 +259,25 @@ export class Visual implements IVisual {
         // explicit "show help" toggle from the format pane.
         this.guideDiv.style.display = "none";
 
-        // v2.0 minimal layout coordinator. When the matrix-side wells are
-        // bound, the matrix region occupies the bottom 40% of the viewport
-        // and the Gantt SVG height is shrunk to 60%. When unbound, the SVG
-        // fills the full viewport — exactly v1.8 behavior, no regression.
-        const tableBound = !!(dataView?.matrix?.rows?.root?.children?.length);
-        const ganttFraction = tableBound ? GANTT_FRACTION_BOTH_BOUND : 1;
+        // v2.0 layout coordinator. The simple-table renderer reads from
+        // dataView.table.rows (the v1.8 binding shape that's already
+        // populated), so the matrix region mounts below the Gantt
+        // whenever the v1.8 wells are bound — no additional matrix-side
+        // wells required. Gantt fills the top 60%, matrix the bottom 40%.
+        // When v1.8 wells are unbound, dataView.table.rows is empty;
+        // renderSimpleTable handles that with an inline empty-state.
+        const tableRowsPresent = !!(dataView?.table?.rows?.length);
+        const ganttFraction = tableRowsPresent ? GANTT_FRACTION_BOTH_BOUND : 1;
         const ganttHeightPx = options.viewport.height * ganttFraction;
         const matrixHeightPx = options.viewport.height - ganttHeightPx;
 
-        if (tableBound && dataView?.matrix) {
+        if (tableRowsPresent) {
             this.matrixDiv.style.display = "block";
             this.matrixDiv.style.top = ganttHeightPx + "px";
             this.matrixDiv.style.height = matrixHeightPx + "px";
-            while (this.matrixDiv.firstChild) this.matrixDiv.removeChild(this.matrixDiv.firstChild);
-            this.matrixDiv.appendChild(MatrixDataviewHtmlFormatter.format(dataView.matrix, this.buildMatrixFormatOptions()));
+            this.matrixDiv.style.background = "#ffffff";
+            this.matrixDiv.style.borderTop = "2px solid #d0d0d0";
+            renderSimpleTable(this.matrixDiv, dataView);
         } else {
             this.matrixDiv.style.display = "none";
         }
@@ -548,23 +551,6 @@ export class Visual implements IVisual {
         };
         this.tooltipService.addTooltip(barsSel, makeActivityTooltip(tooltipCfg));
         this.tooltipService.addTooltip(starsSel, makeMilestoneTooltip(tooltipCfg));
-    }
-
-    // v2.0 — minimal FormatOptions for the matrix render head. Full
-    // format-pane integration (theme overrides, denomination, IBCS toggles,
-    // period synthesis controls) lands in Wave 6 when the matrix card set
-    // unions into the FormattingSettingsModel. Wave 3/4 baseline provides
-    // defaults so the matrix renders against the resolved palette + a
-    // fresh SelectionWiring with no extras.
-    private buildMatrixFormatOptions(): FormatOptions {
-        return {
-            theme: resolveTheme(this.host.colorPalette, {}),
-            selection: new SelectionWiring(this.host),
-            host: this.host,
-            rowHeight: 28,
-            showGrandTotal: false,
-            formatHints: DEFAULT_FORMAT_HINTS,
-        };
     }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {
