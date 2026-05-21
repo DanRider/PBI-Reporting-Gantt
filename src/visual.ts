@@ -413,34 +413,39 @@ export class Visual implements IVisual {
                 this.requestRerender();
                 if (this.lastViewmodel) {
                     switch (sel.kind) {
-                        case "lane":
-                            // v2.1 audit-fix #20 — time slicer LIVES HERE
-                            // (lane Inspector). Chip click updates state +
-                            // re-renders the panel only.
+                        case "lane": {
+                            // v2.1 audit-fix #21 — slicer chip handler must
+                            // RE-PASS ITSELF on re-render so chips stay
+                            // clickable across multiple selections. The prior
+                            // "recursion guard = undefined" stripped the
+                            // handler from the re-rendered chips, locking
+                            // the user to one chip click per panel open.
+                            const onRangeChange = (nextRange: "past-qtr" | "both-qtrs" | "next-qtr" | "all"): void => {
+                                this.galleryTimeRange = nextRange;
+                                if (this.lastViewmodel) {
+                                    const s = this.selectionStore.get();
+                                    if (s.kind === "lane") {
+                                        this.controls.setContent(renderLaneDetail(
+                                            s.laneName,
+                                            this.lastViewmodel,
+                                            onSelect,
+                                            this.lastActivityColors,
+                                            this.galleryTimeRange,
+                                            onRangeChange,  // self-reference — chips stay clickable
+                                        ));
+                                    }
+                                }
+                            };
                             this.controls.setContent(renderLaneDetail(
                                 sel.laneName,
                                 this.lastViewmodel,
                                 onSelect,
                                 this.lastActivityColors,
                                 this.galleryTimeRange,
-                                (nextRange: "past-qtr" | "both-qtrs" | "next-qtr" | "all") => {
-                                    this.galleryTimeRange = nextRange;
-                                    if (this.lastViewmodel && this.selectionStore.get().kind === "lane") {
-                                        const s = this.selectionStore.get();
-                                        if (s.kind === "lane") {
-                                            this.controls.setContent(renderLaneDetail(
-                                                s.laneName,
-                                                this.lastViewmodel,
-                                                onSelect,
-                                                this.lastActivityColors,
-                                                this.galleryTimeRange,
-                                                undefined,  // recursion guard
-                                            ));
-                                        }
-                                    }
-                                },
+                                onRangeChange,
                             ));
                             break;
+                        }
                         case "activity":
                             this.controls.setContent(renderActivityDetail(
                                 sel.activityName,
