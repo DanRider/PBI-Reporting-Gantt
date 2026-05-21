@@ -361,6 +361,12 @@ export class Visual implements IVisual {
         // panel. Initial state is closed (kind: "none" matches).
         this.controls = mountControlsPanel(this.root, {
             onDismiss: () => this.selectionStore.set({ kind: "none" }),
+            // v2.1 audit-fix #15 — re-render the layout when the user
+            // drags the panel's right-edge handle to resize. The layout
+            // coordinator reads panel.widthPct() to size the Gantt + table
+            // regions; without this callback the panel would resize but
+            // the regions wouldn't reflow.
+            onWidthChange: () => this.requestRerender(),
         });
 
         // v2.1 W1.5a + W1.5c — selection store subscriber. For non-none
