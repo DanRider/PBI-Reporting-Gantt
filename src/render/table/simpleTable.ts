@@ -17,6 +17,21 @@ const HOVER_BG = "#e8f3ff";
 // v2.1 audit-fix — selection-highlight background for the table row whose
 // activity matches the current selection.
 const SELECTED_BG = "#d4e9f7";
+// v2.1 audit-fix #8 — row tint opacities. Two values for alternating band
+// within a same-color group; minimizes "big solid color blocks" per
+// orchestrator note.
+const TINT_ALPHA_LO = 0.08;
+const TINT_ALPHA_HI = 0.18;
+
+function hexToRgba(hex: string, alpha: number): string {
+    const h = hex.replace("#", "");
+    if (h.length !== 6) return hex;
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    if ([r, g, b].some(n => Number.isNaN(n))) return hex;
+    return `rgba(${r},${g},${b},${alpha})`;
+}
 
 function formatCell(cell: powerbi.PrimitiveValue, col: Col | undefined): { text: string; align: "left" | "right" } {
     if (cell == null) return { text: "", align: "left" };
@@ -50,6 +65,12 @@ export interface SimpleTableOptions {
     /** v2.1 audit-fix — visual breadcrumb. Row whose Activity column
      *  matches this name gets a stronger background tint. */
     readonly highlightActivityName?: string;
+    /** v2.1 audit-fix #8 — row background tint by activity color (lane
+     *  focus) OR by area color (default). Map keyed by exact column value.
+     *  Each row gets a low-opacity background; alternating opacity within
+     *  the same group gives band texture without big solid color blocks. */
+    readonly rowTintByActivity?: Record<string, string>;
+    readonly rowTintByArea?: Record<string, string>;
 }
 
 function buildRow(
@@ -57,16 +78,34 @@ function buildRow(
     rowIndex: number,
     cols: readonly Col[],
     activityColIndex: number,
+    areaColIndex: number,
     onSelectActivity: ((activityName: string) => void) | undefined,
     highlightActivityName: string | undefined,
+    rowTintByActivity: Record<string, string> | undefined,
+    rowTintByArea: Record<string, string> | undefined,
 ): HTMLTableRowElement {
     const tr = document.createElement("tr");
-    const stripeBg = rowIndex % 2 === 0 ? STRIPE_ODD : STRIPE_EVEN;
     const rowActivity = activityColIndex >= 0 ? String(row[activityColIndex] ?? "").trim() : "";
+    const rowArea = areaColIndex >= 0 ? String(row[areaColIndex] ?? "").trim() : "";
     const isHighlighted = highlightActivityName != null && rowActivity === highlightActivityName;
-    const baseBg = isHighlighted ? SELECTED_BG : stripeBg;
-    // v2.1 audit-fix — compact P&L-style row: tight cell padding, no
-    // per-row border (stripes provide separation), uniform 18px row height.
+
+    // v2.1 audit-fix #8 — tint lookup. Activity-tint wins over area-tint
+    // (lane-focus mode supplies activity tints). Selection highlight wins
+    // over tint. No tint = stripe colors (default mode without lane-tint).
+    let baseBg: string;
+    if (isHighlighted) {
+        baseBg = SELECTED_BG;
+    } else {
+        const tintHex = (rowTintByActivity && rowActivity && rowTintByActivity[rowActivity])
+            ?? (rowTintByArea && rowArea && rowTintByArea[rowArea])
+            ?? null;
+        if (tintHex) {
+            const alpha = rowIndex % 2 === 0 ? TINT_ALPHA_LO : TINT_ALPHA_HI;
+            baseBg = hexToRgba(tintHex, alpha);
+        } else {
+            baseBg = rowIndex % 2 === 0 ? STRIPE_ODD : STRIPE_EVEN;
+        }
+    }
     tr.style.cssText = `background:${baseBg}; cursor:${onSelectActivity ? "pointer" : "default"}; height:18px;`;
     tr.addEventListener("mouseenter", () => { tr.style.background = HOVER_BG; });
     tr.addEventListener("mouseleave", () => { tr.style.background = baseBg; });
@@ -96,12 +135,17 @@ function renderBody(
     rows: readonly Row[],
     cols: readonly Col[],
     activityColIndex: number,
+    areaColIndex: number,
     onSelectActivity: ((activityName: string) => void) | undefined,
     highlightActivityName: string | undefined,
+    rowTintByActivity: Record<string, string> | undefined,
+    rowTintByArea: Record<string, string> | undefined,
 ): void {
     while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
     rows.forEach((row, ri) => tbody.appendChild(
-        buildRow(row, ri, cols, activityColIndex, onSelectActivity, highlightActivityName),
+        buildRow(row, ri, cols, activityColIndex, areaColIndex,
+                 onSelectActivity, highlightActivityName,
+                 rowTintByActivity, rowTintByArea),
     ));
 }
 
@@ -197,12 +241,17 @@ export function renderSimpleTable(
     // Case-insensitive name match — works without forcing capabilities.json
     // to declare a `roles.activity` flag.
     const activityColIndex = activityCol;
+    const areaColIndex = areaCol;
     const onSelectActivity = options?.onSelectActivity;
     const highlightActivityName = options?.highlightActivityName;
+    const rowTintByActivity = options?.rowTintByActivity;
+    const rowTintByArea = options?.rowTintByArea;
 
     // Body rows (initial render)
     const tbody = document.createElement("tbody");
-    renderBody(tbody, rows, cols, activityColIndex, onSelectActivity, highlightActivityName);
+    renderBody(tbody, rows, cols, activityColIndex, areaColIndex,
+               onSelectActivity, highlightActivityName,
+               rowTintByActivity, rowTintByArea);
     table.appendChild(tbody);
 
     // Sort handler — click a header to sort by that column ascending; click
@@ -222,7 +271,9 @@ export function renderSimpleTable(
                 const cmp = String(av).localeCompare(String(bv), undefined, { numeric: true });
                 return sortState.asc ? cmp : -cmp;
             });
-            renderBody(tbody, sorted, cols, activityColIndex, onSelectActivity, highlightActivityName);
+            renderBody(tbody, sorted, cols, activityColIndex, areaColIndex,
+                       onSelectActivity, highlightActivityName,
+                       rowTintByActivity, rowTintByArea);
             // Update header sort indicators
             headerCells.forEach((h, hi) => {
                 const baseName = cols[hi]?.displayName || `Column ${hi + 1}`;

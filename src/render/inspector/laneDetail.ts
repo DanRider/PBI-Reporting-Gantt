@@ -5,12 +5,13 @@
 // milestone summary lines.
 
 import type { RoadmapViewModel } from "../../viewmodel";
-import { fmtDate, makeH3, makeP, makeLabeledLine, partitionMilestones, INSPECTOR_FONT, OnSelect, makeBreadcrumb } from "./shared";
+import { fmtDate, makeH3, makeP, makeLabeledLine, partitionMilestones, INSPECTOR_FONT, OnSelect, makeBreadcrumb, makeColorBubble } from "./shared";
 
 export function renderLaneDetail(
     laneName: string,
     vm: RoadmapViewModel,
     onSelect?: OnSelect,
+    activityColors?: Record<string, string>,
 ): HTMLElement {
     const root = document.createElement("div");
     root.className = "inspector-lane";
@@ -67,9 +68,18 @@ export function renderLaneDetail(
             });
         }
 
+        // v2.1 audit-fix #8 — color bubble next to each activity name in the
+        // lane Inspector. Matches the bullet on the Gantt rail + table tint.
         const nameLine = document.createElement("div");
-        nameLine.textContent = activity.name;
-        nameLine.style.cssText = "font-weight:600;font-size:11px;color:#222;margin-bottom:2px;line-height:1.3;";
+        nameLine.style.cssText = "display:flex;align-items:center;gap:6px;margin-bottom:2px;line-height:1.3;";
+        const activityHex = activityColors?.[activity.name];
+        if (activityHex) {
+            nameLine.appendChild(makeColorBubble(activityHex, 8));
+        }
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = activity.name;
+        nameSpan.style.cssText = "font-weight:600;font-size:11px;color:#222;";
+        nameLine.appendChild(nameSpan);
         item.appendChild(nameLine);
 
         const { mostRecent, next } = partitionMilestones(vm.milestones, activity.name, today);

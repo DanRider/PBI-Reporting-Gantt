@@ -8,13 +8,14 @@ import type { RoadmapViewModel } from "../../viewmodel";
 import {
     fmtDate, makeH3, makeP, makeLabeledLine,
     partitionMilestones, activityProgressPct, INSPECTOR_FONT,
-    makeBreadcrumb, OnSelect,
+    makeBreadcrumb, OnSelect, makeColorBubble,
 } from "./shared";
 
 export function renderActivityDetail(
     activityName: string,
     vm: RoadmapViewModel,
     onSelect?: OnSelect,
+    activityColors?: Record<string, string>,
 ): HTMLElement {
     const root = document.createElement("div");
     root.className = "inspector-activity";
@@ -34,7 +35,17 @@ export function renderActivityDetail(
         }));
     }
 
-    root.appendChild(makeH3(activity.name));
+    // v2.1 audit-fix #8 — activity h3 with leading color bubble matching
+    // the Gantt rail bullet + the table row tint.
+    const h3 = makeH3(activity.name);
+    const activityHex = activityColors?.[activity.name];
+    if (activityHex) {
+        h3.style.display = "flex";
+        h3.style.alignItems = "center";
+        h3.style.gap = "8px";
+        h3.insertBefore(makeColorBubble(activityHex, 12), h3.firstChild);
+    }
+    root.appendChild(h3);
     root.appendChild(makeP(
         `${activity.area} · ${fmtDate(activity.start)} – ${fmtDate(activity.end)}`,
         { muted: true, small: true },

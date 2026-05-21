@@ -160,6 +160,23 @@ export function renderActivityLabels(
         }
 
         if (opts.show) {
+            // v2.1 audit-fix #8 — colored bullet (the "-*" in the user's ASCII
+            // art) inline before the label text. Uses the lollipop color
+            // (which is per-activity palette in lane focus, lane color
+            // otherwise), giving every Gantt row an explicit color-coded
+            // legend entry. Bullet sits at the original areaStartX; text
+            // shifts right by BULLET_GAP to make room.
+            const BULLET_RADIUS = 4;
+            const BULLET_GAP = 10;
+            g.append("circle")
+                .attr("class", "activity-label-bullet")
+                .attr("cx", layout.areaStartX + BULLET_RADIUS)
+                .attr("cy", cy)
+                .attr("r", BULLET_RADIUS)
+                .attr("fill", lollipopColor)
+                .style("pointer-events", "none");
+            const textX = layout.areaStartX + BULLET_RADIUS * 2 + BULLET_GAP;
+
             // v2.1 audit-fix — click any label text to select the activity.
             // pointer-events:bounding-box catches clicks anywhere in the
             // text's rect, not just on painted glyphs.
@@ -177,7 +194,7 @@ export function renderActivityLabels(
                 const sel = g.append("text")
                     .attr("class", "activity-label")
                     .attr("data-activity", a.name)
-                    .attr("x", layout.areaStartX)
+                    .attr("x", textX)
                     .attr("y", cy)
                     .attr("text-anchor", "start")
                     .attr("dominant-baseline", "central")
@@ -189,7 +206,7 @@ export function renderActivityLabels(
                 const sel1 = g.append("text")
                     .attr("class", "activity-label")
                     .attr("data-activity", a.name)
-                    .attr("x", layout.areaStartX)
+                    .attr("x", textX)
                     .attr("y", cy - LINE_OFFSET_PX)
                     .attr("text-anchor", "start")
                     .attr("dominant-baseline", "central")
@@ -200,7 +217,7 @@ export function renderActivityLabels(
                 const sel2 = g.append("text")
                     .attr("class", "activity-label")
                     .attr("data-activity", a.name)
-                    .attr("x", layout.areaStartX)
+                    .attr("x", textX)
                     .attr("y", cy + LINE_OFFSET_PX)
                     .attr("text-anchor", "start")
                     .attr("dominant-baseline", "central")

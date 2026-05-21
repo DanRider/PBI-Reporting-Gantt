@@ -3,7 +3,7 @@
 import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
 import { Activity } from "../../viewmodel";
-import { activityColor, ColorContext } from "../../utils/colors";
+import { areaColor, ColorContext } from "../../utils/colors";
 
 const BAR_RADIUS = 6;
 
@@ -33,5 +33,9 @@ export function renderBars(
         .attr("height", barH)
         .attr("rx", rx)
         .attr("ry", rx)
-        .attr("fill", a => activityColor(a.name, a.area, colors));
+        // v2.1 audit-fix #8 — bars KEEP lane color (orchestrator: "i wanted to
+        // keep the bars their original green color so they have a visual
+        // reference back to the parent"). Per-activity color lives on the
+        // lollipop dot + label text + panel + table tints, not on the bars.
+        .attr("fill", a => areaColor(a.area, colors));
 }

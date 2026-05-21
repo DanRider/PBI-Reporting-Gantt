@@ -6,13 +6,14 @@
 // Health / External URL when those bindings exist.
 
 import type { RoadmapViewModel } from "../../viewmodel";
-import { fmtDate, makeH3, makeP, makeLabeledLine, INSPECTOR_FONT, makeBreadcrumb, OnSelect } from "./shared";
+import { fmtDate, makeH3, makeP, makeLabeledLine, INSPECTOR_FONT, makeBreadcrumb, OnSelect, makeColorBubble } from "./shared";
 
 export function renderMilestoneDetail(
     milestoneLabel: string,
     activityName: string,
     vm: RoadmapViewModel,
     onSelect?: OnSelect,
+    activityColors?: Record<string, string>,
 ): HTMLElement {
     const root = document.createElement("div");
     root.className = "inspector-milestone";
@@ -41,7 +42,17 @@ export function renderMilestoneDetail(
     const activity = vm.activities.find(a => a.name === activityName);
     const laneName = activity?.area ?? "(unknown lane)";
 
-    root.appendChild(makeH3(milestone.label ?? "(unlabeled)"));
+    // v2.1 audit-fix #8 — milestone h3 with leading color bubble = parent
+    // activity color (Gantt rail bullet + table row tint use the same).
+    const h3 = makeH3(milestone.label ?? "(unlabeled)");
+    const activityHex = activityColors?.[activityName];
+    if (activityHex) {
+        h3.style.display = "flex";
+        h3.style.alignItems = "center";
+        h3.style.gap = "8px";
+        h3.insertBefore(makeColorBubble(activityHex, 12), h3.firstChild);
+    }
+    root.appendChild(h3);
     root.appendChild(makeP(`${milestone.type} · ${activityName} · ${laneName}`, { muted: true, small: true }));
 
     const fields = document.createElement("div");

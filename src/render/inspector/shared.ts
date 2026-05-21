@@ -51,6 +51,35 @@ export function makeH3(text: string): HTMLHeadingElement {
     return h;
 }
 
+/** v2.1 audit-fix #8 — small color bubble for the inspector. Matches the
+ *  bullet next to activity labels on the Gantt rail so the user can
+ *  visually correlate panel → rail → table. */
+export function makeColorBubble(color: string, size: number = 10): HTMLSpanElement {
+    const dot = document.createElement("span");
+    dot.style.cssText = [
+        "display:inline-block",
+        `width:${size}px`,
+        `height:${size}px`,
+        "border-radius:50%",
+        `background:${color}`,
+        "flex-shrink:0",
+        "vertical-align:middle",
+    ].join(";");
+    return dot;
+}
+
+/** v2.1 audit-fix #8 — hex (#rrggbb) to rgba string with the given alpha.
+ *  Used for table row tinting (low-opacity activity/lane color backgrounds). */
+export function hexToRgba(hex: string, alpha: number): string {
+    const h = hex.replace("#", "");
+    if (h.length !== 6) return hex;
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    if ([r, g, b].some(n => Number.isNaN(n))) return hex;
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+
 export function makeP(text: string, opts?: { muted?: boolean; small?: boolean }): HTMLParagraphElement {
     const p = document.createElement("p");
     p.textContent = text;
