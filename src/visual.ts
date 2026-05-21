@@ -63,6 +63,12 @@ import { mountControlsPanel, ControlsPanelHandle } from "./render/controlsPanel"
 // to remember it exists (1 row of content + the splitter bar).
 import { mountSplitterBar, SplitterHandle } from "./render/splitterBar";
 
+// v2.1 W1.5a (INF-3730) — selection state model. Drives the controls panel
+// (open/close + content). Clicks on selectable elements write to the store;
+// the panel + (future) renderers subscribe to react. Root-level click
+// handler clears selection when the click hits whitespace.
+import { createSelectionStore, SelectionStore, Selection } from "./model/selection";
+
 // v2.1 W1 — initial Gantt/Table split (fraction of usable height given to
 // Gantt) before the user drags the splitter or hits the collapse buttons.
 const INITIAL_GANTT_PCT = 0.6;
@@ -204,6 +210,9 @@ export class Visual implements IVisual {
     // v2.1 W1 — vertical splitter handle owns the Gantt/Table split fraction
     // and collapse mode. Same cached-options re-render pattern as controls.
     private splitter: SplitterHandle;
+    // v2.1 W1.5a — selection state store. Single source of truth for what
+    // the user has clicked; drives the panel + (future) renderer highlights.
+    private selectionStore: SelectionStore;
     private lastOptions: VisualUpdateOptions | null = null;
 
     constructor(options?: VisualConstructorOptions) {
@@ -279,14 +288,39 @@ export class Visual implements IVisual {
         this.root.appendChild(this.guideDiv);
         renderConfigurationGuide(this.guideDiv, undefined);
 
-        // v2.1 W1 — controls panel chrome. Mounts AFTER guideDiv/matrixDiv on
-        // root so the hamburger (z-index 11) overlays everything. initiallyOpen
-        // is false so first-launch render is byte-identical to v2.0; the
-        // onToggle callback re-runs update() with the cached lastOptions so
-        // the layout recomputes against the new widthPct().
+        // v2.1 W1.5a (INF-3730) — selection store initialization. Created
+        // BEFORE the panel so the panel's onDismiss callback can capture it.
+        // Initial Selection is "none" → panel starts closed. Persistence +
+        // rehydration from objects.selectedActivity happens in W1.5c.
+        this.selectionStore = createSelectionStore({ kind: "none" });
+
+        // v2.1 W1.5a — controls panel mounts on root with the new
+        // selection-driven API. No hamburger; the × in the panel header
+        // fires onDismiss → clear selection → subscriber chain closes the
+        // panel. Initial state is closed (kind: "none" matches).
         this.controls = mountControlsPanel(this.root, {
-            initiallyOpen: false,
-            onToggle: () => this.requestRerender(),
+            onDismiss: () => this.selectionStore.set({ kind: "none" }),
+        });
+
+        // v2.1 W1.5a — selection store subscriber. Open/close the panel
+        // based on selection kind. Content swap happens in W1.5c when the
+        // Inspector layouts exist; for W1.5a the panel body stays empty.
+        // requestRerender() so the layout coordinator recomputes against
+        // the new widthPct() (panel reserves 20% when open, 0% when closed).
+        this.selectionStore.subscribe((sel: Selection) => {
+            this.controls.setOpen(sel.kind !== "none");
+            this.requestRerender();
+        });
+
+        // v2.1 W1.5a — root-level whitespace click. Clicks that bubble
+        // here (i.e. didn't hit a selectable element with stopPropagation)
+        // clear the selection, which closes the panel via the subscriber.
+        // Selectable elements added in W1.5b will stopPropagation on their
+        // own click handlers. The panel itself also stopPropagation's
+        // (set inside mountControlsPanel), so interacting with the panel
+        // doesn't dismiss itself.
+        this.root.addEventListener("click", () => {
+            this.selectionStore.set({ kind: "none" });
         });
 
         // v2.1 W1 — splitter bar mounts between the Gantt region and the

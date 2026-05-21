@@ -1,9 +1,11 @@
 #!/usr/bin/env sh
 # reporting-gantt commit-msg gate. Every commit subject must name the
-# active epic: "INF-3727[ Wave N]:" (v2.0 composed-matrix-mount) or
-# "INF-3728[ Wave N]:" (v2.1 controls-panel-and-filters). v2.0 follow-ups
-# remain commitable while v2.1 work proceeds. Merge/revert/fixup/squash
-# envelopes are exempt so rebases and reverts are not blocked.
+# active epic: "INF-3727[ Wave N(.M[a-z]?)?]:" (v2.0 composed-matrix-mount)
+# or "INF-3728[ Wave N(.M[a-z]?)?]:" (v2.1 controls-panel-and-filters).
+# Wave N is required-int-prefix (e.g. "1"); .M and [a-z] suffix support
+# sub-waves (e.g. "1.5a" for the Inspector pivot waves W1.5a → W1.5e).
+# Merge/revert/fixup/squash envelopes are exempt so rebases and reverts
+# are not blocked.
 
 msg_file="$1"
 first_line=$(head -n 1 "$msg_file")
@@ -12,8 +14,8 @@ case "$first_line" in
   "Merge "*|"Revert "*|"fixup! "*|"squash! "*) exit 0 ;;
 esac
 
-if ! echo "$first_line" | grep -qE '^(INF-3727|INF-3728)( Wave [0-9]+)?:'; then
-  echo "REJECTED: commit subject must start with 'INF-3727:' / 'INF-3727 Wave N:' or 'INF-3728:' / 'INF-3728 Wave N:'" >&2
+if ! echo "$first_line" | grep -qE '^(INF-3727|INF-3728)( Wave [0-9]+(\.[0-9]+[a-z]?)?)?:'; then
+  echo "REJECTED: commit subject must start with 'INF-3727:' / 'INF-3727 Wave N[.Mx]:' or 'INF-3728:' / 'INF-3728 Wave N[.Mx]:'" >&2
   echo "Got: $first_line" >&2
   exit 1
 fi

@@ -1,97 +1,46 @@
-// W1 of INF-3728 — controls panel chrome only.
+// W1.5a of INF-3730 — selection-driven controls panel.
 //
-// Mounts a small hamburger button (top-left of root) and a slide-in panel.
-// The panel itself is intentionally empty in W1 — W2+ populates it with
-// column visibility/order, filter pills, etc. This module owns the chrome:
-// the hamburger toggle, the open/close transition, the section-header
-// pattern reused by later waves.
+// Mounts ONLY the slide-in panel — no hamburger. External code (the visual's
+// selectionStore subscriber) calls setOpen(true|false) and setContent(node).
+// The panel header carries the "Controls" title + × close button; clicking ×
+// fires onDismiss so the caller can clear its selection state (which then
+// closes the panel via the subscribe chain).
 //
-// Pure DOM. No d3, no innerHTML. Strict-TS clean. Under 200 lines.
+// Replaces the hamburger journey-and-morph approach from INF-3728 W1
+// (commits bd9a37b → 8ebe3ff → c3c4d3f) — the controls panel is now
+// auto-driven by what the user clicks in the Gantt/table, not toggled
+// independently. See INF-3730 for the design pivot.
+//
+// Pure DOM, no innerHTML. Strict-TS clean.
 
 const PANEL_WIDTH_PCT_OPEN = 20;
 const PANEL_WIDTH_PCT_CLOSED = 0;
-// 400ms slide — orchestrator's audit said the prior 200ms felt snappy and they
-// wanted "a second to breathe." Half the prior speed, doubled the duration.
+// 400ms slide — matches the duration tuned in c3c4d3f under W1.
 const PANEL_TRANSITION_MS = 400;
-const HAMBURGER_SIZE_PX = 24;
-const HAMBURGER_Z_INDEX = 11;
 const PANEL_Z_INDEX = 10;
 const PANEL_BG = "#ffffff";
 const PANEL_BORDER = "#d0d0d0";
 
 export interface ControlsPanelOptions {
-    initiallyOpen: boolean;
-    onToggle?: (open: boolean) => void;
+    /** Called when the user clicks × in the panel header. The caller is
+     *  responsible for clearing its own selection state — which then
+     *  triggers setOpen(false) via the subscriber chain. */
+    onDismiss: () => void;
 }
 
 export interface ControlsPanelHandle {
-    isOpen(): boolean;
+    /** Slide the panel open (true) or closed (false). No-op if already in
+     *  that state. */
     setOpen(open: boolean): void;
+    /** Replace the panel body content. The header (title + ×) stays static
+     *  across content swaps. */
+    setContent(node: HTMLElement): void;
+    /** Percent of root width the panel reserves. 0 when closed, 20 when
+     *  open. Read by the layout coordinator to compute region sizing. */
     widthPct(): number;
+    /** The panel root element. Exposed for cases where the caller needs to
+     *  reach in (e.g. test fixtures). */
     element: HTMLElement;
-}
-
-function buildHamburgerButton(): { btn: HTMLButtonElement; bars: HTMLDivElement[] } {
-    const btn = document.createElement("button");
-    btn.className = "controls-panel-hamburger";
-    btn.type = "button";
-    btn.setAttribute("aria-label", "Open controls panel");
-    btn.style.cssText = [
-        "position:absolute",
-        "left:4px",
-        "top:4px",
-        `width:${HAMBURGER_SIZE_PX}px`,
-        `height:${HAMBURGER_SIZE_PX}px`,
-        `z-index:${HAMBURGER_Z_INDEX}`,
-        "background:#ffffff",
-        `border:1px solid ${PANEL_BORDER}`,
-        "border-radius:3px",
-        "cursor:pointer",
-        "padding:0",
-        "display:flex",
-        "flex-direction:column",
-        "align-items:center",
-        "justify-content:center",
-        "gap:3px",
-        // Slide left position in lockstep with the panel's width transition.
-        // Same 400ms ease — hamburger journeys with the panel's right edge
-        // from left:4px (closed) to just inside the panel's right edge.
-        `transition:left ${PANEL_TRANSITION_MS}ms ease`,
-    ].join(";");
-    const bars: HTMLDivElement[] = [];
-    for (let i = 0; i < 3; i++) {
-        const bar = document.createElement("div");
-        bar.style.cssText = [
-            "width:14px",
-            "height:2px",
-            "background:#333",
-            "border-radius:1px",
-            // Morph from three-bar stack (☰) to an × when the panel opens.
-            // Same duration as the slide so journey + morph end together.
-            `transition:transform ${PANEL_TRANSITION_MS}ms ease, opacity ${PANEL_TRANSITION_MS}ms ease`,
-            "transform-origin:center",
-        ].join(";");
-        btn.appendChild(bar);
-        bars.push(bar);
-    }
-    return { btn, bars };
-}
-
-function applyHamburgerMorph(bars: HTMLDivElement[], open: boolean): void {
-    if (open) {
-        // Collapse the three-bar stack into an ×:
-        //   top bar    → translateY(+5) + rotate(45°)   = NW-SE diagonal
-        //   middle bar → opacity 0                       = empty center
-        //   bottom bar → translateY(-5) + rotate(-45°)  = NE-SW diagonal
-        // Both diagonals meet at the column's vertical midpoint.
-        bars[0].style.transform = "translateY(5px) rotate(45deg)";
-        bars[1].style.opacity = "0";
-        bars[2].style.transform = "translateY(-5px) rotate(-45deg)";
-    } else {
-        bars[0].style.transform = "";
-        bars[1].style.opacity = "1";
-        bars[2].style.transform = "";
-    }
 }
 
 function buildPanel(): HTMLDivElement {
@@ -108,31 +57,54 @@ function buildPanel(): HTMLDivElement {
         `z-index:${PANEL_Z_INDEX}`,
         `transition:width ${PANEL_TRANSITION_MS}ms ease`,
         "box-sizing:border-box",
+        "display:flex",
+        "flex-direction:column",
     ].join(";");
     return panel;
 }
 
-function buildPanelHeader(): HTMLDivElement {
+function buildPanelHeader(onDismiss: () => void): HTMLDivElement {
     const header = document.createElement("div");
     header.className = "controls-panel-header";
     header.style.cssText = [
         "display:flex",
         "align-items:center",
-        "justify-content:flex-start",
+        "justify-content:space-between",
         "padding:8px 12px",
         `border-bottom:1px solid ${PANEL_BORDER}`,
         "min-height:32px",
         "box-sizing:border-box",
+        "flex-shrink:0",
     ].join(";");
 
-    // No close button here — the hamburger journeys to the panel's right
-    // edge and morphs to × when open, becoming the sole close affordance.
-    // Putting another × inside the header would duplicate the affordance.
     const title = document.createElement("div");
     title.className = "section-header";
     title.style.cssText = "font-weight:bold;font-size:13px;color:#222;";
     title.textContent = "Controls";
     header.appendChild(title);
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "controls-panel-close";
+    closeBtn.type = "button";
+    closeBtn.setAttribute("aria-label", "Close controls panel");
+    closeBtn.textContent = "\u2715"; // ×
+    closeBtn.style.cssText = [
+        "background:transparent",
+        "border:none",
+        "cursor:pointer",
+        "font-size:16px",
+        "color:#555",
+        "padding:2px 8px",
+        "line-height:1",
+        "border-radius:3px",
+    ].join(";");
+    closeBtn.addEventListener("mouseenter", () => { closeBtn.style.background = "#f0f0f3"; });
+    closeBtn.addEventListener("mouseleave", () => { closeBtn.style.background = "transparent"; });
+    closeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onDismiss();
+    });
+    header.appendChild(closeBtn);
 
     return header;
 }
@@ -141,51 +113,46 @@ export function mountControlsPanel(
     root: HTMLElement,
     options: ControlsPanelOptions,
 ): ControlsPanelHandle {
-    let open = options.initiallyOpen;
+    let open = false;
 
     const panel = buildPanel();
-    const header = buildPanelHeader();
+    const header = buildPanelHeader(() => options.onDismiss());
     panel.appendChild(header);
-    root.appendChild(panel);
 
-    const { btn: hamburger, bars: hamburgerBars } = buildHamburgerButton();
-    hamburger.addEventListener("click", () => setOpen(!open));
-    root.appendChild(hamburger);
+    // Body container — setContent swaps THIS element's children, never
+    // touches the header. flex:1 so it takes all space below the header
+    // and clips its own overflow.
+    const body = document.createElement("div");
+    body.className = "controls-panel-body";
+    body.style.cssText = "flex:1;overflow:auto;padding:12px;box-sizing:border-box;";
+    panel.appendChild(body);
+
+    // Clicks INSIDE the panel must NOT bubble to the root-level whitespace
+    // handler (which would clear selection and close the panel). The ×
+    // close button has its own explicit stopPropagation + onDismiss path.
+    panel.addEventListener("click", (e) => { e.stopPropagation(); });
+
+    root.appendChild(panel);
 
     function applyWidth(): void {
         panel.style.width = open ? `${PANEL_WIDTH_PCT_OPEN}%` : `${PANEL_WIDTH_PCT_CLOSED}%`;
-        // Hide the panel header from layout/AT when fully closed so screen
+        // Hide from layout / assistive tech when fully closed so screen
         // readers don't announce a 0-width region's contents.
         panel.style.visibility = open ? "visible" : "hidden";
-        // Hamburger journeys: when closed, sits at left:4px (top-left of
-        // visual). When open, rides to just inside the panel's right edge
-        // and morphs from ☰ to ×. Replaces the prior hide-when-open
-        // approach from 8ebe3ff — same problem (no header occlusion), but
-        // keeps a single visible affordance that transforms semantically
-        // instead of teleporting close UI to a different location.
-        hamburger.style.left = open
-            ? `calc(${PANEL_WIDTH_PCT_OPEN}% - ${HAMBURGER_SIZE_PX + 8}px)`
-            : "4px";
-        applyHamburgerMorph(hamburgerBars, open);
-        // ARIA label tracks the new role (× when open, ☰ when closed).
-        hamburger.setAttribute(
-            "aria-label",
-            open ? "Close controls panel" : "Open controls panel",
-        );
-    }
-
-    function setOpen(next: boolean): void {
-        if (next === open) return;
-        open = next;
-        applyWidth();
-        if (options.onToggle) options.onToggle(open);
     }
 
     applyWidth();
 
     return {
-        isOpen: () => open,
-        setOpen: (next: boolean) => setOpen(next),
+        setOpen(next: boolean): void {
+            if (next === open) return;
+            open = next;
+            applyWidth();
+        },
+        setContent(node: HTMLElement): void {
+            while (body.firstChild) body.removeChild(body.firstChild);
+            body.appendChild(node);
+        },
         widthPct: () => (open ? PANEL_WIDTH_PCT_OPEN : PANEL_WIDTH_PCT_CLOSED),
         element: panel,
     };
