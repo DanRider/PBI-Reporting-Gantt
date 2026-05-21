@@ -29,14 +29,38 @@ function formatCell(cell: powerbi.PrimitiveValue, col: Col | undefined): { text:
     return { text: String(cell), align: "left" };
 }
 
-function buildRow(row: Row, rowIndex: number, cols: readonly Col[]): HTMLTableRowElement {
+export interface SimpleTableOptions {
+    /** Called when the user clicks a row. The activity name is resolved
+     *  from the row's "Activity" column (case-insensitive name match).
+     *  If the row doesn't have an identifiable Activity value, the
+     *  callback is NOT invoked. Click also stopPropagation's so it
+     *  doesn't bubble to the root-level whitespace handler. */
+    readonly onSelectActivity?: (activityName: string) => void;
+}
+
+function buildRow(
+    row: Row,
+    rowIndex: number,
+    cols: readonly Col[],
+    activityColIndex: number,
+    onSelectActivity: ((activityName: string) => void) | undefined,
+): HTMLTableRowElement {
     const tr = document.createElement("tr");
     const baseBg = rowIndex % 2 === 0 ? STRIPE_ODD : STRIPE_EVEN;
-    tr.style.cssText = `border-bottom:1px solid #f0f0f0; background:${baseBg};`;
+    tr.style.cssText = `border-bottom:1px solid #f0f0f0; background:${baseBg}; cursor:${onSelectActivity ? "pointer" : "default"};`;
     // Hover handlers attached EVERY row build (initial + re-renders after
     // sort) so the highlight persists across sort interactions.
     tr.addEventListener("mouseenter", () => { tr.style.background = HOVER_BG; });
     tr.addEventListener("mouseleave", () => { tr.style.background = baseBg; });
+    // v2.1 W1.5b — selection: clicking the row sets activity selection.
+    // stopPropagation so the click doesn't bubble to root and clear.
+    if (onSelectActivity && activityColIndex >= 0) {
+        tr.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const activityName = String(row[activityColIndex] ?? "").trim();
+            if (activityName) onSelectActivity(activityName);
+        });
+    }
 
     row.forEach((cell, ci) => {
         const td = document.createElement("td");
@@ -48,12 +72,22 @@ function buildRow(row: Row, rowIndex: number, cols: readonly Col[]): HTMLTableRo
     return tr;
 }
 
-function renderBody(tbody: HTMLTableSectionElement, rows: readonly Row[], cols: readonly Col[]): void {
+function renderBody(
+    tbody: HTMLTableSectionElement,
+    rows: readonly Row[],
+    cols: readonly Col[],
+    activityColIndex: number,
+    onSelectActivity: ((activityName: string) => void) | undefined,
+): void {
     while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
-    rows.forEach((row, ri) => tbody.appendChild(buildRow(row, ri, cols)));
+    rows.forEach((row, ri) => tbody.appendChild(buildRow(row, ri, cols, activityColIndex, onSelectActivity)));
 }
 
-export function renderSimpleTable(container: HTMLElement, dataView: DataView | undefined): void {
+export function renderSimpleTable(
+    container: HTMLElement,
+    dataView: DataView | undefined,
+    options?: SimpleTableOptions,
+): void {
     while (container.firstChild) container.removeChild(container.firstChild);
 
     const cols = dataView?.table?.columns ?? [];
@@ -107,9 +141,17 @@ export function renderSimpleTable(container: HTMLElement, dataView: DataView | u
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
+    // v2.1 W1.5b — find the "Activity" column once at render time. The
+    // table is bound with two role groups (activity-side + milestone-side)
+    // each carrying an Activity column; either is acceptable for selection.
+    // Case-insensitive name match — works without forcing capabilities.json
+    // to declare a `roles.activity` flag.
+    const activityColIndex = cols.findIndex(c => /^activity$/i.test(c.displayName ?? ""));
+    const onSelectActivity = options?.onSelectActivity;
+
     // Body rows (initial render)
     const tbody = document.createElement("tbody");
-    renderBody(tbody, rows, cols);
+    renderBody(tbody, rows, cols, activityColIndex, onSelectActivity);
     table.appendChild(tbody);
 
     // Sort handler — click a header to sort by that column ascending; click
@@ -129,7 +171,7 @@ export function renderSimpleTable(container: HTMLElement, dataView: DataView | u
                 const cmp = String(av).localeCompare(String(bv), undefined, { numeric: true });
                 return sortState.asc ? cmp : -cmp;
             });
-            renderBody(tbody, sorted, cols);
+            renderBody(tbody, sorted, cols, activityColIndex, onSelectActivity);
             // Update header sort indicators
             headerCells.forEach((h, hi) => {
                 const baseName = cols[hi]?.displayName || `Column ${hi + 1}`;

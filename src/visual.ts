@@ -412,7 +412,13 @@ export class Visual implements IVisual {
             // The splitter bar's top/bottom borders replace the matrix
             // region's prior border-top — removing the doubled divider.
             this.matrixDiv.style.borderTop = "none";
-            renderSimpleTable(this.matrixDiv, dataView);
+            // v2.1 W1.5b — table row click → activity selection. simpleTable
+            // resolves activity name from the row's "Activity" column.
+            renderSimpleTable(this.matrixDiv, dataView, {
+                onSelectActivity: (activityName: string) => {
+                    this.selectionStore.set({ kind: "activity", activityName });
+                },
+            });
         } else {
             this.matrixDiv.style.display = "none";
         }
@@ -703,6 +709,52 @@ export class Visual implements IVisual {
         };
         this.tooltipService.addTooltip(barsSel, makeActivityTooltip(tooltipCfg));
         this.tooltipService.addTooltip(starsSel, makeMilestoneTooltip(tooltipCfg));
+
+        // v2.1 W1.5b — Gantt SVG click → selection. Each handler stopPropagation's
+        // so the click doesn't bubble to the root-level whitespace handler (which
+        // would clear selection). barsSel carries Activity datum from renderBars'
+        // .data() join; starsSel carries Milestone. swim-lane labels use the
+        // data-area attribute set in swimlanes.ts (no d3 data binding there).
+        barsSel.style("cursor", "pointer").on("click", (e: MouseEvent, a: Activity) => {
+            e.stopPropagation();
+            this.selectionStore.set({ kind: "activity", activityName: a.name });
+        });
+        starsSel.style("cursor", "pointer").on("click", (e: MouseEvent, m: Milestone) => {
+            e.stopPropagation();
+            this.selectionStore.set({
+                kind: "milestone",
+                milestoneLabel: m.label ?? "(unlabeled)",
+                activityName: m.activity,
+            });
+        });
+        // milestone-hit is a wider transparent circle on top of the marker —
+        // it's the primary click target for milestones (better fit-target for
+        // small star markers). Attach the same handler.
+        this.bodyG.selectAll<SVGCircleElement, Milestone>("circle.milestone-hit")
+            .style("cursor", "pointer")
+            .on("click", (e: MouseEvent, m: Milestone) => {
+                e.stopPropagation();
+                this.selectionStore.set({
+                    kind: "milestone",
+                    milestoneLabel: m.label ?? "(unlabeled)",
+                    activityName: m.activity,
+                });
+            });
+        // Swim-lane labels: read the area name from the data-area attribute
+        // set by swimlanes.ts (no d3 datum binding on these — they're built
+        // via a for-loop, multiple text nodes per area name when wrapText is on).
+        // Use an arrow function so `this` resolves to the Visual class; pull
+        // the clicked element off the MouseEvent target.
+        this.railG.selectAll<SVGTextElement, unknown>("text.swimlane-label")
+            .style("cursor", "pointer")
+            .on("click", (e: MouseEvent) => {
+                e.stopPropagation();
+                const el = e.currentTarget as SVGTextElement | null;
+                const laneName = el?.getAttribute("data-area") ?? "";
+                if (laneName) {
+                    this.selectionStore.set({ kind: "lane", laneName });
+                }
+            });
     }
 
     // v2.1 W1 — re-run the full layout + render against the cached lastOptions.

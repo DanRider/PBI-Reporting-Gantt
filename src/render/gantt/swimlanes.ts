@@ -116,13 +116,19 @@ export function renderSwimlanes(
             .attr("fill", railColor);
 
         for (let i = 0; i < lines.length; i++) {
+            // v2.1 W1.5b — data-area attribute lets visual.ts attach a click
+            // handler via d3.selectAll("text.swimlane-label") and resolve
+            // the lane name without changing this renderer's signature.
+            // cursor:pointer surfaces the clickability.
             const textSel = g.append("text")
                 .attr("class", "swimlane-label")
+                .attr("data-area", group.area)
                 .attr("x", textX)
                 .attr("y", startY + i * lineHeight)
                 .attr("text-anchor", "middle")
                 .attr("dominant-baseline", "central")
                 .attr("fill", labelFill)
+                .style("cursor", "pointer")
                 .text(lines[i]);
             applyFont(textSel, opts.font);
         }
