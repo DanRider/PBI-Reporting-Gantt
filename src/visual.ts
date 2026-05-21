@@ -69,6 +69,14 @@ import { mountSplitterBar, SplitterHandle } from "./render/splitterBar";
 // handler clears selection when the click hits whitespace.
 import { createSelectionStore, SelectionStore, Selection } from "./model/selection";
 
+// v2.1 W1.5c — Inspector content renderers. One pure-DOM function per
+// selection kind. Subscriber calls setContent(renderXDetail(...)) before
+// setOpen(true) so the panel always has the right detail mounted when
+// it slides open.
+import { renderLaneDetail } from "./render/inspector/laneDetail";
+import { renderActivityDetail } from "./render/inspector/activityDetail";
+import { renderMilestoneDetail } from "./render/inspector/milestoneDetail";
+
 // v2.1 W1 — initial Gantt/Table split (fraction of usable height given to
 // Gantt) before the user drags the splitter or hits the collapse buttons.
 const INITIAL_GANTT_PCT = 0.6;
@@ -213,6 +221,11 @@ export class Visual implements IVisual {
     // v2.1 W1.5a — selection state store. Single source of truth for what
     // the user has clicked; drives the panel + (future) renderer highlights.
     private selectionStore: SelectionStore;
+    // v2.1 W1.5c — last RoadmapViewModel cached from update(). The selection
+    // subscriber fires asynchronously (e.g. on a click that happens AFTER an
+    // update() returned) and needs the current vm to feed the Inspector
+    // renderers. Updated at the top of every update() after convertDataView.
+    private lastViewmodel: RoadmapViewModel | null = null;
     private lastOptions: VisualUpdateOptions | null = null;
 
     constructor(options?: VisualConstructorOptions) {
@@ -302,13 +315,32 @@ export class Visual implements IVisual {
             onDismiss: () => this.selectionStore.set({ kind: "none" }),
         });
 
-        // v2.1 W1.5a — selection store subscriber. Open/close the panel
-        // based on selection kind. Content swap happens in W1.5c when the
-        // Inspector layouts exist; for W1.5a the panel body stays empty.
-        // requestRerender() so the layout coordinator recomputes against
-        // the new widthPct() (panel reserves 20% when open, 0% when closed).
+        // v2.1 W1.5a + W1.5c — selection store subscriber. For non-none
+        // selections, mount the appropriate Inspector layout into the panel
+        // BEFORE opening it (so the panel never slides in with stale or
+        // empty content). For "none", just close. requestRerender so the
+        // layout coordinator recomputes against the new widthPct().
         this.selectionStore.subscribe((sel: Selection) => {
-            this.controls.setOpen(sel.kind !== "none");
+            if (sel.kind === "none") {
+                this.controls.setOpen(false);
+            } else if (this.lastViewmodel) {
+                switch (sel.kind) {
+                    case "lane":
+                        this.controls.setContent(renderLaneDetail(sel.laneName, this.lastViewmodel));
+                        break;
+                    case "activity":
+                        this.controls.setContent(renderActivityDetail(sel.activityName, this.lastViewmodel));
+                        break;
+                    case "milestone":
+                        this.controls.setContent(renderMilestoneDetail(
+                            sel.milestoneLabel,
+                            sel.activityName,
+                            this.lastViewmodel,
+                        ));
+                        break;
+                }
+                this.controls.setOpen(true);
+            }
             this.requestRerender();
         });
 
@@ -439,6 +471,10 @@ export class Visual implements IVisual {
         this.svg.attr("width", width).attr("height", height);
 
         const vm: RoadmapViewModel = convertDataView(dataView);
+        // v2.1 W1.5c — cache vm so the selection subscriber (which fires on
+        // user clicks, not update()) can feed Inspector renderers with the
+        // current data.
+        this.lastViewmodel = vm;
 
         const areaColorMap = buildAreaColorMap(vm.areaBindings, this.settings.swimlanes);
         const milestoneConfig = buildMilestoneConfigMap(vm.typeBindings, this.settings.milestones);
