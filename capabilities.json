@@ -40,7 +40,7 @@
             "name": "milestoneType",
             "displayName": "Milestone Type",
             "kind": "Grouping",
-            "description": "Marker classifier — distinct values appear as one slice each in the Format pane (color/symbol/size/visibility per type)."
+            "description": "Marker classifier \u2014 distinct values appear as one slice each in the Format pane (color/symbol/size/visibility per type)."
         },
         {
             "name": "milestoneLabel",
@@ -58,7 +58,7 @@
             "name": "activityNote",
             "displayName": "Activity Note",
             "kind": "Grouping",
-            "description": "Optional per-activity status note (free text). Shown in the activity tooltip on hover. Source: a text column on the Activities table — typically a 'Status' or 'Notes' column."
+            "description": "Optional per-activity status note (free text). Shown in the activity tooltip on hover. Source: a text column on the Activities table \u2014 typically a 'Status' or 'Notes' column."
         },
         {
             "name": "milestoneNote",
@@ -70,59 +70,157 @@
             "name": "tableActivityRows",
             "displayName": "Activity (Table)",
             "kind": "Grouping",
-            "description": "v2.0 — Activity column for the matrix-substrate table region below the Gantt. Each unique value renders as a parent row in the table; matching Milestones (via the Milestone (Table) well) attach as expandable child rows."
+            "description": "v2.0 \u2014 Activity for the matrix-substrate table region."
         },
         {
             "name": "tableMilestoneRows",
             "displayName": "Milestone (Table)",
             "kind": "Grouping",
-            "description": "v2.0 — Milestone column for the matrix-substrate table region. Bound rows become expandable child rows under their parent Activity (Table) row, joined on the matching Activity name."
+            "description": "v2.0 \u2014 Milestone for the matrix-substrate table region."
         },
         {
             "name": "tableValues",
             "displayName": "Values",
             "kind": "Measure",
-            "description": "v2.0 — Measures rendered as columns in the matrix-substrate table region. Bind any number of measures (Budget, Actual, %Complete, etc.); each becomes a sortable column with IBCS variance encoding when comparison columns are also bound."
+            "description": "v2.0 \u2014 Measures for the matrix-substrate table region."
         }
     ],
     "objects": {
         "title": {
             "displayName": "Title",
-            "description": "Power BI's built-in platform title. Off by default — use the Chart Title card below instead for richer styling. Turning this on shows the title as a separate text element above the visual viewport (PBI platform handles rendering).",
+            "description": "Power BI's built-in platform title. Off by default \u2014 use the Chart Title card below instead for richer styling. Turning this on shows the title as a separate text element above the visual viewport (PBI platform handles rendering).",
             "properties": {
-                "show":         { "displayName": "Show",        "type": { "bool": true } },
-                "text":         { "displayName": "Title text",  "type": { "text": true } },
-                "fontColor":    { "displayName": "Color",       "type": { "fill": { "solid": { "color": true } } } },
-                "background":   { "displayName": "Background",  "type": { "fill": { "solid": { "color": true } } } },
+                "show": {
+                    "displayName": "Show",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "text": {
+                    "displayName": "Title text",
+                    "type": {
+                        "text": true
+                    }
+                },
+                "fontColor": {
+                    "displayName": "Color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "background": {
+                    "displayName": "Background",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
                 "alignment": {
                     "displayName": "Alignment",
-                    "type": { "enumeration": [
-                        { "value": "left",   "displayName": "Left" },
-                        { "value": "center", "displayName": "Center" },
-                        { "value": "right",  "displayName": "Right" }
-                    ]}
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "left",
+                                "displayName": "Left"
+                            },
+                            {
+                                "value": "center",
+                                "displayName": "Center"
+                            },
+                            {
+                                "value": "right",
+                                "displayName": "Right"
+                            }
+                        ]
+                    }
                 }
             }
         },
         "chartTitle": {
             "displayName": "Chart Title",
-            "description": "Custom title rendered inside the visual at the top — independent from Power BI's built-in 'Title' card. Use this for a styled, presentation-quality title. To avoid two titles, turn the built-in Title card OFF when using Chart Title.",
+            "description": "Custom title rendered inside the visual at the top \u2014 independent from Power BI's built-in 'Title' card. Use this for a styled, presentation-quality title. To avoid two titles, turn the built-in Title card OFF when using Chart Title.",
             "properties": {
-                "show":       { "displayName": "Show",        "type": { "bool": true } },
-                "text":       { "displayName": "Title text",  "type": { "text": true } },
-                "fontColor":  { "displayName": "Color",       "type": { "fill": { "solid": { "color": true } } } },
-                "fontFamily": { "displayName": "Font",        "type": { "formatting": { "fontFamily": true } } },
-                "fontSize":   { "displayName": "Size",        "type": { "formatting": { "fontSize": true } } },
-                "bold":       { "displayName": "Bold",        "type": { "bool": true } },
-                "italic":     { "displayName": "Italic",      "type": { "bool": true } },
-                "underline":  { "displayName": "Underline",   "type": { "bool": true } },
+                "show": {
+                    "displayName": "Show",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "text": {
+                    "displayName": "Title text",
+                    "type": {
+                        "text": true
+                    }
+                },
+                "fontColor": {
+                    "displayName": "Color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "fontFamily": {
+                    "displayName": "Font",
+                    "type": {
+                        "formatting": {
+                            "fontFamily": true
+                        }
+                    }
+                },
+                "fontSize": {
+                    "displayName": "Size",
+                    "type": {
+                        "formatting": {
+                            "fontSize": true
+                        }
+                    }
+                },
+                "bold": {
+                    "displayName": "Bold",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "italic": {
+                    "displayName": "Italic",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "underline": {
+                    "displayName": "Underline",
+                    "type": {
+                        "bool": true
+                    }
+                },
                 "alignment": {
                     "displayName": "Alignment",
-                    "type": { "enumeration": [
-                        { "value": "left",   "displayName": "Left" },
-                        { "value": "center", "displayName": "Center" },
-                        { "value": "right",  "displayName": "Right" }
-                    ]}
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "left",
+                                "displayName": "Left"
+                            },
+                            {
+                                "value": "center",
+                                "displayName": "Center"
+                            },
+                            {
+                                "value": "right",
+                                "displayName": "Right"
+                            }
+                        ]
+                    }
                 }
             }
         },
@@ -130,300 +228,1122 @@
             "displayName": "Tooltip",
             "description": "Controls hover-tooltip behavior. The Note row appears in both activity and milestone tooltips; this card decides whether to show it and how to handle rows where the Note field is unbound or empty.",
             "properties": {
-                "showNote":         { "displayName": "Show Note row",            "type": { "bool": true } },
-                "hideRowWhenEmpty": { "displayName": "Hide row when no note",    "type": { "bool": true } },
-                "emptyPlaceholder": { "displayName": "Placeholder for empty notes", "type": { "text": true } }
-            }
-        },
-        "ganttLayout": {
-            "displayName": "Gantt Layout",
-            "description": "Outer margins around the Gantt chart region (top half of the composed visual when the table region is also bound). Percentages of viewport.",
-            "properties": {
-                "topMarginPercent":    { "displayName": "Top margin (%)",    "type": { "numeric": true } },
-                "bottomMarginPercent": { "displayName": "Bottom margin (%)", "type": { "numeric": true } },
-                "leftMarginPercent":   { "displayName": "Left margin (%)",   "type": { "numeric": true } },
-                "rightMarginPercent":  { "displayName": "Right margin (%)",  "type": { "numeric": true } }
+                "showNote": {
+                    "displayName": "Show Note row",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "hideRowWhenEmpty": {
+                    "displayName": "Hide row when no note",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "emptyPlaceholder": {
+                    "displayName": "Placeholder for empty notes",
+                    "type": {
+                        "text": true
+                    }
+                }
             }
         },
         "milestones": {
             "displayName": "Milestones",
             "description": "Marker + label controls. Max 2 milestone types (cap-2). First 2 distinct values from data bind to slots 1 and 2; displayNames in Format pane show actual type names. Data with 3+ types drops the extras.",
             "properties": {
-                "hoverExpansion": { "displayName": "Hover target expansion (%)", "type": { "numeric": true } },
-                "labelOverflow":  { "displayName": "Label overflow", "type": { "enumeration": [
-                    { "value": "truncate", "displayName": "Truncate with …" },
-                    { "value": "hide",     "displayName": "Hide colliding" },
-                    { "value": "overflow", "displayName": "Show all (may overlap)" }
-                ]}},
-                "labelColor":      { "displayName": "Label color",       "type": { "fill": { "solid": { "color": true } } } },
-                "labelFontFamily": { "displayName": "Label font",        "type": { "formatting": { "fontFamily": true } } },
-                "labelFontSize":   { "displayName": "Label size",        "type": { "formatting": { "fontSize": true } } },
-                "labelBold":       { "displayName": "Label bold",        "type": { "bool": true } },
-                "labelItalic":     { "displayName": "Label italic",      "type": { "bool": true } },
-                "labelUnderline":  { "displayName": "Label underline",   "type": { "bool": true } },
-                "type1Color":      { "displayName": "Type 1 color",     "type": { "fill": { "solid": { "color": true } } } },
-                "type1Symbol":     { "displayName": "Type 1 symbol",    "type": { "enumeration": [
-                    { "value": "star",     "displayName": "Star" },
-                    { "value": "circle",   "displayName": "Circle" },
-                    { "value": "triangle", "displayName": "Triangle" },
-                    { "value": "square",   "displayName": "Square" },
-                    { "value": "diamond",  "displayName": "Diamond" }
-                ]}},
-                "type1Size":       { "displayName": "Type 1 size (px)",  "type": { "numeric": true } },
-                "type1ShowMarker": { "displayName": "Type 1 show markers","type": { "bool": true } },
-                "type2Color":      { "displayName": "Type 2 color",     "type": { "fill": { "solid": { "color": true } } } },
-                "type2Symbol":     { "displayName": "Type 2 symbol",    "type": { "enumeration": [
-                    { "value": "star",     "displayName": "Star" },
-                    { "value": "circle",   "displayName": "Circle" },
-                    { "value": "triangle", "displayName": "Triangle" },
-                    { "value": "square",   "displayName": "Square" },
-                    { "value": "diamond",  "displayName": "Diamond" }
-                ]}},
-                "type2Size":       { "displayName": "Type 2 size (px)",  "type": { "numeric": true } },
-                "type2ShowMarker": { "displayName": "Type 2 show markers","type": { "bool": true } },
-                "legendShow":       { "displayName": "Show legend",       "type": { "bool": true } },
-                "legendLabelColor": { "displayName": "Legend label color","type": { "fill": { "solid": { "color": true } } } },
-                "legendFontFamily": { "displayName": "Legend font",       "type": { "formatting": { "fontFamily": true } } },
-                "legendFontSize":   { "displayName": "Legend size",       "type": { "formatting": { "fontSize": true } } },
-                "legendBold":       { "displayName": "Legend bold",       "type": { "bool": true } },
-                "legendItalic":     { "displayName": "Legend italic",     "type": { "bool": true } },
-                "legendUnderline":  { "displayName": "Legend underline",  "type": { "bool": true } }
+                "hoverExpansion": {
+                    "displayName": "Hover target expansion (%)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "labelOverflow": {
+                    "displayName": "Label overflow",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "truncate",
+                                "displayName": "Truncate with \u2026"
+                            },
+                            {
+                                "value": "hide",
+                                "displayName": "Hide colliding"
+                            },
+                            {
+                                "value": "overflow",
+                                "displayName": "Show all (may overlap)"
+                            }
+                        ]
+                    }
+                },
+                "labelColor": {
+                    "displayName": "Label color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "labelFontFamily": {
+                    "displayName": "Label font",
+                    "type": {
+                        "formatting": {
+                            "fontFamily": true
+                        }
+                    }
+                },
+                "labelFontSize": {
+                    "displayName": "Label size",
+                    "type": {
+                        "formatting": {
+                            "fontSize": true
+                        }
+                    }
+                },
+                "labelBold": {
+                    "displayName": "Label bold",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "labelItalic": {
+                    "displayName": "Label italic",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "labelUnderline": {
+                    "displayName": "Label underline",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "type1Color": {
+                    "displayName": "Type 1 color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "type1Symbol": {
+                    "displayName": "Type 1 symbol",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "star",
+                                "displayName": "Star"
+                            },
+                            {
+                                "value": "circle",
+                                "displayName": "Circle"
+                            },
+                            {
+                                "value": "triangle",
+                                "displayName": "Triangle"
+                            },
+                            {
+                                "value": "square",
+                                "displayName": "Square"
+                            },
+                            {
+                                "value": "diamond",
+                                "displayName": "Diamond"
+                            }
+                        ]
+                    }
+                },
+                "type1Size": {
+                    "displayName": "Type 1 size (px)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "type1ShowMarker": {
+                    "displayName": "Type 1 show markers",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "type2Color": {
+                    "displayName": "Type 2 color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "type2Symbol": {
+                    "displayName": "Type 2 symbol",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "star",
+                                "displayName": "Star"
+                            },
+                            {
+                                "value": "circle",
+                                "displayName": "Circle"
+                            },
+                            {
+                                "value": "triangle",
+                                "displayName": "Triangle"
+                            },
+                            {
+                                "value": "square",
+                                "displayName": "Square"
+                            },
+                            {
+                                "value": "diamond",
+                                "displayName": "Diamond"
+                            }
+                        ]
+                    }
+                },
+                "type2Size": {
+                    "displayName": "Type 2 size (px)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "type2ShowMarker": {
+                    "displayName": "Type 2 show markers",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "legendShow": {
+                    "displayName": "Show legend",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "legendLabelColor": {
+                    "displayName": "Legend label color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "legendFontFamily": {
+                    "displayName": "Legend font",
+                    "type": {
+                        "formatting": {
+                            "fontFamily": true
+                        }
+                    }
+                },
+                "legendFontSize": {
+                    "displayName": "Legend size",
+                    "type": {
+                        "formatting": {
+                            "fontSize": true
+                        }
+                    }
+                },
+                "legendBold": {
+                    "displayName": "Legend bold",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "legendItalic": {
+                    "displayName": "Legend italic",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "legendUnderline": {
+                    "displayName": "Legend underline",
+                    "type": {
+                        "bool": true
+                    }
+                }
             }
         },
         "activityLabels": {
             "displayName": "Activity Labels",
             "properties": {
-                "show":                       { "displayName": "Show",                          "type": { "bool": true } },
-                "activityLabelWidthPercent":  { "displayName": "Label column width (%)",        "type": { "numeric": true } },
-                "wrapText":                   { "displayName": "Wrap (2 lines)",                "type": { "bool": true } },
-                "overflowBehavior": { "displayName": "When text doesn't fit", "type": { "enumeration": [
-                    { "value": "truncate", "displayName": "Truncate with …" },
-                    { "value": "hide",     "displayName": "Hide" },
-                    { "value": "overflow", "displayName": "Show (may overflow)" }
-                ]}},
-                "fillMode": { "displayName": "Color mode", "type": { "enumeration": [
-                    { "value": "grey", "displayName": "Dark grey" },
-                    { "value": "area", "displayName": "Swim lane color" }
-                ]}},
-                "customColor":  { "displayName": "Custom color", "type": { "fill": { "solid": { "color": true } } } },
-                "fontFamily":   { "displayName": "Font",        "type": { "formatting": { "fontFamily": true } } },
-                "fontSize":     { "displayName": "Size",        "type": { "formatting": { "fontSize": true } } },
-                "bold":         { "displayName": "Bold",        "type": { "bool": true } },
-                "italic":       { "displayName": "Italic",      "type": { "bool": true } },
-                "underline":    { "displayName": "Underline",   "type": { "bool": true } }
+                "show": {
+                    "displayName": "Show",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "activityLabelWidthPercent": {
+                    "displayName": "Label column width (%)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "wrapText": {
+                    "displayName": "Wrap (2 lines)",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "overflowBehavior": {
+                    "displayName": "When text doesn't fit",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "truncate",
+                                "displayName": "Truncate with \u2026"
+                            },
+                            {
+                                "value": "hide",
+                                "displayName": "Hide"
+                            },
+                            {
+                                "value": "overflow",
+                                "displayName": "Show (may overflow)"
+                            }
+                        ]
+                    }
+                },
+                "fillMode": {
+                    "displayName": "Color mode",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "grey",
+                                "displayName": "Dark grey"
+                            },
+                            {
+                                "value": "area",
+                                "displayName": "Swim lane color"
+                            }
+                        ]
+                    }
+                },
+                "customColor": {
+                    "displayName": "Custom color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "fontFamily": {
+                    "displayName": "Font",
+                    "type": {
+                        "formatting": {
+                            "fontFamily": true
+                        }
+                    }
+                },
+                "fontSize": {
+                    "displayName": "Size",
+                    "type": {
+                        "formatting": {
+                            "fontSize": true
+                        }
+                    }
+                },
+                "bold": {
+                    "displayName": "Bold",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "italic": {
+                    "displayName": "Italic",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "underline": {
+                    "displayName": "Underline",
+                    "type": {
+                        "bool": true
+                    }
+                }
             }
         },
         "swimlanes": {
             "displayName": "Swim Lanes",
-            "description": "Width, label styling, and per-swim-lane color overrides — all consolidated here. One color picker appears per distinct Swim Lane value found in your data.",
+            "description": "Width, label styling, and per-swim-lane color overrides \u2014 all consolidated here. One color picker appears per distinct Swim Lane value found in your data.",
             "properties": {
-                "show":                  { "displayName": "Show",                "type": { "bool": true } },
-                "swimLaneWidthPercent":  { "displayName": "Swim lane width (%)", "type": { "numeric": true } },
+                "show": {
+                    "displayName": "Show",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "swimLaneWidthPercent": {
+                    "displayName": "Swim lane width (%)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
                 "railAlignment": {
                     "displayName": "Rail alignment relative to label",
-                    "type": { "enumeration": [
-                        { "value": "left",   "displayName": "Left of label" },
-                        { "value": "center", "displayName": "Bisect label (center)" },
-                        { "value": "right",  "displayName": "Right of label" }
-                    ]}
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "left",
+                                "displayName": "Left of label"
+                            },
+                            {
+                                "value": "center",
+                                "displayName": "Bisect label (center)"
+                            },
+                            {
+                                "value": "right",
+                                "displayName": "Right of label"
+                            }
+                        ]
+                    }
                 },
-                "wrapText":              { "displayName": "Wrap labels",         "type": { "bool": true } },
-                "labelColor":            { "displayName": "Label color (default = swim lane color)", "type": { "fill": { "solid": { "color": true } } } },
-                "useAreaColor":          { "displayName": "Use swim lane color for label", "type": { "bool": true } },
-                "fontFamily":            { "displayName": "Font",                "type": { "formatting": { "fontFamily": true } } },
-                "fontSize":              { "displayName": "Size",                "type": { "formatting": { "fontSize": true } } },
-                "bold":                  { "displayName": "Bold",                "type": { "bool": true } },
-                "italic":                { "displayName": "Italic",              "type": { "bool": true } },
-                "underline":             { "displayName": "Underline",           "type": { "bool": true } },
-                "slot1Color":            { "displayName": "Slot 1 color",        "type": { "fill": { "solid": { "color": true } } } },
-                "slot2Color":            { "displayName": "Slot 2 color",        "type": { "fill": { "solid": { "color": true } } } },
-                "slot3Color":            { "displayName": "Slot 3 color",        "type": { "fill": { "solid": { "color": true } } } },
-                "slot4Color":            { "displayName": "Slot 4 color",        "type": { "fill": { "solid": { "color": true } } } },
-                "slot5Color":            { "displayName": "Slot 5 color",        "type": { "fill": { "solid": { "color": true } } } },
-                "slot6Color":            { "displayName": "Slot 6 color",        "type": { "fill": { "solid": { "color": true } } } },
-                "slot7Color":            { "displayName": "Slot 7 color",        "type": { "fill": { "solid": { "color": true } } } },
-                "slot8Color":            { "displayName": "Slot 8 color",        "type": { "fill": { "solid": { "color": true } } } }
+                "wrapText": {
+                    "displayName": "Wrap labels",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "labelColor": {
+                    "displayName": "Label color (default = swim lane color)",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "useAreaColor": {
+                    "displayName": "Use swim lane color for label",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "fontFamily": {
+                    "displayName": "Font",
+                    "type": {
+                        "formatting": {
+                            "fontFamily": true
+                        }
+                    }
+                },
+                "fontSize": {
+                    "displayName": "Size",
+                    "type": {
+                        "formatting": {
+                            "fontSize": true
+                        }
+                    }
+                },
+                "bold": {
+                    "displayName": "Bold",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "italic": {
+                    "displayName": "Italic",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "underline": {
+                    "displayName": "Underline",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "slot1Color": {
+                    "displayName": "Slot 1 color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "slot2Color": {
+                    "displayName": "Slot 2 color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "slot3Color": {
+                    "displayName": "Slot 3 color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "slot4Color": {
+                    "displayName": "Slot 4 color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "slot5Color": {
+                    "displayName": "Slot 5 color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "slot6Color": {
+                    "displayName": "Slot 6 color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "slot7Color": {
+                    "displayName": "Slot 7 color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "slot8Color": {
+                    "displayName": "Slot 8 color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                }
             }
         },
         "timeAxis": {
             "displayName": "Time Axis",
-            "description": "Three hierarchy levels — Year, Quarter, Month. Each level can be toggled on/off. Quarter and Month tick boundaries can also render vertical gridlines through the chart body with their own color, opacity, and line style.",
+            "description": "Three hierarchy levels \u2014 Year, Quarter, Month. Each level can be toggled on/off. Quarter and Month tick boundaries can also render vertical gridlines through the chart body with their own color, opacity, and line style.",
             "properties": {
                 "chevronStyle": {
                     "displayName": "Chevron style",
-                    "type": { "enumeration": [
-                        { "value": "nested",    "displayName": "Nested arrow" },
-                        { "value": "pentagon",  "displayName": "Pentagon" },
-                        { "value": "rectangle", "displayName": "Rectangle" }
-                    ]}
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "nested",
+                                "displayName": "Nested arrow"
+                            },
+                            {
+                                "value": "pentagon",
+                                "displayName": "Pentagon"
+                            },
+                            {
+                                "value": "rectangle",
+                                "displayName": "Rectangle"
+                            }
+                        ]
+                    }
                 },
-                "showYear":                { "displayName": "Show Year",                "type": { "bool": true } },
-                "yearFill":                { "displayName": "Year chevron color",       "type": { "fill": { "solid": { "color": true } } } },
-                "showQuarter":             { "displayName": "Show Quarter",             "type": { "bool": true } },
-                "quarterFill":             { "displayName": "Quarter chevron color",    "type": { "fill": { "solid": { "color": true } } } },
-                "showMonth":               { "displayName": "Show Month",               "type": { "bool": true } },
-                "monthFill":               { "displayName": "Month chevron color",      "type": { "fill": { "solid": { "color": true } } } },
-                "showQuarterGridlines":    { "displayName": "Show quarter gridlines",    "type": { "bool": true } },
-                "quarterGridlineColor":    { "displayName": "Quarter gridline color",    "type": { "fill": { "solid": { "color": true } } } },
-                "quarterGridlineOpacityPct":{ "displayName": "Quarter gridline opacity (%)","type": { "numeric": true } },
-                "quarterGridlineStyle":    { "displayName": "Quarter gridline style",    "type": { "enumeration": [
-                    { "value": "solid",  "displayName": "Solid" },
-                    { "value": "dashed", "displayName": "Dashed" },
-                    { "value": "dotted", "displayName": "Dotted" }
-                ]}},
-                "showMonthGridlines":      { "displayName": "Show month gridlines",     "type": { "bool": true } },
-                "monthGridlineColor":      { "displayName": "Month gridline color",     "type": { "fill": { "solid": { "color": true } } } },
-                "monthGridlineOpacityPct": { "displayName": "Month gridline opacity (%)","type": { "numeric": true } },
-                "monthGridlineStyle":      { "displayName": "Month gridline style",     "type": { "enumeration": [
-                    { "value": "solid",  "displayName": "Solid" },
-                    { "value": "dashed", "displayName": "Dashed" },
-                    { "value": "dotted", "displayName": "Dotted" }
-                ]}},
-                "showTodayLine":           { "displayName": "TODAY line",               "type": { "bool": true } },
-                "showTodayLabel":          { "displayName": "TODAY label",              "type": { "bool": true } },
-                "todayLabelColor":         { "displayName": "TODAY color",              "type": { "fill": { "solid": { "color": true } } } },
-                "showPastShading":         { "displayName": "Past shading",             "type": { "bool": true } },
-                "pastShadingColor":        { "displayName": "Past shading color",       "type": { "fill": { "solid": { "color": true } } } },
-                "pastShadingOpacityPct":   { "displayName": "Past shading opacity (%)", "type": { "numeric": true } },
-                "showFutureShading":       { "displayName": "Future shading",           "type": { "bool": true } },
-                "futureShadingColor":      { "displayName": "Future shading color",     "type": { "fill": { "solid": { "color": true } } } },
-                "futureShadingOpacityPct": { "displayName": "Future shading opacity (%)","type": { "numeric": true } },
-                "fontFamily":              { "displayName": "Font",                     "type": { "formatting": { "fontFamily": true } } },
-                "fontSize":                { "displayName": "Size",                     "type": { "formatting": { "fontSize": true } } },
-                "bold":                    { "displayName": "Bold",                     "type": { "bool": true } },
-                "italic":                  { "displayName": "Italic",                   "type": { "bool": true } },
-                "underline":               { "displayName": "Underline",                "type": { "bool": true } }
+                "showYear": {
+                    "displayName": "Show Year",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "yearFill": {
+                    "displayName": "Year chevron color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "showQuarter": {
+                    "displayName": "Show Quarter",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "quarterFill": {
+                    "displayName": "Quarter chevron color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "showMonth": {
+                    "displayName": "Show Month",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "monthFill": {
+                    "displayName": "Month chevron color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "showQuarterGridlines": {
+                    "displayName": "Show quarter gridlines",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "quarterGridlineColor": {
+                    "displayName": "Quarter gridline color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "quarterGridlineOpacityPct": {
+                    "displayName": "Quarter gridline opacity (%)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "quarterGridlineStyle": {
+                    "displayName": "Quarter gridline style",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "solid",
+                                "displayName": "Solid"
+                            },
+                            {
+                                "value": "dashed",
+                                "displayName": "Dashed"
+                            },
+                            {
+                                "value": "dotted",
+                                "displayName": "Dotted"
+                            }
+                        ]
+                    }
+                },
+                "showMonthGridlines": {
+                    "displayName": "Show month gridlines",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "monthGridlineColor": {
+                    "displayName": "Month gridline color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "monthGridlineOpacityPct": {
+                    "displayName": "Month gridline opacity (%)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "monthGridlineStyle": {
+                    "displayName": "Month gridline style",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "solid",
+                                "displayName": "Solid"
+                            },
+                            {
+                                "value": "dashed",
+                                "displayName": "Dashed"
+                            },
+                            {
+                                "value": "dotted",
+                                "displayName": "Dotted"
+                            }
+                        ]
+                    }
+                },
+                "showTodayLine": {
+                    "displayName": "TODAY line",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "showTodayLabel": {
+                    "displayName": "TODAY label",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "todayLabelColor": {
+                    "displayName": "TODAY color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "showPastShading": {
+                    "displayName": "Past shading",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "pastShadingColor": {
+                    "displayName": "Past shading color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "pastShadingOpacityPct": {
+                    "displayName": "Past shading opacity (%)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "showFutureShading": {
+                    "displayName": "Future shading",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "futureShadingColor": {
+                    "displayName": "Future shading color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "futureShadingOpacityPct": {
+                    "displayName": "Future shading opacity (%)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "fontFamily": {
+                    "displayName": "Font",
+                    "type": {
+                        "formatting": {
+                            "fontFamily": true
+                        }
+                    }
+                },
+                "fontSize": {
+                    "displayName": "Size",
+                    "type": {
+                        "formatting": {
+                            "fontSize": true
+                        }
+                    }
+                },
+                "bold": {
+                    "displayName": "Bold",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "italic": {
+                    "displayName": "Italic",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "underline": {
+                    "displayName": "Underline",
+                    "type": {
+                        "bool": true
+                    }
+                }
             }
         },
         "themeColors": {
-            "displayName": "Table — Theme Colors",
-            "description": "v2.0 — Color overrides for the matrix-substrate table region (bottom half of the composed visual). Active appearance theme is the default; each override here is layered on top.",
+            "displayName": "Table \u2014 Theme Colors",
+            "description": "v2.0 \u2014 Color overrides for the matrix-substrate table region (bottom half of the composed visual). Active appearance theme is the default; each override here is layered on top.",
             "properties": {
-                "headerBg": { "displayName": "Header background", "type": { "fill": { "solid": { "color": true } } } },
-                "headerFg": { "displayName": "Header text",       "type": { "fill": { "solid": { "color": true } } } },
-                "bodyFg":   { "displayName": "Body text",         "type": { "fill": { "solid": { "color": true } } } },
-                "borderFg": { "displayName": "Border",            "type": { "fill": { "solid": { "color": true } } } },
-                "altRowBg": { "displayName": "Alternate row background", "type": { "fill": { "solid": { "color": true } } } }
+                "headerBg": {
+                    "displayName": "Header background",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "headerFg": {
+                    "displayName": "Header text",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "bodyFg": {
+                    "displayName": "Body text",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "borderFg": {
+                    "displayName": "Border",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "altRowBg": {
+                    "displayName": "Alternate row background",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                }
             }
         },
         "totals": {
-            "displayName": "Table — Totals",
-            "description": "v2.0 — Grand-total row for the matrix-substrate table region.",
+            "displayName": "Table \u2014 Totals",
+            "description": "v2.0 \u2014 Grand-total row for the matrix-substrate table region.",
             "properties": {
-                "showGrandTotal": { "displayName": "Show grand total", "type": { "bool": true } }
+                "showGrandTotal": {
+                    "displayName": "Show grand total",
+                    "type": {
+                        "bool": true
+                    }
+                }
             }
         },
         "tableLayout": {
             "displayName": "Table Layout",
-            "description": "v2.0 — Row height, body font size, denomination, decimal places, and K/M letter suffix for the matrix-substrate table region.",
+            "description": "v2.0 \u2014 Row height, body font size, denomination, decimal places, and K/M letter suffix for the matrix-substrate table region.",
             "properties": {
-                "rowHeight":    { "displayName": "Row height (px)",   "type": { "numeric": true } },
-                "bodyFontSize": { "displayName": "Body font size (px)", "type": { "numeric": true } },
+                "rowHeight": {
+                    "displayName": "Row height (px)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "bodyFontSize": {
+                    "displayName": "Body font size (px)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
                 "denomination": {
                     "displayName": "Denomination",
-                    "type": { "enumeration": [
-                        { "value": "dollars",   "displayName": "Dollars" },
-                        { "value": "thousands", "displayName": "Thousands (K)" },
-                        { "value": "millions",  "displayName": "Millions (M)" }
-                    ]}
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "dollars",
+                                "displayName": "Dollars"
+                            },
+                            {
+                                "value": "thousands",
+                                "displayName": "Thousands (K)"
+                            },
+                            {
+                                "value": "millions",
+                                "displayName": "Millions (M)"
+                            }
+                        ]
+                    }
                 },
-                "decimals":   { "displayName": "Decimal places", "type": { "numeric": true } },
-                "showLetter": { "displayName": "Append K/M letter", "type": { "bool": true } }
+                "decimals": {
+                    "displayName": "Decimal places",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "showLetter": {
+                    "displayName": "Append K/M letter",
+                    "type": {
+                        "bool": true
+                    }
+                }
             }
         },
         "reportingDate": {
-            "displayName": "Table — Reporting date",
-            "description": "v2.0 — Reporting month anchor (YYYY-MM-DD) used by the matrix-substrate table region for MTD/QTD/YTD/FY period synthesis.",
+            "displayName": "Table \u2014 Reporting date",
+            "description": "v2.0 \u2014 Reporting month anchor (YYYY-MM-DD) used by the matrix-substrate table region for MTD/QTD/YTD/FY period synthesis.",
             "properties": {
-                "selectedDate": { "displayName": "Reporting month (YYYY-MM-DD)", "type": { "text": true } }
+                "selectedDate": {
+                    "displayName": "Reporting month (YYYY-MM-DD)",
+                    "type": {
+                        "text": true
+                    }
+                }
             }
         },
         "compareAgainst": {
-            "displayName": "Table — Compare against",
-            "description": "v2.0 — Comparison mode for IBCS variance encoding in the matrix-substrate table region.",
+            "displayName": "Table \u2014 Compare against",
+            "description": "v2.0 \u2014 Comparison mode for IBCS variance encoding in the matrix-substrate table region.",
             "properties": {
                 "mode": {
                     "displayName": "Mode",
-                    "type": { "enumeration": [
-                        { "value": "priorYear",          "displayName": "Prior year (AvA)" },
-                        { "value": "budget",             "displayName": "Budget (BvA)" },
-                        { "value": "forecast",           "displayName": "Forecast (FvA)" },
-                        { "value": "forecastVsForecast", "displayName": "Forecast vs forecast (FvF)" }
-                    ]}
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "priorYear",
+                                "displayName": "Prior year (AvA)"
+                            },
+                            {
+                                "value": "budget",
+                                "displayName": "Budget (BvA)"
+                            },
+                            {
+                                "value": "forecast",
+                                "displayName": "Forecast (FvA)"
+                            },
+                            {
+                                "value": "forecastVsForecast",
+                                "displayName": "Forecast vs forecast (FvF)"
+                            }
+                        ]
+                    }
                 }
             }
         },
         "appearance": {
-            "displayName": "Table — Appearance theme",
-            "description": "v2.0 — Built-in appearance theme for the matrix-substrate table region (Bloomberg / Launch / Newsprint / Quartz).",
+            "displayName": "Table \u2014 Appearance theme",
+            "description": "v2.0 \u2014 Built-in appearance theme for the matrix-substrate table region (Bloomberg / Launch / Newsprint / Quartz).",
             "properties": {
                 "theme": {
                     "displayName": "Theme",
-                    "type": { "enumeration": [
-                        { "value": "bloomberg", "displayName": "Bloomberg" },
-                        { "value": "launch",    "displayName": "Launch" },
-                        { "value": "newsprint", "displayName": "Newsprint" },
-                        { "value": "quartz",    "displayName": "Quartz" }
-                    ]}
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "bloomberg",
+                                "displayName": "Bloomberg"
+                            },
+                            {
+                                "value": "launch",
+                                "displayName": "Launch"
+                            },
+                            {
+                                "value": "newsprint",
+                                "displayName": "Newsprint"
+                            },
+                            {
+                                "value": "quartz",
+                                "displayName": "Quartz"
+                            }
+                        ]
+                    }
                 }
             }
         },
         "columnVisibility": {
-            "displayName": "Table — Column visibility",
-            "description": "v2.0 — Per-measure column visibility for the matrix-substrate table region. When false the column is excluded from headers, data cells, and the grand total.",
+            "displayName": "Table \u2014 Column visibility",
+            "description": "v2.0 \u2014 Per-measure column visibility for the matrix-substrate table region. When false the column is excluded from headers, data cells, and the grand total.",
             "properties": {
-                "visible": { "displayName": "Visible", "type": { "bool": true } }
+                "visible": {
+                    "displayName": "Visible",
+                    "type": {
+                        "bool": true
+                    }
+                }
             }
         },
         "columnHeaders": {
-            "displayName": "Table — Column headers",
+            "displayName": "Table \u2014 Column headers",
             "properties": {
                 "groupLabel": {
                     "displayName": "Column group",
                     "description": "Outer-span group label. Consecutive measures sharing the same label cluster under one synthetic header row above the leaves.",
-                    "type": { "text": true }
+                    "type": {
+                        "text": true
+                    }
                 }
             }
         },
         "columnFavorability": {
-            "displayName": "Table — Favorability direction",
-            "description": "v2.0 — Per-measure semantic direction for IBCS variance coloring in the matrix-substrate table region. 'higherIsBetter' maps positive variance to the positive color; 'lowerIsBetter' inverts it for cost measures; 'neutral' suppresses coloring.",
+            "displayName": "Table \u2014 Favorability direction",
+            "description": "v2.0 \u2014 Per-measure semantic direction for IBCS variance coloring in the matrix-substrate table region. 'higherIsBetter' maps positive variance to the positive color; 'lowerIsBetter' inverts it for cost measures; 'neutral' suppresses coloring.",
             "properties": {
                 "direction": {
                     "displayName": "Favorability direction",
-                    "type": { "enumeration": [
-                        { "value": "higherIsBetter", "displayName": "Higher is better" },
-                        { "value": "lowerIsBetter",  "displayName": "Lower is better" },
-                        { "value": "neutral",        "displayName": "No coloring" }
-                    ]}
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "higherIsBetter",
+                                "displayName": "Higher is better"
+                            },
+                            {
+                                "value": "lowerIsBetter",
+                                "displayName": "Lower is better"
+                            },
+                            {
+                                "value": "neutral",
+                                "displayName": "No coloring"
+                            }
+                        ]
+                    }
                 }
             }
         },
         "computedColumns": {
-            "displayName": "Table — Computed columns",
-            "description": "v2.0 — Period synthesis (MTD/QTD/YTD/FY) and variance (Δ, %Δ) auto-generated columns for the matrix-substrate table region.",
+            "displayName": "Table \u2014 Computed columns",
+            "description": "v2.0 \u2014 Period synthesis (MTD/QTD/YTD/FY) and variance (\u0394, %\u0394) auto-generated columns for the matrix-substrate table region.",
             "properties": {
-                "showDelta":     { "displayName": "Show Δ columns",     "type": { "bool": true } },
-                "showDeltaPct":  { "displayName": "Show %Δ columns",    "type": { "bool": true } },
-                "showMtd":       { "displayName": "Show MTD",           "type": { "bool": true } },
-                "showQtd":       { "displayName": "Show QTD",           "type": { "bool": true } },
-                "showYtd":       { "displayName": "Show YTD",           "type": { "bool": true } },
-                "showFy":        { "displayName": "Show FY",            "type": { "bool": true } },
-                "showPriorYear": { "displayName": "Show prior year",    "type": { "bool": true } },
-                "fyStartMonth":  { "displayName": "Fiscal year start month (1-12)", "type": { "numeric": true } }
+                "showDelta": {
+                    "displayName": "Show \u0394 columns",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "showDeltaPct": {
+                    "displayName": "Show %\u0394 columns",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "showMtd": {
+                    "displayName": "Show MTD",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "showQtd": {
+                    "displayName": "Show QTD",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "showYtd": {
+                    "displayName": "Show YTD",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "showFy": {
+                    "displayName": "Show FY",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "showPriorYear": {
+                    "displayName": "Show prior year",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "fyStartMonth": {
+                    "displayName": "Fiscal year start month (1-12)",
+                    "type": {
+                        "numeric": true
+                    }
+                }
             }
         },
         "ibcs": {
-            "displayName": "Table — IBCS variance encoding",
-            "description": "v2.0 — IBCS-style variance arrows + color encoding for synthesized Δ and %Δ columns in the matrix-substrate table region.",
+            "displayName": "Table \u2014 IBCS variance encoding",
+            "description": "v2.0 \u2014 IBCS-style variance arrows + color encoding for synthesized \u0394 and %\u0394 columns in the matrix-substrate table region.",
             "properties": {
-                "enabled":    { "displayName": "Enable IBCS arrows + colors", "type": { "bool": true } },
+                "enabled": {
+                    "displayName": "Enable IBCS arrows + colors",
+                    "type": {
+                        "bool": true
+                    }
+                },
                 "arrowStyle": {
                     "displayName": "Arrow style",
-                    "type": { "enumeration": [
-                        { "value": "classic", "displayName": "Classic (glyph + color)" },
-                        { "value": "minimal", "displayName": "Minimal (color only)" }
-                    ]}
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "classic",
+                                "displayName": "Classic (glyph + color)"
+                            },
+                            {
+                                "value": "minimal",
+                                "displayName": "Minimal (color only)"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        "ganttLayout": {
+            "displayName": "Gantt Layout",
+            "description": "Outer margins around the Gantt chart region. Percentages of viewport.",
+            "properties": {
+                "topMarginPercent": {
+                    "displayName": "Top margin (%)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "bottomMarginPercent": {
+                    "displayName": "Bottom margin (%)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "leftMarginPercent": {
+                    "displayName": "Left margin (%)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "rightMarginPercent": {
+                    "displayName": "Right margin (%)",
+                    "type": {
+                        "numeric": true
+                    }
                 }
             }
         }
@@ -432,51 +1352,145 @@
         {
             "conditions": [
                 {
-                    "activity":          { "max": 1 },
-                    "area":              { "max": 1 },
-                    "startDate":         { "max": 1 },
-                    "endDate":           { "max": 1 },
-                    "milestoneActivity": { "max": 1 },
-                    "milestoneDate":     { "max": 1 },
-                    "milestoneType":     { "max": 1 },
-                    "milestoneLabel":    { "max": 1 },
-                    "labelPosition":     { "max": 1 },
-                    "activityNote":      { "max": 1 },
-                    "milestoneNote":     { "max": 1 }
+                    "activity": {
+                        "max": 1
+                    },
+                    "area": {
+                        "max": 1
+                    },
+                    "startDate": {
+                        "max": 1
+                    },
+                    "endDate": {
+                        "max": 1
+                    },
+                    "milestoneActivity": {
+                        "max": 1
+                    },
+                    "milestoneDate": {
+                        "max": 1
+                    },
+                    "milestoneType": {
+                        "max": 1
+                    },
+                    "milestoneLabel": {
+                        "max": 1
+                    },
+                    "labelPosition": {
+                        "max": 1
+                    },
+                    "activityNote": {
+                        "max": 1
+                    },
+                    "milestoneNote": {
+                        "max": 1
+                    }
                 }
             ],
             "table": {
                 "rows": {
                     "select": [
-                        { "for": { "in": "activity" } },
-                        { "for": { "in": "area" } },
-                        { "for": { "in": "startDate" } },
-                        { "for": { "in": "endDate" } },
-                        { "for": { "in": "milestoneActivity" } },
-                        { "for": { "in": "milestoneDate" } },
-                        { "for": { "in": "milestoneType" } },
-                        { "for": { "in": "milestoneLabel" } },
-                        { "for": { "in": "labelPosition" } },
-                        { "for": { "in": "activityNote" } },
-                        { "for": { "in": "milestoneNote" } }
+                        {
+                            "for": {
+                                "in": "activity"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "area"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "startDate"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "endDate"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "milestoneActivity"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "milestoneDate"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "milestoneType"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "milestoneLabel"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "labelPosition"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "activityNote"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "milestoneNote"
+                            }
+                        }
                     ],
                     "dataReductionAlgorithm": {
-                        "top": { "count": 5000 }
+                        "top": {
+                            "count": 5000
+                        }
                     }
                 }
             }
         },
         {
+            "conditions": [
+                {
+                    "tableActivityRows": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "tableMilestoneRows": {
+                        "max": 1
+                    },
+                    "tableValues": {
+                        "min": 1
+                    }
+                }
+            ],
             "matrix": {
                 "rows": {
                     "select": [
-                        { "for": { "in": "tableActivityRows" } },
-                        { "for": { "in": "tableMilestoneRows" } }
+                        {
+                            "for": {
+                                "in": "tableActivityRows"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "tableMilestoneRows"
+                            }
+                        }
                     ]
                 },
                 "values": {
                     "select": [
-                        { "for": { "in": "tableValues" } }
+                        {
+                            "for": {
+                                "in": "tableValues"
+                            }
+                        }
                     ]
                 }
             }
