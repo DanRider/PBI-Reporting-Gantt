@@ -148,9 +148,9 @@ function milestoneLabelFont(card: {
 export class Visual implements IVisual {
     private host: IVisualHost;
     private root: HTMLElement;
-    // v2.0 — two render regions under root; the layout coordinator in
-    // update() sizes them based on which wells are bound.
-    private ganttDiv: HTMLDivElement;
+    // v2.0 — matrix render region appended as a sibling of the SVG when
+    // table-side wells are bound; hidden by display:none otherwise so the
+    // v1.8 SVG-on-root render path is preserved unchanged.
     private matrixDiv: HTMLDivElement;
     private svg: d3Selection<SVGSVGElement, unknown, null, undefined>;
     private bgG: d3Selection<SVGGElement, unknown, null, undefined>;
@@ -177,29 +177,15 @@ export class Visual implements IVisual {
         this.settingsService = new FormattingSettingsService();
         this.settings = new VisualFormattingSettingsModel();
 
-        // v2.0 layout coordinator — two render regions under root using
-        // position:absolute. Sidesteps flex sizing issues where PBI's
-        // iframe layout doesn't propagate height to flex children. Each
-        // region's pixel size is set explicitly in update() from viewport.
+        // v2.0 — SVG mounts directly on root per the v1.8 pattern, sized via
+        // explicit width/height attributes set in update() from viewport dims.
+        // The matrix region is appended as a SIBLING of the SVG (also on root)
+        // with position:absolute so it can overlay the bottom 40% of root when
+        // table-side wells are bound; display:none keeps it out of the layout
+        // entirely when unbound, preserving v1.8 render verbatim.
         this.root.style.position = "relative";
 
-        this.ganttDiv = document.createElement("div");
-        this.ganttDiv.className = "gantt-region";
-        this.ganttDiv.style.position = "absolute";
-        this.ganttDiv.style.left = "0";
-        this.ganttDiv.style.top = "0";
-        this.ganttDiv.style.overflow = "hidden";
-        this.root.appendChild(this.ganttDiv);
-
-        this.matrixDiv = document.createElement("div");
-        this.matrixDiv.className = "matrix-region";
-        this.matrixDiv.style.position = "absolute";
-        this.matrixDiv.style.left = "0";
-        this.matrixDiv.style.overflow = "auto";
-        this.matrixDiv.style.display = "none";
-        this.root.appendChild(this.matrixDiv);
-
-        this.svg = d3Select(this.ganttDiv)
+        this.svg = d3Select(this.root)
             .append("svg")
             .attr("class", "reporting-gantt")
             .attr("width", "100%")
@@ -207,8 +193,17 @@ export class Visual implements IVisual {
 
         this.tooltipService = createTooltipServiceWrapper(
             this.host.tooltipService,
-            this.ganttDiv
+            this.root
         );
+
+        this.matrixDiv = document.createElement("div");
+        this.matrixDiv.className = "matrix-region";
+        this.matrixDiv.style.position = "absolute";
+        this.matrixDiv.style.left = "0";
+        this.matrixDiv.style.width = "100%";
+        this.matrixDiv.style.overflow = "auto";
+        this.matrixDiv.style.display = "none";
+        this.root.appendChild(this.matrixDiv);
 
         this.bgG = this.svg.append("g").attr("class", "background-layer");
         this.axisG = this.svg.append("g").attr("class", "time-axis");
@@ -227,51 +222,28 @@ export class Visual implements IVisual {
             dataView
         );
 
-        // v2.0 layout coordinator: detect which render heads to mount based
-        // on which wells are bound. PBI populates dataView.table when the
-        // 11 v1.8 Gantt wells are bound, and dataView.matrix when the 3
-        // v2.0 table-side wells are bound. Both regions can be present at
-        // once when the user binds both well groups.
-        const ganttBound = !!(dataView?.table?.rows?.length);
+        // v2.0 minimal layout coordinator. When the matrix-side wells are
+        // bound, the matrix region occupies the bottom 40% of the viewport
+        // and the Gantt SVG height is shrunk to 60%. When unbound, the SVG
+        // fills the full viewport — exactly v1.8 behavior, no regression.
         const tableBound = !!(dataView?.matrix?.rows?.root?.children?.length);
-        // Four cases — see Wave 3 spec § Layout matrix:
-        //   both bound:        60/40 Gantt/matrix
-        //   gantt only:        100/0 (Gantt full)
-        //   matrix only:       0/100 (matrix full; Gantt skipped)
-        //   neither bound:     100/0 (Gantt gets the viewport so its v1.8
-        //                      empty-state prompt — "Bind Activity, ..." —
-        //                      renders for first-time users).
-        const tableOnly = tableBound && !ganttBound;
-        const ganttFraction = tableOnly ? 0 : (tableBound ? GANTT_FRACTION_BOTH_BOUND : 1);
-        const tableFraction = 1 - ganttFraction;
+        const ganttFraction = tableBound ? GANTT_FRACTION_BOTH_BOUND : 1;
         const ganttHeightPx = options.viewport.height * ganttFraction;
-        const tableHeightPx = options.viewport.height * tableFraction;
-        const fullWidthPx = options.viewport.width;
-        this.ganttDiv.style.width = fullWidthPx + "px";
-        this.ganttDiv.style.height = ganttHeightPx + "px";
-        this.ganttDiv.style.display = ganttFraction > 0 ? "block" : "none";
-        this.matrixDiv.style.width = fullWidthPx + "px";
-        this.matrixDiv.style.height = tableHeightPx + "px";
-        this.matrixDiv.style.top = ganttHeightPx + "px";
-        this.matrixDiv.style.display = tableBound ? "block" : "none";
+        const matrixHeightPx = options.viewport.height - ganttHeightPx;
 
-        // Mount the matrix render head when the table-side wells are bound.
-        while (this.matrixDiv.firstChild) this.matrixDiv.removeChild(this.matrixDiv.firstChild);
         if (tableBound && dataView?.matrix) {
-            const matrixEl = MatrixDataviewHtmlFormatter.format(dataView.matrix, this.buildMatrixFormatOptions());
-            this.matrixDiv.appendChild(matrixEl);
+            this.matrixDiv.style.display = "block";
+            this.matrixDiv.style.top = ganttHeightPx + "px";
+            this.matrixDiv.style.height = matrixHeightPx + "px";
+            while (this.matrixDiv.firstChild) this.matrixDiv.removeChild(this.matrixDiv.firstChild);
+            this.matrixDiv.appendChild(MatrixDataviewHtmlFormatter.format(dataView.matrix, this.buildMatrixFormatOptions()));
+        } else {
+            this.matrixDiv.style.display = "none";
         }
-
-        // Skip the SVG-side Gantt render ONLY in table-only mode (table
-        // wells bound + no Gantt wells). When neither is bound, fall
-        // through to let the v1.8 Gantt code draw its own empty-state
-        // ("Bind Activity, Swim Lane, Start Date, End Date to see the
-        // roadmap") — preserving v1.8 user guidance during initial bind.
-        if (tableOnly) return;
 
         const viewport = options.viewport;
         const width = viewport.width;
-        const height = viewport.height * ganttFraction;
+        const height = ganttHeightPx;
 
         this.svg.attr("width", width).attr("height", height);
 
