@@ -50,6 +50,12 @@ import { renderConfigurationGuide } from "./configGuide";
 // a later wave once matrix-shaped well bindings are reliably wireable.
 import { renderSimpleTable } from "./render/table/simpleTable";
 
+// v2.1 Wave 1 — controls panel chrome (hamburger + slide-in panel).
+// Inserts on the LEFT of the visual area. When closed (default first-launch
+// state) the panel occupies 0% width and the visual renders IDENTICALLY to
+// v2.0. When open, every region's left edge shifts right by panel.widthPct().
+import { mountControlsPanel, ControlsPanelHandle } from "./render/controlsPanel";
+
 const GANTT_FRACTION_BOTH_BOUND = 0.6;
 
 const SWIM_LANE_MIN = 100;
@@ -161,6 +167,11 @@ export class Visual implements IVisual {
     // Replaces the v1.8 SVG "Bind Activity..." prompt with a richer
     // self-documenting help card.
     private guideDiv: HTMLDivElement;
+    // v2.1 W1 — scrollable wrapper around the Gantt SVG. When the activity
+    // body would exceed the visible Gantt region height (large datasets
+    // squeezed past MIN_ROW_HEIGHT), the SVG grows past the wrapper and
+    // rows scroll vertically inside instead of being clipped invisibly.
+    private ganttScrollWrapper: HTMLDivElement;
     private svg: d3Selection<SVGSVGElement, unknown, null, undefined>;
     private bgG: d3Selection<SVGGElement, unknown, null, undefined>;
     private axisG: d3Selection<SVGGElement, unknown, null, undefined>;
@@ -173,6 +184,10 @@ export class Visual implements IVisual {
     private tooltipService: ITooltipServiceWrapper;
     private settingsService: FormattingSettingsService;
     private settings: VisualFormattingSettingsModel;
+    // v2.1 W1 — controls panel chrome handle + last-update cache (for re-render
+    // when the panel toggles, since PBI's host re-call isn't guaranteed).
+    private controls: ControlsPanelHandle;
+    private lastOptions: VisualUpdateOptions | null = null;
 
     constructor(options?: VisualConstructorOptions) {
         // pbiviz 6.2's auto-generated visualPlugin.ts emits
@@ -194,7 +209,24 @@ export class Visual implements IVisual {
         // entirely when unbound, preserving v1.8 render verbatim.
         this.root.style.position = "relative";
 
-        this.svg = d3Select(this.root)
+        // v2.1 W1 — Gantt SVG mounts inside a scrollable wrapper div. The
+        // wrapper owns position:absolute on root (its left/width/height get
+        // set in update() from viewport - panelWidthPx and ganttHeightPx).
+        // The SVG inside flows in normal block layout with width=100% and a
+        // content-fit height set in update() once bodyH is known. When the
+        // activity body exceeds the visible region, the SVG grows past the
+        // wrapper and overflow-y:auto scrolls rows into view.
+        this.ganttScrollWrapper = document.createElement("div");
+        this.ganttScrollWrapper.className = "gantt-scroll-wrapper";
+        this.ganttScrollWrapper.style.position = "absolute";
+        this.ganttScrollWrapper.style.left = "0";
+        this.ganttScrollWrapper.style.top = "0";
+        this.ganttScrollWrapper.style.width = "100%";
+        this.ganttScrollWrapper.style.overflowY = "auto";
+        this.ganttScrollWrapper.style.overflowX = "hidden";
+        this.root.appendChild(this.ganttScrollWrapper);
+
+        this.svg = d3Select(this.ganttScrollWrapper)
             .append("svg")
             .attr("class", "reporting-gantt")
             .attr("width", "100%")
@@ -230,6 +262,16 @@ export class Visual implements IVisual {
         this.root.appendChild(this.guideDiv);
         renderConfigurationGuide(this.guideDiv, undefined);
 
+        // v2.1 W1 — controls panel chrome. Mounts AFTER guideDiv/matrixDiv on
+        // root so the hamburger (z-index 11) overlays everything. initiallyOpen
+        // is false so first-launch render is byte-identical to v2.0; the
+        // onToggle callback re-runs update() with the cached lastOptions so
+        // the layout recomputes against the new widthPct().
+        this.controls = mountControlsPanel(this.root, {
+            initiallyOpen: false,
+            onToggle: () => this.requestRerender(),
+        });
+
         this.bgG = this.svg.append("g").attr("class", "background-layer");
         this.axisG = this.svg.append("g").attr("class", "time-axis");
         this.railG = this.svg.append("g").attr("class", "swimlane-rail-group");
@@ -241,6 +283,12 @@ export class Visual implements IVisual {
     }
 
     public update(options: VisualUpdateOptions): void {
+        // v2.1 W1 — stash the last options so the controls-panel onToggle
+        // callback can re-invoke update() with the same dataView/viewport
+        // when the panel opens/closes (PBI host isn't guaranteed to re-call
+        // update() on a pure DOM toggle).
+        this.lastOptions = options;
+
         const dataView = options.dataViews && options.dataViews[0];
         this.settings = this.settingsService.populateFormattingSettingsModel(
             VisualFormattingSettingsModel,
@@ -259,6 +307,14 @@ export class Visual implements IVisual {
         // explicit "show help" toggle from the format pane.
         this.guideDiv.style.display = "none";
 
+        // v2.1 W1 — controls panel offset. When the panel is open, the panel
+        // reserves widthPct() of root on the LEFT; every other region's left
+        // edge shifts right by panelWidthPx and its width shrinks accordingly.
+        // When the panel is closed (default first-launch state), widthPct() is
+        // 0, panelWidthPx is 0, and the v2.0 render is preserved byte-identical.
+        const panelWidthPct = this.controls.widthPct();
+        const panelWidthPx = options.viewport.width * (panelWidthPct / 100);
+
         // v2.0 layout coordinator. The simple-table renderer reads from
         // dataView.table.rows (the v1.8 binding shape that's already
         // populated), so the matrix region mounts below the Gantt
@@ -275,6 +331,8 @@ export class Visual implements IVisual {
             this.matrixDiv.style.display = "block";
             this.matrixDiv.style.top = ganttHeightPx + "px";
             this.matrixDiv.style.height = matrixHeightPx + "px";
+            this.matrixDiv.style.left = panelWidthPx + "px";
+            this.matrixDiv.style.width = (options.viewport.width - panelWidthPx) + "px";
             this.matrixDiv.style.background = "#ffffff";
             this.matrixDiv.style.borderTop = "2px solid #d0d0d0";
             renderSimpleTable(this.matrixDiv, dataView);
@@ -283,9 +341,18 @@ export class Visual implements IVisual {
         }
 
         const viewport = options.viewport;
-        const width = viewport.width;
+        const width = viewport.width - panelWidthPx;
         const height = ganttHeightPx;
 
+        // v2.1 W1 — wrapper owns the visible Gantt region's left/width/height
+        // (driven by the controls panel widthPct). SVG inside flows naturally
+        // with width=wrapper-inner and height initially = visible region; the
+        // height is re-set later in this update() once bodyH is known, to
+        // max(visibleHeight, contentHeight), so the wrapper's overflow-y
+        // scrolls when the activity body exceeds the visible region.
+        this.ganttScrollWrapper.style.left = panelWidthPx + "px";
+        this.ganttScrollWrapper.style.width = width + "px";
+        this.ganttScrollWrapper.style.height = height + "px";
         this.svg.attr("width", width).attr("height", height);
 
         const vm: RoadmapViewModel = convertDataView(dataView);
@@ -445,6 +512,14 @@ export class Visual implements IVisual {
 
         const bodyY = headerOffset + axisH;
 
+        // v2.1 W1 — grow the SVG to fit the body when content (header + axis +
+        // body + bottom margin) exceeds the visible Gantt region. The wrapper
+        // clips at `height`; SVG content above that triggers vertical scroll.
+        // When content fits, SVG stays at the visible height — no scrollbar.
+        const ganttContentHeight = headerOffset + axisH + bodyH + bottomMarginPx;
+        const svgRenderHeight = Math.max(height, ganttContentHeight);
+        this.svg.attr("height", svgRenderHeight);
+
         // ── Background: gridlines + past/future shading + TODAY line ─────────
         const bgY = headerOffset + (axisLayout.yearY >= 0 ? axisLayout.yearH : 0);
         const bgH = (axisH - (axisLayout.yearY >= 0 ? axisLayout.yearH : 0)) + bodyH;
@@ -551,6 +626,15 @@ export class Visual implements IVisual {
         };
         this.tooltipService.addTooltip(barsSel, makeActivityTooltip(tooltipCfg));
         this.tooltipService.addTooltip(starsSel, makeMilestoneTooltip(tooltipCfg));
+    }
+
+    // v2.1 W1 — re-run the full layout + render against the cached lastOptions.
+    // Triggered by the controls-panel onToggle callback when the panel opens or
+    // closes, since PBI's host doesn't re-call update() on a pure DOM toggle.
+    private requestRerender(): void {
+        if (this.lastOptions) {
+            this.update(this.lastOptions);
+        }
     }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {
