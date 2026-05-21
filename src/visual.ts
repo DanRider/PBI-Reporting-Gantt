@@ -46,6 +46,11 @@ import { SelectionWiring } from "./primitives/selectionWiring";
 import type { FormatOptions } from "./model/formatOptions";
 import { DEFAULT_FORMAT_HINTS } from "./model/formatOptions";
 
+// v2.0 configuration guide — self-documenting fallback shown when required
+// wells aren't bound. Replaces the v1.8 "Bind Activity..." prompt with a
+// richer in-visual help card so users can debug bindings on their own.
+import { renderConfigurationGuide, ganttRequirementsMet } from "./configGuide";
+
 const GANTT_FRACTION_BOTH_BOUND = 0.6;
 
 const SWIM_LANE_MIN = 100;
@@ -152,6 +157,11 @@ export class Visual implements IVisual {
     // table-side wells are bound; hidden by display:none otherwise so the
     // v1.8 SVG-on-root render path is preserved unchanged.
     private matrixDiv: HTMLDivElement;
+    // v2.0 — configuration guide region rendered when the v1.8 Gantt's
+    // required wells (Activity + Start Date + End Date) aren't bound.
+    // Replaces the v1.8 SVG "Bind Activity..." prompt with a richer
+    // self-documenting help card.
+    private guideDiv: HTMLDivElement;
     private svg: d3Selection<SVGSVGElement, unknown, null, undefined>;
     private bgG: d3Selection<SVGGElement, unknown, null, undefined>;
     private axisG: d3Selection<SVGGElement, unknown, null, undefined>;
@@ -205,6 +215,22 @@ export class Visual implements IVisual {
         this.matrixDiv.style.display = "none";
         this.root.appendChild(this.matrixDiv);
 
+        this.guideDiv = document.createElement("div");
+        this.guideDiv.className = "config-guide";
+        this.guideDiv.style.position = "absolute";
+        this.guideDiv.style.left = "0";
+        this.guideDiv.style.top = "0";
+        this.guideDiv.style.width = "100%";
+        this.guideDiv.style.height = "100%";
+        this.guideDiv.style.display = "flex";
+        this.guideDiv.style.alignItems = "flex-start";
+        this.guideDiv.style.justifyContent = "center";
+        this.guideDiv.style.overflow = "auto";
+        this.guideDiv.style.background = "#fff";
+        this.guideDiv.style.zIndex = "10";
+        this.root.appendChild(this.guideDiv);
+        renderConfigurationGuide(this.guideDiv, undefined);
+
         this.bgG = this.svg.append("g").attr("class", "background-layer");
         this.axisG = this.svg.append("g").attr("class", "time-axis");
         this.railG = this.svg.append("g").attr("class", "swimlane-rail-group");
@@ -221,6 +247,20 @@ export class Visual implements IVisual {
             VisualFormattingSettingsModel,
             dataView
         );
+
+        // v2.0 configuration guide gate — if the v1.8 Gantt requirements
+        // (Activity + Start Date + End Date) are not bound, show the
+        // self-documenting help card and skip the Gantt + matrix render
+        // paths entirely. This replaces the v1.8 SVG "Bind Activity..."
+        // prompt with a richer banner that lists EVERY well, marks each
+        // ✓ / ✗ / ○, and explains what each contributes.
+        if (!ganttRequirementsMet(dataView)) {
+            this.guideDiv.style.display = "flex";
+            renderConfigurationGuide(this.guideDiv, dataView);
+            this.matrixDiv.style.display = "none";
+            return;
+        }
+        this.guideDiv.style.display = "none";
 
         // v2.0 minimal layout coordinator. When the matrix-side wells are
         // bound, the matrix region occupies the bottom 40% of the viewport
