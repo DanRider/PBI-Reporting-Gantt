@@ -1,19 +1,7 @@
-// v2.1 audit-fix #23 — quarterly time slider, Tableau-style polish.
-//
-// Scratch-built (no external deps), patterned on Tableau's range filter:
-//   - Offset-preserving drag (thumb sticks to where you grabbed it,
-//     doesn't snap-to-cursor — eliminates the jumpy feel)
-//   - Track click jumps the nearest thumb (Fitts-friendly fallback when
-//     the thumb is small or far away)
-//   - Persistent value labels above each thumb (no mystery about which
-//     quarter you're picking; updates live during drag)
-//   - rAF-batched DOM updates (smooth at 60fps even when drag math is
-//     thrashing — the visual position decouples from the snap state)
-//   - 18px thumb on 30px transparent hit-zone (Fitts' Law)
-//   - Snap-on-pointerup-only (free drag between ticks, lands on a tick
-//     when the user lets go — no per-pixel jumpiness)
-//   - Show-All button toggles between range and unfiltered modes;
-//     dragging implicitly exits unfiltered mode
+// v2.1 audit-fix #23/#24b — quarterly time slider, Tableau-style polish.
+// Offset-preserving drag, rAF-batched repaint, snap-on-pointerup, 10px
+// thumb on 30px hit-zone, Show-All toggle. Compact mode (#24b) suppresses
+// floating value labels; endpoint labels become live readouts.
 
 import { SliderRange, quarterStart, offsetQuarter, quarterLabel, rangeToWindow } from "./timeSliderMath";
 export { SliderRange, quarterLabel, rangeToWindow } from "./timeSliderMath";
@@ -23,6 +11,10 @@ export interface TimeSliderOptions {
     readonly futureQuarters: number;
     readonly value: SliderRange;
     readonly onChange: (next: SliderRange) => void;
+    /** Compact mode (audit-fix #24b): suppress the floating value labels
+     *  above thumbs; the LEFT/RIGHT endpoint labels become live readouts
+     *  of the currently selected range instead of the envelope edges. */
+    readonly compact?: boolean;
 }
 
 export interface TimeSliderHandle {
@@ -97,10 +89,17 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
     root.appendChild(allBtn);
 
     // Left endpoint label
+    // audit-fix #24b — leftLabel + rightLabel pre-declared so repaint() can update them in compact mode.
+    const LABEL_CSS = "font-size:9px;color:#666;flex-shrink:0;font-variant-numeric:tabular-nums;";
     const leftLabel = document.createElement("span");
     leftLabel.textContent = quarterLabel(offsetQuarter(todayQ, -opts.pastQuarters));
-    leftLabel.style.cssText = "font-size:9px;color:#666;flex-shrink:0;font-variant-numeric:tabular-nums;";
+    leftLabel.style.cssText = LABEL_CSS;
     root.appendChild(leftLabel);
+    const rightLabel = document.createElement("span");
+    rightLabel.textContent = quarterLabel(offsetQuarter(todayQ, opts.futureQuarters));
+    rightLabel.style.cssText = LABEL_CSS;
+    // rightLabel appended to root AFTER the rail (below) so flex order
+    // is: [All] [leftLabel] [rail flex:1] [rightLabel].
 
     // Rail (grows to fill available width)
     const rail = document.createElement("div");
@@ -230,8 +229,11 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
     const endT = makeThumb();
     rail.appendChild(startT.hit);
     rail.appendChild(endT.hit);
-    rail.appendChild(startT.label);
-    rail.appendChild(endT.label);
+    // audit-fix #24b — compact suppresses floating ghost labels; endpoint labels become live readouts.
+    if (!opts.compact) {
+        rail.appendChild(startT.label);
+        rail.appendChild(endT.label);
+    }
 
     // ── Layout / paint ────────────────────────────────────────────
     let rafPending = false;
@@ -259,6 +261,18 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
             endT.label.textContent = quarterLabel(eLabelQ);
             startT.label.style.opacity = isAll ? "0.5" : "1";
             endT.label.style.opacity = isAll ? "0.5" : "1";
+            // audit-fix #24b — compact mode: endpoint labels show LIVE
+            // selected range (replaces the floating "ghost" labels).
+            if (opts.compact) {
+                leftLabel.textContent = quarterLabel(sLabelQ);
+                rightLabel.textContent = quarterLabel(eLabelQ);
+                leftLabel.style.opacity = isAll ? "0.6" : "1";
+                rightLabel.style.opacity = isAll ? "0.6" : "1";
+                leftLabel.style.fontWeight = "600";
+                rightLabel.style.fontWeight = "600";
+                leftLabel.style.color = ACCENT;
+                rightLabel.style.color = ACCENT;
+            }
         });
     }
     repaint();
@@ -378,9 +392,6 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
     });
 
     // Right endpoint label
-    const rightLabel = document.createElement("span");
-    rightLabel.textContent = quarterLabel(offsetQuarter(todayQ, opts.futureQuarters));
-    rightLabel.style.cssText = "font-size:9px;color:#666;flex-shrink:0;font-variant-numeric:tabular-nums;";
     root.appendChild(rightLabel);
 
     return { element: root };

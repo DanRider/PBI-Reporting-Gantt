@@ -65,6 +65,7 @@ export function renderLaneDetail(
             futureQuarters: DEFAULT_FUTURE_QUARTERS,
             value: activeRange,
             onChange: onRangeChange,
+            compact: true,  // audit-fix #24b — endpoint labels show selected dates; no ghost labels above thumbs
         });
         root.appendChild(slider.element);
     }

@@ -39,9 +39,10 @@ function buildContainer(): HTMLDivElement {
     div.className = "top-left-toggles";
     div.style.cssText = [
         "position:absolute",
-        // v2.1 audit-fix #24 — master time slider strip occupies top:6 .. top:38.
-        // Gantt/Table toggles slide down to row 2 at top:46.
-        "top:46px",
+        // v2.1 audit-fix #24 — toggles + master slider share top:6 row.
+        // Slider mounts to the right of these toggles via masterTimeSlider
+        // (host's left = panelWidthPx + TOGGLE_AREA_RESERVE_PX in visual.ts).
+        "top:6px",
         "left:6px",
         "z-index:12",
         "display:flex",

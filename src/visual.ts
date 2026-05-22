@@ -89,6 +89,14 @@ import { renderLaneDetail } from "./render/inspector/laneDetail";
 import { renderActivityDetail } from "./render/inspector/activityDetail";
 import { renderMilestoneDetail } from "./render/inspector/milestoneDetail";
 
+// v2.1 audit-fix #24 — slider + toggles share the top:6 chrome row.
+// Just enough push so chart title doesn't render under the chrome.
+// Tighter than the original 80px attempt (operator: "minimal").
+const MASTER_SLIDER_CHROME_PX = 44;
+// Toggle area horizontal reservation — Gantt/Table pill controls live at
+// left:6 in the topRightControls module; the slider host starts after.
+const TOGGLE_AREA_RESERVE_PX = 190;
+
 // v2.1 W1 — initial Gantt/Table split (fraction of usable height given to
 // Gantt) before the user drags the splitter or flips a toggle.
 const INITIAL_GANTT_PCT = 0.6;
@@ -573,10 +581,12 @@ export class Visual implements IVisual {
         // 0, panelWidthPx is 0, and the v2.0 render is preserved byte-identical.
         const panelWidthPct = this.controls.widthPct();
         const panelWidthPx = options.viewport.width * (panelWidthPct / 100);
-        // v2.1 audit-fix #24 — master slider strip slides right of the
-        // controls panel when it's open so it never gets covered by the
-        // sliding panel chrome.
-        this.masterSlider.setLeftOffset(panelWidthPx);
+        // v2.1 audit-fix #24 — master slider sits in the toggle row, to
+        // the right of the Gantt/Table toggles. Width = remaining viewport
+        // after panel + toggle reserve.
+        const sliderLeft = panelWidthPx + TOGGLE_AREA_RESERVE_PX;
+        const sliderWidth = Math.max(200, options.viewport.width - sliderLeft - 12);
+        this.masterSlider.setBounds(sliderLeft, sliderWidth);
 
         // v2.1 audit-fix #8 — vm + focused-lane + activityColors computed
         // EARLY so the layout coordinator (which calls renderSimpleTable for
@@ -605,6 +615,42 @@ export class Visual implements IVisual {
             }
         }
         this.masterSlider.update({ pastQuarters, futureQuarters }, this.masterRange);
+
+        // v2.1 audit-fix #24b — master window applied to vm BEFORE lane
+        // focus so the chart axis (xScale from vm.dateExtent), activities,
+        // and milestones all narrow to the slider's window in one pass.
+        //  - Activities fully outside window: dropped.
+        //  - Activities partially in window: start/end clamped to window
+        //    bounds (visual flat-clip; zigzag tear lands in a follow-up).
+        //  - Milestones outside window: dropped (no marker rendered).
+        //  - vm.dateExtent overridden to window so xScale fits exactly.
+        const masterWindow = rangeToWindow(this.masterRange, today);
+        if (masterWindow) {
+            const fromMs = masterWindow.fromMs;
+            const toMs = masterWindow.toMs;
+            const windowedActivities = vm.activities
+                .filter(a => a.end.getTime() >= fromMs && a.start.getTime() <= toMs)
+                .map(a => {
+                    const startMs = a.start.getTime();
+                    const endMs = a.end.getTime();
+                    if (startMs >= fromMs && endMs <= toMs) return a;
+                    return {
+                        ...a,
+                        start: startMs < fromMs ? new Date(fromMs) : a.start,
+                        end: endMs > toMs ? new Date(toMs) : a.end,
+                    };
+                });
+            const windowedMilestones = vm.milestones.filter(m => {
+                const t = m.date.getTime();
+                return t >= fromMs && t <= toMs;
+            });
+            vm = {
+                ...vm,
+                activities: windowedActivities,
+                milestones: windowedMilestones,
+                dateExtent: [new Date(fromMs), new Date(toMs)] as [Date, Date],
+            };
+        }
 
         // Focused lane derived from current selection:
         //   kind=lane     → sel.laneName
@@ -657,22 +703,6 @@ export class Visual implements IVisual {
             filteredActivities.forEach((a, i) => {
                 activityColors![a.name] = ACTIVITY_PALETTE[i % ACTIVITY_PALETTE.length];
             });
-        }
-
-        // v2.1 audit-fix #24c — master window filters milestones globally.
-        // Activities stay full-width for now (24b adds zigzag tear at the
-        // window edges). Inspector's own slider remains independent —
-        // lane drill-down already ignores this filter since it reads from
-        // its own `galleryRange` state via renderLaneDetail.
-        const masterWindow = rangeToWindow(this.masterRange, today);
-        if (masterWindow) {
-            vm = {
-                ...vm,
-                milestones: vm.milestones.filter(m => {
-                    const t = m.date.getTime();
-                    return t >= masterWindow.fromMs && t <= masterWindow.toMs;
-                }),
-            };
         }
 
         this.lastViewmodel = vm;
@@ -853,7 +883,10 @@ export class Visual implements IVisual {
         hideIfNoType("type2", slot2Type != null);
 
         // ── Outer margins ─────────────────────────────────────────────────────
-        const topMarginPx    = clamp(width * (this.settings.layout.topMarginPercent.value    / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
+        // v2.1 audit-fix #24 — add MASTER_SLIDER_CHROME_PX to topMarginPx so
+        // the chart title, time axis, and legend render BELOW the slider
+        // strip + toggle row instead of bleeding through them.
+        const topMarginPx    = clamp(width * (this.settings.layout.topMarginPercent.value    / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX) + MASTER_SLIDER_CHROME_PX;
         const bottomMarginPx = clamp(width * (this.settings.layout.bottomMarginPercent.value / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
         const leftMarginPx   = clamp(width * (this.settings.layout.leftMarginPercent.value   / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
         const rightMarginPx  = clamp(width * (this.settings.layout.rightMarginPercent.value  / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
