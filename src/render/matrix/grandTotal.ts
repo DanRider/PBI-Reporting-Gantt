@@ -40,7 +40,7 @@ export function renderGrandTotal(
 
   for (const leaf of leaves) {
     const td = document.createElement('td');
-    td.classList.add('cortex-num');
+    td.classList.add('rg-num');
     td.style.fontWeight = '700';
     td.style.color = opts.theme.bodyFg;
     td.style.borderTop = `2px solid ${opts.theme.borderFg}`;

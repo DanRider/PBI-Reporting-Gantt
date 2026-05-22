@@ -1,6 +1,6 @@
 // reporting-gantt v2.0 ESLint flat config (ESLint v9).
 //
-// Wave 0 adopts the cortex-matrix-lt2 discipline floor: ban `any`, ban
+// Wave 0 adopts the rg-matrix-lt2 discipline floor: ban `any`, ban
 // `@ts-ignore`, ban default exports, warn on unused vars. The
 // `import/no-restricted-paths` layer DAG lands in Wave 1 once the
 // substrate-copied src/{primitives,model,kernel,pipeline,render/matrix,

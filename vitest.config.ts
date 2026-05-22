@@ -6,7 +6,7 @@
 // package ships ESM-syntax .js inside a CommonJS envelope with
 // extensionless internal re-exports that Vitest's Vite resolver cannot
 // load without pool gymnastics. So we mock it. Pattern lifted from
-// cortex-matrix-lt2 vitest.setup.ts.
+// rg-matrix-lt2 vitest.setup.ts.
 //
 // jsdom environment is mounted so the matrix render layer (HTML-DOM)
 // can be exercised against a fake browser DOM.

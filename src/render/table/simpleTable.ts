@@ -1,7 +1,7 @@
 // L3 render — minimal HTML table for the v2.0 composed-visual bottom region.
 // Renders directly from dataView.table.rows (the existing v1.8 binding shape),
 // so the matrix region mounts below the Gantt WITHOUT needing additional
-// wells bound. The full cortex-matrix substrate renderer can replace this
+// wells bound. The full rg-matrix substrate renderer can replace this
 // later once matrix-shaped well bindings are wired; for now this gets the
 // composed visual visibly working in PBI Desktop.
 

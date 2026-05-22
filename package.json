@@ -1,6 +1,6 @@
 {
   "name": "reporting-gantt",
-  "description": "Reporting Gantt — generic timeline visual for Power BI. Activity swim lanes, chevron time axis, milestone markers with conditional labels. v2.0 mounts a sortable cortex-matrix-substrate table below the Gantt SVG.",
+  "description": "Reporting Gantt — generic timeline visual for Power BI. Activity swim lanes, chevron time axis, milestone markers with conditional labels. v2.0 mounts a sortable rg-matrix-substrate table below the Gantt SVG.",
   "version": "1.8.0.0",
   "author": {
     "name": "Daniel Rider",

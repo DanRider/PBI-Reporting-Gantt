@@ -43,7 +43,7 @@ function withAppearance(theme: ResolvedTheme, appearanceName: string | undefined
 
 function buildControls(opts: FormatOptions): { outer: HTMLElement; inner: HTMLElement } {
   const outer = document.createElement('div');
-  outer.classList.add('cortex-controls');
+  outer.classList.add('rg-controls');
   outer.style.flex = '0 0 15%';
   outer.style.minWidth = '100px';
   outer.style.maxWidth = '220px';
@@ -69,18 +69,18 @@ function buildColgroup(tree: ColumnTree): HTMLElement {
   // The row-label column auto-sizes; data columns get a per-kind class
   // so the four period groups can share one width discipline in CSS.
   const cornerCol = document.createElement('col');
-  cornerCol.classList.add('cortex-col-corner');
+  cornerCol.classList.add('rg-col-corner');
   colgroup.appendChild(cornerCol);
   for (const leaf of tree.leaves) {
     const col = document.createElement('col');
     if (leaf.isSynthetic === 'delta') {
-      col.classList.add('cortex-col-delta');
+      col.classList.add('rg-col-delta');
     } else if (leaf.isSynthetic === 'deltaPct') {
-      col.classList.add('cortex-col-delta-pct');
+      col.classList.add('rg-col-delta-pct');
     } else if (leaf.isPeriodSynthesis) {
-      col.classList.add('cortex-col-period');
+      col.classList.add('rg-col-period');
     } else {
-      col.classList.add('cortex-col-other');
+      col.classList.add('rg-col-other');
     }
     colgroup.appendChild(col);
   }
@@ -99,8 +99,8 @@ export function renderMatrixTable(
   };
 
   const root = document.createElement('div');
-  root.classList.add('cortex-matrix-lt2');
-  root.classList.add(`cortex-theme-${appearance.name}`);
+  root.classList.add('rg-matrix-lt2');
+  root.classList.add(`rg-theme-${appearance.name}`);
   root.style.color = opts.theme.bodyFg;
   root.style.background = appearance.rootBg;
   root.style.width = '100%';
@@ -113,7 +113,7 @@ export function renderMatrixTable(
   const controls = buildControls(opts);
 
   const tableWrap = document.createElement('div');
-  tableWrap.classList.add('cortex-matrix-table');
+  tableWrap.classList.add('rg-matrix-table');
   tableWrap.style.flex = '1 1 auto';
   tableWrap.style.minWidth = '0';
   tableWrap.style.height = '100%';

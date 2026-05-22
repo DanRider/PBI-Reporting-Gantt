@@ -28,9 +28,9 @@ describe('renderMatrixTable — full composition', () => {
   it('produces a root with the controls rail beside the table', () => {
     const { tree, matrix } = scene();
     const root = renderMatrixTable(tree, matrix, renderOpts());
-    expect(root.classList.contains('cortex-matrix-lt2')).toBe(true);
-    expect(root.querySelector('.cortex-controls')).not.toBeNull();
-    expect(root.querySelector('.cortex-matrix-table')).not.toBeNull();
+    expect(root.classList.contains('rg-matrix-lt2')).toBe(true);
+    expect(root.querySelector('.rg-controls')).not.toBeNull();
+    expect(root.querySelector('.rg-matrix-table')).not.toBeNull();
     expect(root.querySelector('table thead')).not.toBeNull();
     expect(root.querySelector('table tbody')).not.toBeNull();
   });
@@ -40,7 +40,7 @@ describe('renderMatrixTable — full composition', () => {
     const root = renderMatrixTable(tree, matrix, renderOpts());
     const cols = root.querySelectorAll('colgroup col');
     expect(cols).toHaveLength(3);
-    expect(cols[0].classList.contains('cortex-col-corner')).toBe(true);
+    expect(cols[0].classList.contains('rg-col-corner')).toBe(true);
   });
 
   it('omits the tfoot unless showGrandTotal is set', () => {
@@ -59,7 +59,7 @@ describe('renderMatrixTable — full composition', () => {
     const opts = renderOpts({ appearanceTheme: 'newsprint' });
     const themeBefore = opts.theme;
     const root = renderMatrixTable(tree, matrix, opts);
-    expect(root.classList.contains('cortex-theme-newsprint')).toBe(true);
+    expect(root.classList.contains('rg-theme-newsprint')).toBe(true);
     // Newsprint rootBg is #f9f6ef
     expect(root.style.background).toBe('rgb(249, 246, 239)');
     expect(opts.theme).toBe(themeBefore);

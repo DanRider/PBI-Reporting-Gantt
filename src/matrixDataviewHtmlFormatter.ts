@@ -20,7 +20,7 @@ import { renderMatrixTable } from './render/matrix/table';
 
 import DataViewMatrix = powerbi.DataViewMatrix;
 
-const ROOT_CLASS = 'cortex-matrix-lt2';
+const ROOT_CLASS = 'rg-matrix-lt2';
 
 // The v0.1 pipeline: build the base tree, append the period synthetics,
 // then append the variance synthetics. Plain declaration order is the

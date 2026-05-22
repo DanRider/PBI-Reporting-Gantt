@@ -37,9 +37,9 @@ describe('renderColumnHeaders — one row per level', () => {
     // top; the kind classes live on the leaf-level row (the last tr).
     const rows = head.querySelectorAll('tr');
     const leafCells = rows[rows.length - 1].querySelectorAll('th');
-    expect(leafCells[1].classList.contains('cortex-delta')).toBe(true);
-    expect(leafCells[2].classList.contains('cortex-delta-pct')).toBe(true);
-    expect(leafCells[3].classList.contains('cortex-period')).toBe(true);
+    expect(leafCells[1].classList.contains('rg-delta')).toBe(true);
+    expect(leafCells[2].classList.contains('rg-delta-pct')).toBe(true);
+    expect(leafCells[3].classList.contains('rg-period')).toBe(true);
   });
 });
 

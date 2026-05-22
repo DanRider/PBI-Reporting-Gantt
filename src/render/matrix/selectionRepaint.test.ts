@@ -14,7 +14,7 @@ function taggedRow(token: string): HTMLTableRowElement {
     token,
     equals: (o: unknown) => (o as { token?: string })?.token === token,
   } as unknown as ISelectionId;
-  (tr as HTMLTableRowElement & { __cortexSelectionId?: ISelectionId }).__cortexSelectionId = id;
+  (tr as HTMLTableRowElement & { __rgSelectionId?: ISelectionId }).__rgSelectionId = id;
   return tr;
 }
 
@@ -30,8 +30,8 @@ describe('repaintSelection — reconciles the row highlight with selection state
     repaintSelection(tbody, opts);
 
     const rows = tbody.querySelectorAll('tr');
-    expect(rows[0].classList.contains('cortex-row-selected')).toBe(true);
-    expect(rows[1].classList.contains('cortex-row-selected')).toBe(false);
+    expect(rows[0].classList.contains('rg-row-selected')).toBe(true);
+    expect(rows[1].classList.contains('rg-row-selected')).toBe(false);
   });
 
   it('clears a previously-highlighted row when selection moves away', () => {
@@ -40,12 +40,12 @@ describe('repaintSelection — reconciles the row highlight with selection state
     const opts = renderOpts({ selection: sel });
     const tbody = document.createElement('tbody');
     const usa = taggedRow('USA');
-    usa.classList.add('cortex-row-selected');
+    usa.classList.add('rg-row-selected');
     tbody.appendChild(usa);
 
     repaintSelection(tbody, opts);
 
-    expect(usa.classList.contains('cortex-row-selected')).toBe(false);
+    expect(usa.classList.contains('rg-row-selected')).toBe(false);
   });
 
   it('rows without a stashed id are always cleared (group rows)', () => {
@@ -54,11 +54,11 @@ describe('repaintSelection — reconciles the row highlight with selection state
     const opts = renderOpts({ selection: sel });
     const tbody = document.createElement('tbody');
     const group = document.createElement('tr');
-    group.classList.add('cortex-row-selected');
+    group.classList.add('rg-row-selected');
     tbody.appendChild(group);
 
     repaintSelection(tbody, opts);
 
-    expect(group.classList.contains('cortex-row-selected')).toBe(false);
+    expect(group.classList.contains('rg-row-selected')).toBe(false);
   });
 });

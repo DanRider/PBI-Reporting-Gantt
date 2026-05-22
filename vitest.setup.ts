@@ -1,5 +1,5 @@
 /*
- *  cortex-matrix-lt2 — Vitest global setup.
+ *  rg-matrix-lt2 — Vitest global setup.
  *
  *  buildColumnTree is the first module to consume
  *  powerbi-visuals-utils-formattingutils (via valueFormatter.create). That

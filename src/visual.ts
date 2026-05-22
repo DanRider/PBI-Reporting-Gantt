@@ -47,7 +47,7 @@ import { renderConfigurationGuide } from "./configGuide";
 // v2.0 simple table renderer — mounts in matrixDiv below the Gantt, reads
 // directly from dataView.table.rows (existing v1.8 binding shape) so the
 // matrix region is visible IMMEDIATELY without requiring v2.0-specific well
-// bindings. The cortex-matrix substrate's full render can replace this in
+// bindings. The rg-matrix substrate's full render can replace this in
 // a later wave once matrix-shaped well bindings are reliably wireable.
 import { renderSimpleTable } from "./render/table/simpleTable";
 

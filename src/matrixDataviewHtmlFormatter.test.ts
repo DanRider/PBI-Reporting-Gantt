@@ -86,9 +86,9 @@ describe('MatrixDataviewHtmlFormatter — all six fixtures × four modes', () =>
       it(`${sc.name} renders a coherent table in mode=${mode}`, () => {
         const root = format(sc.matrix, renderable(sc, mode));
 
-        expect(root.classList.contains('cortex-matrix-lt2')).toBe(true);
-        expect(root.querySelector('.cortex-controls')).not.toBeNull();
-        const table = root.querySelector('.cortex-matrix-table table');
+        expect(root.classList.contains('rg-matrix-lt2')).toBe(true);
+        expect(root.querySelector('.rg-controls')).not.toBeNull();
+        const table = root.querySelector('.rg-matrix-table table');
         expect(table).not.toBeNull();
 
         // The colgroup has the corner col plus exactly one col per leaf;
@@ -98,7 +98,7 @@ describe('MatrixDataviewHtmlFormatter — all six fixtures × four modes', () =>
         const leafRowCells = root.querySelectorAll('thead tr:last-child th');
         expect(cols.length).toBeGreaterThan(1);
         expect(cols.length).toBe(leafRowCells.length);
-        expect(cols[0].classList.contains('cortex-col-corner')).toBe(true);
+        expect(cols[0].classList.contains('rg-col-corner')).toBe(true);
 
         // Every fixture binds at least one row, so the body is non-empty
         // and each body row carries one value cell per leaf.
@@ -122,7 +122,7 @@ describe('MatrixDataviewHtmlFormatter — orchestrator contract', () => {
       allScenarios()[0],
       'priorYear',
     ));
-    expect(root.className).toBe('cortex-matrix-lt2');
+    expect(root.className).toBe('rg-matrix-lt2');
     expect(root.querySelector('table')).toBeNull();
   });
 
@@ -147,6 +147,6 @@ describe('MatrixDataviewHtmlFormatter — orchestrator contract', () => {
       ...renderable(sc, 'priorYear'),
       appearanceTheme: 'newsprint',
     });
-    expect(root.classList.contains('cortex-theme-newsprint')).toBe(true);
+    expect(root.classList.contains('rg-theme-newsprint')).toBe(true);
   });
 });

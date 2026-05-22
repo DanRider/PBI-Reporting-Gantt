@@ -41,8 +41,8 @@ describe('walkRowNodes — DFS, one tr per non-root node', () => {
     const body = tbody();
     walkRowNodes(root, body, [leaf({ label: 'V', leafIndex: 0 })], renderOpts(), LEVELS, { n: 0 });
     const rows = body.querySelectorAll('tr');
-    expect(rows[0].classList.contains('cortex-row-alt')).toBe(false);
-    expect(rows[1].classList.contains('cortex-row-alt')).toBe(true);
+    expect(rows[0].classList.contains('rg-row-alt')).toBe(false);
+    expect(rows[1].classList.contains('rg-row-alt')).toBe(true);
   });
 
   it('writes the four branch values into the cells', () => {

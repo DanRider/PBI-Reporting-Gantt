@@ -23,7 +23,7 @@ import ISelectionId = powerbi.visuals.ISelectionId;
 
 type NodeWithValues = DataViewMatrixNode & { values?: ValuesBag };
 type NodeWithSourceIndex = DataViewMatrixNode & { levelSourceIndex?: number };
-type TaggedRow = HTMLTableRowElement & { __cortexSelectionId?: ISelectionId };
+type TaggedRow = HTMLTableRowElement & { __rgSelectionId?: ISelectionId };
 
 // One indent step per hierarchy level, built from non-breaking spaces so
 // the host's whitespace collapsing does not eat the indentation.
@@ -65,11 +65,11 @@ function appendRowLabel(tr: HTMLElement, node: DataViewMatrixNode, opts: FormatO
 
 function tagSyntheticKind(td: HTMLElement, leaf: ColumnLeaf): void {
   if (leaf.isSynthetic === 'delta') {
-    td.classList.add('cortex-delta');
+    td.classList.add('rg-delta');
   } else if (leaf.isSynthetic === 'deltaPct') {
-    td.classList.add('cortex-delta-pct');
+    td.classList.add('rg-delta-pct');
   } else if (leaf.isPeriodSynthesis) {
-    td.classList.add('cortex-period');
+    td.classList.add('rg-period');
   }
 }
 
@@ -80,7 +80,7 @@ function appendValueCell(
   opts: FormatOptions,
 ): void {
   const td = document.createElement('td');
-  td.classList.add('cortex-num');
+  td.classList.add('rg-num');
   tagSyntheticKind(td, leaf);
   // The host iframe stylesheet wins the cascade against class rules, so
   // the three layout-critical properties that keep numbers aligned and
@@ -127,7 +127,7 @@ function wireSelection(
   rowLevels: DataViewHierarchyLevel[],
 ): void {
   const id = opts.selection.idForRowNode(node, rowLevels);
-  (tr as TaggedRow).__cortexSelectionId = id;
+  (tr as TaggedRow).__rgSelectionId = id;
   tr.addEventListener('click', (event: MouseEvent) => {
     event.stopPropagation();
     opts.selection.select(id, event.ctrlKey || event.metaKey).then(() => {
@@ -151,7 +151,7 @@ export function walkRowNodes(
     const tr = document.createElement('tr');
     tr.style.height = `${opts.rowHeight}px`;
     if (counter.n % 2 === 1) {
-      tr.classList.add('cortex-row-alt');
+      tr.classList.add('rg-row-alt');
       tr.style.background = opts.theme.altRowBg;
     }
     counter.n += 1;

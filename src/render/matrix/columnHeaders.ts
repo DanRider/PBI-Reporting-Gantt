@@ -118,11 +118,11 @@ function emitLevelRow(
       th.textContent = leafHeaderText(tree, entryIndex);
       const leaf = tree.leaves[entryIndex];
       if (leaf?.isSynthetic === 'delta') {
-        th.classList.add('cortex-delta');
+        th.classList.add('rg-delta');
       } else if (leaf?.isSynthetic === 'deltaPct') {
-        th.classList.add('cortex-delta-pct');
+        th.classList.add('rg-delta-pct');
       } else if (leaf?.isPeriodSynthesis) {
-        th.classList.add('cortex-period');
+        th.classList.add('rg-period');
       }
     } else {
       th.textContent = entry.node.value == null ? '' : String(entry.node.value);

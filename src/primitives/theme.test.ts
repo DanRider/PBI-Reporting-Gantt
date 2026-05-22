@@ -41,8 +41,8 @@ describe('resolveTheme — precedence: override > palette > fallback', () => {
   it('falls through to palette colors when no overrides given', () => {
     const resolved = resolveTheme(
       palette({
-        'cortex-matrix-lt2-header-bg': '#ABCDEF',
-        'cortex-matrix-lt2-ibcs-positive': '#123456',
+        'rg-matrix-lt2-header-bg': '#ABCDEF',
+        'rg-matrix-lt2-ibcs-positive': '#123456',
       }),
       NO_OVERRIDES,
     );
@@ -66,7 +66,7 @@ describe('resolveTheme — precedence: override > palette > fallback', () => {
 
   it('treats an empty-string override as "unset" and falls through', () => {
     const resolved = resolveTheme(
-      palette({ 'cortex-matrix-lt2-header-bg': '#AAAAAA' }),
+      palette({ 'rg-matrix-lt2-header-bg': '#AAAAAA' }),
       { headerBg: '' },
     );
     expect(resolved.headerBg).toBe('#AAAAAA');

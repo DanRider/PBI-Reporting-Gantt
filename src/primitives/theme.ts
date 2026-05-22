@@ -11,14 +11,14 @@ import IColorPalette = powerbi.extensibility.IColorPalette;
 // Stable keys handed to IColorPalette.getColor. Stable so a given slot maps
 // to the same palette entry across renders and report-theme swaps.
 const PALETTE_KEY = {
-  headerBg: 'cortex-matrix-lt2-header-bg',
-  headerFg: 'cortex-matrix-lt2-header-fg',
-  bodyFg: 'cortex-matrix-lt2-body-fg',
-  borderFg: 'cortex-matrix-lt2-border-fg',
-  altRowBg: 'cortex-matrix-lt2-alt-row',
-  ibcsPositive: 'cortex-matrix-lt2-ibcs-positive',
-  ibcsNegative: 'cortex-matrix-lt2-ibcs-negative',
-  ibcsNeutral: 'cortex-matrix-lt2-ibcs-neutral',
+  headerBg: 'rg-matrix-lt2-header-bg',
+  headerFg: 'rg-matrix-lt2-header-fg',
+  bodyFg: 'rg-matrix-lt2-body-fg',
+  borderFg: 'rg-matrix-lt2-border-fg',
+  altRowBg: 'rg-matrix-lt2-alt-row',
+  ibcsPositive: 'rg-matrix-lt2-ibcs-positive',
+  ibcsNegative: 'rg-matrix-lt2-ibcs-negative',
+  ibcsNeutral: 'rg-matrix-lt2-ibcs-neutral',
 } as const;
 
 // Last-resort hexes. Neutral grays for chrome; IBCS green/red/gray so a

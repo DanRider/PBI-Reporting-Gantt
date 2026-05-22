@@ -7,7 +7,7 @@
 //
 // Lives at src/ root (L4 entry) per the layer-DAG; it reads DataView
 // directly and writes to an HTMLElement passed from visual.ts — not part
-// of the cortex-matrix substrate render layer.
+// of the rg-matrix substrate render layer.
 
 import powerbi from "powerbi-visuals-api";
 
