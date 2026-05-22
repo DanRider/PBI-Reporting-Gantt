@@ -832,15 +832,15 @@ export class Visual implements IVisual {
 
         const viewport = options.viewport;
         const width = viewport.width - panelWidthPx;
-        const height = ganttHeightPx;
+        // v2.1 audit-fix #24c — wrapper starts BELOW the slider chrome so
+        // when the SVG content scrolls vertically it gets clipped at the
+        // chrome boundary (was: content scrolled up behind the transparent
+        // slider strip). Only push when gantt is visible.
+        const wrapperChromeOffset = ganttHeightPx > 0 ? MASTER_SLIDER_CHROME_PX : 0;
+        const height = Math.max(0, ganttHeightPx - wrapperChromeOffset);
 
-        // v2.1 W1 — wrapper owns the visible Gantt region's left/width/height
-        // (driven by the controls panel widthPct). SVG inside flows naturally
-        // with width=wrapper-inner and height initially = visible region; the
-        // height is re-set later in this update() once bodyH is known, to
-        // max(visibleHeight, contentHeight), so the wrapper's overflow-y
-        // scrolls when the activity body exceeds the visible region.
         this.ganttScrollWrapper.style.left = panelWidthPx + "px";
+        this.ganttScrollWrapper.style.top = wrapperChromeOffset + "px";
         this.ganttScrollWrapper.style.width = width + "px";
         this.ganttScrollWrapper.style.height = height + "px";
         this.svg.attr("width", width).attr("height", height);
@@ -888,10 +888,10 @@ export class Visual implements IVisual {
         hideIfNoType("type2", slot2Type != null);
 
         // ── Outer margins ─────────────────────────────────────────────────────
-        // v2.1 audit-fix #24 — add MASTER_SLIDER_CHROME_PX to topMarginPx so
-        // the chart title, time axis, and legend render BELOW the slider
-        // strip + toggle row instead of bleeding through them.
-        const topMarginPx    = clamp(width * (this.settings.layout.topMarginPercent.value    / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX) + MASTER_SLIDER_CHROME_PX;
+        // audit-fix #24c — wrapper top now carries the chrome offset (see
+        // wrapperChromeOffset above), so topMarginPx is back to the user's
+        // natural value. Avoids double-pushing the chart title.
+        const topMarginPx    = clamp(width * (this.settings.layout.topMarginPercent.value    / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
         const bottomMarginPx = clamp(width * (this.settings.layout.bottomMarginPercent.value / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
         const leftMarginPx   = clamp(width * (this.settings.layout.leftMarginPercent.value   / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
         const rightMarginPx  = clamp(width * (this.settings.layout.rightMarginPercent.value  / 100), OUTER_MARGIN_MIN, OUTER_MARGIN_MAX);
