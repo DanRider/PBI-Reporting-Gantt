@@ -10,9 +10,13 @@ MIT licensed. Open source on GitHub.
 
 ## Quick start
 
-Three ways to see it running:
+Four ways to see it running, from least to most setup:
 
-### 1. Try the demo fixture (zero setup, zero dependencies)
+### 1. Download `PBI-Reporting-Gantt.pbix` (one file, double-click)
+
+Grab [`PBI-Reporting-Gantt.pbix`](PBI-Reporting-Gantt.pbix) from the repo root. Double-click in Power BI Desktop. The custom visual is embedded in the .pbix; demo data is inline. Zero setup, zero clone.
+
+### 2. Try the demo fixture (zero setup, zero dependencies)
 
 Clone this repo and open `fixtures/PBI-Reporting-Gantt.pbip` in Power BI Desktop. **Demo data is embedded inline in the .pbip's M code** — no external file, no internet, no setup. The visual renders immediately on first refresh.
 
@@ -20,13 +24,13 @@ The bundled demo is a generic project-portfolio dataset for an industrial equipm
 
 **To use your own data**: open Power Query Editor → Advanced Editor on the Activities or Milestones query → comment out the `Source = #table(...)` block → uncomment the `EXCEL SOURCE` block at the bottom → set `YOUR_FILE_PATH` to your `.xlsx` location. `fixtures/Demo-Roadmap-Source.xlsx` is included as a schema reference for the expected column layout.
 
-### 2. Import the `.pbiviz` into an existing report
+### 3. Import the `.pbiviz` into an existing report
 
 The built visual binary lives at `dist/Reporting-Gantt-v2.1.0.0.pbiviz` — download it from the repo (or from the [GitHub Releases](https://github.com/DanRider/PBI-Reporting-Gantt/releases) page when published).
 
 In Power BI Desktop: Visualizations pane → ⋯ → **Get more visuals** → **Import a visual from a file**. Pick the `.pbiviz` file. The visual appears in the Visualizations pane as **Reporting Gantt**. Bind your own (Activity, Area, Start, End) + (Milestone Activity, Milestone Date, Milestone Type, Milestone Label, Label Position) columns from your existing model. Activity Note / Milestone Note are optional v1.8.0.0+ fields for tooltip status text.
 
-### 3. Build from source
+### 4. Build from source
 
 ```
 npm install
