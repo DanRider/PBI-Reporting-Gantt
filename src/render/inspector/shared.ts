@@ -1,4 +1,4 @@
-// W1.5c of INF-3730 — Inspector shared helpers.
+// v2.1 W1.5c — Inspector shared helpers.
 //
 // Tiny utilities used by laneDetail / activityDetail / milestoneDetail.
 // Date formatting, milestone partitioning by date, basic style constants.

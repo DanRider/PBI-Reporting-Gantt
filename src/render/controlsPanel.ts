@@ -1,4 +1,4 @@
-// W1.5a of INF-3730 — selection-driven controls panel.
+// v2.1 W1.5a — selection-driven controls panel.
 //
 // Mounts ONLY the slide-in panel — no hamburger. External code (the visual's
 // selectionStore subscriber) calls setOpen(true|false) and setContent(node).
@@ -6,10 +6,10 @@
 // fires onDismiss so the caller can clear its selection state (which then
 // closes the panel via the subscribe chain).
 //
-// Replaces the hamburger journey-and-morph approach from INF-3728 W1
+// Replaces the hamburger journey-and-morph approach from v2.1 W1
 // (commits bd9a37b → 8ebe3ff → c3c4d3f) — the controls panel is now
 // auto-driven by what the user clicks in the Gantt/table, not toggled
-// independently. See INF-3730 for the design pivot.
+// independently.
 //
 // Pure DOM, no innerHTML. Strict-TS clean.
 

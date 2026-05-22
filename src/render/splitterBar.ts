@@ -1,4 +1,4 @@
-// W1 of INF-3728 — vertical splitter between Gantt and table regions.
+// v2.1 W1 — vertical splitter between Gantt and table regions.
 //
 // Owns: a horizontal bar (8px tall) that sits between the Gantt scroll
 // wrapper and the matrix table region. The bar is drag-only — three small

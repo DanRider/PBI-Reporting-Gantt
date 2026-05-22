@@ -75,7 +75,7 @@ import { mountTopRightControls, TopRightControlsHandle } from "./render/topRight
 import { mountMasterTimeSlider, MasterTimeSliderHandle } from "./render/masterTimeSlider";
 import { SliderRange, quarterIndex, rangeToWindow } from "./render/inspector/timeSliderMath";
 
-// v2.1 W1.5a (INF-3730) — selection state model. Drives the controls panel
+// v2.1 W1.5a — selection state model. Drives the controls panel
 // (open/close + content). Clicks on selectable elements write to the store;
 // the panel + (future) renderers subscribe to react. Root-level click
 // handler clears selection when the click hits whitespace.
@@ -389,7 +389,7 @@ export class Visual implements IVisual {
         this.root.appendChild(this.guideDiv);
         renderConfigurationGuide(this.guideDiv, undefined);
 
-        // v2.1 W1.5a (INF-3730) — selection store initialization. Created
+        // v2.1 W1.5a — selection store initialization. Created
         // BEFORE the panel so the panel's onDismiss callback can capture it.
         // Initial Selection is "none" → panel starts closed. Persistence +
         // rehydration from objects.selectedActivity happens in W1.5c.

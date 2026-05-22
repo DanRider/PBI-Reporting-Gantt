@@ -2,6 +2,8 @@
 
 A presentation-quality timeline visual for Power BI. Activity swim lanes, chevron time axis, milestone markers with conditional left/right labels, and per-row status notes shown on hover. Data-driven against any (Activity, Area, Start, End, Milestone Activity, Milestone Date, Milestone Type, Milestone Label, Label Position, Activity Note, Milestone Note)-shaped dataset.
 
+**v2.1** adds an interactive controls panel: a compact master time slider, click-to-drill lane Inspector with per-activity milestone lists, hide-region toggles, and a resizable Gantt/Table split.
+
 MIT licensed. Open source on GitHub.
 
 ![Reporting Gantt rendering with bundled demo data](docs/screenshot.png)
@@ -20,7 +22,7 @@ The bundled demo is a generic project-portfolio dataset for an industrial equipm
 
 ### 2. Import the `.pbiviz` into an existing report
 
-The built visual binary lives at `dist/Reporting-Gantt-v1.8.0.0.pbiviz` — download it from the repo (or from the [GitHub Releases](https://github.com/DanRider/PBI-Reporting-Gantt/releases) page when published).
+The built visual binary lives at `dist/Reporting-Gantt-v2.1.0.0.pbiviz` — download it from the repo (or from the [GitHub Releases](https://github.com/DanRider/PBI-Reporting-Gantt/releases) page when published).
 
 In Power BI Desktop: Visualizations pane → ⋯ → **Get more visuals** → **Import a visual from a file**. Pick the `.pbiviz` file. The visual appears in the Visualizations pane as **Reporting Gantt**. Bind your own (Activity, Area, Start, End) + (Milestone Activity, Milestone Date, Milestone Type, Milestone Label, Label Position) columns from your existing model. Activity Note / Milestone Note are optional v1.8.0.0+ fields for tooltip status text.
 
@@ -153,6 +155,16 @@ Controls hover-tooltip behavior. Three controls:
 - **Show Note row** (default on) — whether the Note row appears in tooltips at all.
 - **Hide row when no note** (default off) — if on, omit the Note row entirely when the bound Note column is empty/null for a row; if off, show the placeholder text instead.
 - **Placeholder for empty notes** (default `(no note recorded)`) — text shown when Note row is on AND the row has no note.
+
+## Selection & filtering (v2.1)
+
+Three interactive surfaces layer onto the chart:
+
+- **Master time slider** — compact slider in the top chrome row narrows the visible chart window globally. Drag the thumbs to scope a date range; activities clip at the window edges, milestones outside the window are filtered from chart + table. Auto-derives its tick range from the data envelope (earliest activity start → latest activity end, snapped to quarters, pivoted on today). "All" restores the full envelope.
+- **Gantt / Table toggles** — two pill switches in the top-left hide either region; drag the horizontal splitter to resize.
+- **Lane Inspector** — click any swim-lane label to open a side panel showing the lane's full activity roster with per-activity milestone lists (past = ✓, future = ⏭, color-coded per activity). A second slider inside the Inspector scopes milestones for that lane; the chart + table react live and stay in sync.
+
+Drag the panel's right edge to resize; × or whitespace click dismisses.
 
 ## Source / dev
 

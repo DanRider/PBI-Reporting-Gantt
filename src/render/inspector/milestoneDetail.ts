@@ -1,4 +1,4 @@
-// W1.5c of INF-3730 — Inspector milestone detail.
+// v2.1 W1.5c — Inspector milestone detail.
 //
 // Rendered when the user clicks a milestone star (or its hit target).
 // Shows full milestone metadata: label, type, activity, lane, date,

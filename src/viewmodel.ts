@@ -18,7 +18,7 @@ export const PHANTOM_TYPE = "__phantom";
 // slot1/slot2/... PBI's formattingSettings framework can't round-trip dynamic-N
 // per-instance slices for Format-pane edits, so we cap at fixed slot count and use
 // STATIC properties. Data with more types drops the rest with a console warning.
-// See INF-3530.
+// See design notes for the rationale.
 export const MAX_MILESTONE_TYPES = 2;
 export const MAX_SWIM_LANES = 8;
 

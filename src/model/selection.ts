@@ -1,4 +1,4 @@
-// W1.5a of INF-3730 — selection state model.
+// v2.1 W1.5a — selection state model.
 //
 // One immutable Selection record per "what the user currently has selected."
 // The discriminated union on `kind` enforces "every Selection carries the

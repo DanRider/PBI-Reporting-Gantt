@@ -1,4 +1,4 @@
-// W1.5c of INF-3730 — Inspector lane detail.
+// v2.1 W1.5c — Inspector lane detail.
 //
 // Rendered when the user clicks a swim-lane label. Shows the lane name,
 // activity + milestone counts, and per-activity ✓ most-recent / ⏭ next

@@ -1,4 +1,4 @@
-// W1.5c of INF-3730 — Inspector empty state.
+// v2.1 W1.5c — Inspector empty state.
 //
 // Reserved for a future "panel open but nothing selected" state.
 // The current architecture closes the panel when selection.kind = "none",

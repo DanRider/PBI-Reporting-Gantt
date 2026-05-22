@@ -15,7 +15,7 @@ export const ROLE = {
     labelPosition:     "labelPosition",
     activityNote:      "activityNote",
     milestoneNote:     "milestoneNote",
-    // v2.1 W1.5d (INF-3735) — 4 optional milestone metadata wells
+    // v2.1 W1.5d — 4 optional milestone metadata wells
     // surfaced in the milestone-detail Inspector panel when bound.
     milestoneOwner:       "milestoneOwner",
     milestoneStatus:      "milestoneStatus",
