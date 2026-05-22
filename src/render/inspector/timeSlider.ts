@@ -15,13 +15,15 @@ export interface TimeSliderOptions {
      *  above thumbs; the LEFT/RIGHT endpoint labels become live readouts
      *  of the currently selected range instead of the envelope edges. */
     readonly compact?: boolean;
+    /** Accent color override (audit-fix #24c). Default is the blue
+     *  ACCENT; master slider passes a grey. */
+    readonly colorAccent?: string;
 }
 
 export interface TimeSliderHandle {
     readonly element: HTMLElement;
 }
 
-// ── Visual constants ────────────────────────────────────────────────
 const TRACK_HEIGHT = 6;
 const BAND_HEIGHT = 8;
 const TICK_SIZE = 5;
@@ -46,6 +48,9 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
     const todayQ = quarterStart(today);
     const idxToOffset = (idx: number): number => idx - opts.pastQuarters;
     const offsetToIdx = (offset: number): number => offset + opts.pastQuarters;
+
+    const accent = opts.colorAccent ?? ACCENT;       // #24c — master overrides w/ grey
+    const accentDim = opts.colorAccent ?? ACCENT_DIM;
 
     // ── State ─────────────────────────────────────────────────────
     let curRange: SliderRange = opts.value;
@@ -78,9 +83,9 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
             "line-height:1.3",
             "border-radius:10px",
             "cursor:pointer",
-            `border:1px solid ${active ? ACCENT : "#ccc"}`,
+            `border:1px solid ${active ? accent : "#ccc"}`,
             `background:${active ? "#e6f0fb" : "#ffffff"}`,
-            `color:${active ? ACCENT : "#555"}`,
+            `color:${active ? accent : "#555"}`,
             `font-weight:${active ? "600" : "400"}`,
             "flex-shrink:0",
         ].join(";");
@@ -89,8 +94,10 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
     root.appendChild(allBtn);
 
     // Left endpoint label
-    // audit-fix #24b — leftLabel + rightLabel pre-declared so repaint() can update them in compact mode.
-    const LABEL_CSS = "font-size:9px;color:#666;flex-shrink:0;font-variant-numeric:tabular-nums;";
+    // audit-fix #24b — endpoint labels; compact mode makes them live readouts (see repaint).
+    const LABEL_CSS = opts.compact
+        ? `font-size:9px;color:${opts.colorAccent ?? ACCENT};font-weight:600;flex-shrink:0;font-variant-numeric:tabular-nums;`
+        : "font-size:9px;color:#666;flex-shrink:0;font-variant-numeric:tabular-nums;";
     const leftLabel = document.createElement("span");
     leftLabel.textContent = quarterLabel(offsetQuarter(todayQ, -opts.pastQuarters));
     leftLabel.style.cssText = LABEL_CSS;
@@ -128,7 +135,7 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
         "position:absolute",
         `top:${railCenterY - BAND_HEIGHT / 2}px`,
         `height:${BAND_HEIGHT}px`,
-        `background:${ACCENT}`,
+        `background:${accent}`,
         "border-radius:4px",
         "pointer-events:none",
     ].join(";");
@@ -195,7 +202,7 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
             "box-sizing:border-box",
             "border-radius:50%",
             `background:${THUMB_FILL}`,
-            `border:2px solid ${ACCENT}`,
+            `border:2px solid ${accent}`,
             `box-shadow:${THUMB_SHADOW}`,
             "transition:transform 80ms ease, box-shadow 80ms ease",
             "pointer-events:none",
@@ -213,12 +220,12 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
             "transform:translateX(-50%)",
             "font-size:9px",
             "font-weight:600",
-            `color:${ACCENT}`,
+            `color:${accent}`,
             "font-variant-numeric:tabular-nums",
             "pointer-events:none",
             "white-space:nowrap",
             "background:#ffffff",
-            `border:1px solid ${ACCENT_DIM}`,
+            `border:1px solid ${accentDim}`,
             "border-radius:3px",
             "padding:1px 5px",
             "z-index:4",
@@ -266,12 +273,7 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
             if (opts.compact) {
                 leftLabel.textContent = quarterLabel(sLabelQ);
                 rightLabel.textContent = quarterLabel(eLabelQ);
-                leftLabel.style.opacity = isAll ? "0.6" : "1";
-                rightLabel.style.opacity = isAll ? "0.6" : "1";
-                leftLabel.style.fontWeight = "600";
-                rightLabel.style.fontWeight = "600";
-                leftLabel.style.color = ACCENT;
-                rightLabel.style.color = ACCENT;
+                leftLabel.style.opacity = rightLabel.style.opacity = isAll ? "0.6" : "1";
             }
         });
     }

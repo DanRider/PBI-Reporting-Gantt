@@ -744,12 +744,17 @@ export class Visual implements IVisual {
         // table-only view still has visual context. Adjust matrix top to
         // sit below the header.
         const ganttHiddenHeaderPx = this.splitter.hiddenMode() === "gantt" ? 40 : 0;
+        // audit-fix #24c — when ONLY the table is visible (Gantt toggled off),
+        // the table region underlaps the master slider chrome row. Push the
+        // gantt-hidden header AND the matrix region down by the chrome reserve.
+        const ganttHiddenChromePush = this.splitter.hiddenMode() === "gantt" ? MASTER_SLIDER_CHROME_PX : 0;
         if (ganttHiddenHeaderPx > 0) {
             const ct = this.settings.chartTitle;
             const ctText = (ct.text.value ?? "").trim();
             const displayText = (ct.show.value && ctText.length > 0) ? ctText : "(Gantt hidden)";
             this.ganttHiddenHeader.textContent = displayText;
             this.ganttHiddenHeader.style.display = "flex";
+            this.ganttHiddenHeader.style.top = ganttHiddenChromePush + "px";
             this.ganttHiddenHeader.style.left = panelWidthPx + "px";
             this.ganttHiddenHeader.style.width = (options.viewport.width - panelWidthPx) + "px";
             this.ganttHiddenHeader.style.color = ct.show.value ? ct.fontColor.value.value : "#666";
@@ -775,10 +780,10 @@ export class Visual implements IVisual {
                 widthPx: options.viewport.width - panelWidthPx,
             });
             this.matrixDiv.style.display = "block";
-            // v2.1 audit-fix #12 — when Gantt is hidden, push matrix down
-            // by the header height so the header stays visible.
-            this.matrixDiv.style.top = (ganttHeightPx + splitterBarHeightPx + ganttHiddenHeaderPx) + "px";
-            this.matrixDiv.style.height = (matrixHeightPx - ganttHiddenHeaderPx) + "px";
+            // v2.1 audit-fix #12 + #24c — when Gantt is hidden, push matrix
+            // down by the header height AND the master-slider chrome reserve.
+            this.matrixDiv.style.top = (ganttHeightPx + splitterBarHeightPx + ganttHiddenHeaderPx + ganttHiddenChromePush) + "px";
+            this.matrixDiv.style.height = (matrixHeightPx - ganttHiddenHeaderPx - ganttHiddenChromePush) + "px";
             this.matrixDiv.style.left = panelWidthPx + "px";
             this.matrixDiv.style.width = (options.viewport.width - panelWidthPx) + "px";
             this.matrixDiv.style.background = "#ffffff";

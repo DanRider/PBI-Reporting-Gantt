@@ -13,9 +13,16 @@
 import { mountTimeSlider } from "./inspector/timeSlider";
 import { SliderRange } from "./inspector/timeSliderMath";
 
-const STRIP_TOP_PX = 6;
+// audit-fix #24c — host top:-12 vertically aligns the slider rail center
+// (which lives at y=25 inside the 44px rail container) with the toggle
+// row center (y=13). The hit zone extends 2px above the visual top edge
+// but visible thumbs stay in-band.
+const STRIP_TOP_PX = -12;
 const STRIP_Z_INDEX = 11;
 const STRIP_MIN_WIDTH = 200;
+// audit-fix #24c — grey accent so the slider doesn't fight the chart
+// colors for attention. Matches the toggle thumb's grey border family.
+const GREY_ACCENT = "#6b7280";
 
 export interface MasterTimeSliderOptions {
     onChange: (next: SliderRange) => void;
@@ -65,7 +72,8 @@ export function mountMasterTimeSlider(
                     futureQuarters: envelope.futureQuarters,
                     value,
                     onChange: options.onChange,
-                    compact: true,  // audit-fix #24b — no ghost labels
+                    compact: true,        // #24b — no ghost labels
+                    colorAccent: GREY_ACCENT,  // #24c — grey, not blue
                 });
                 slider.element.style.flex = "1";
                 slider.element.style.width = "100%";
