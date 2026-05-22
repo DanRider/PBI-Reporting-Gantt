@@ -159,6 +159,15 @@ export function mountSplitterBar(
         if (bar.hasPointerCapture(e.pointerId)) {
             bar.releasePointerCapture(e.pointerId);
         }
+        // audit-fix #24e — swallow the synthetic click after pointerup so
+        // the root whitespace handler doesn't clear the selection (and
+        // close the Inspector panel). Same pattern as controlsPanel.
+        const swallowNextClick = (ev: Event): void => {
+            ev.stopPropagation();
+            ev.preventDefault();
+            window.removeEventListener("click", swallowNextClick, true);
+        };
+        window.addEventListener("click", swallowNextClick, true);
     });
 
     root.appendChild(bar);
