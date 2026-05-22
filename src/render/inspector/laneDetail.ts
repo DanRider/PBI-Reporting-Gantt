@@ -131,19 +131,10 @@ export function renderLaneDetail(
         }
         item.appendChild(nameLine);
 
-        // v2.1 audit-fix #20 — partition within the SLICER WINDOW.
-        // Most-recent = latest in-window past milestone for this activity.
-        // Next-upcoming = earliest in-window future milestone for this activity.
-        const myMs = activityMilestonesWindowed;
-        let mostRecent: Milestone | null = null;
-        let next: Milestone | null = null;
-        for (const m of myMs) {
-            if (m.date.getTime() <= today.getTime()) {
-                if (!mostRecent || m.date > mostRecent.date) mostRecent = m;
-            } else {
-                if (!next || m.date < next.date) next = m;
-            }
-        }
+        // audit-fix #24d — list EVERY in-window milestone for the activity
+        // (sorted by date), not just most-recent past + next future. The
+        // badge promises N; the body must show N. Past = ✓ grey, future = ⏭ dim color.
+        const myMs = [...activityMilestonesWindowed].sort((a, b) => a.date.getTime() - b.date.getTime());
         const compactLines = document.createElement("div");
         compactLines.style.cssText = "font-size:10px;line-height:1.5;";
 
@@ -182,18 +173,18 @@ export function renderLaneDetail(
         };
 
         const dimColor = activityHex ?? "#666";
-        if (mostRecent) {
-            compactLines.appendChild(buildSummaryLine("\u2713", "#666", mostRecent.label ?? "(unlabeled)", mostRecent.date));
+        for (const m of myMs) {
+            const isPast = m.date.getTime() <= today.getTime();
+            compactLines.appendChild(buildSummaryLine(
+                isPast ? "\u2713" : "\u23ed",
+                isPast ? "#666" : dimColor,
+                m.label ?? "(unlabeled)",
+                m.date,
+            ));
         }
-        if (next) {
-            // ⏭ uses the activity's dimension color to weave the legend.
-            compactLines.appendChild(buildSummaryLine("\u23ed", dimColor, next.label ?? "(unlabeled)", next.date));
-        }
-        if (!mostRecent && !next) {
+        if (myMs.length === 0) {
             const d = document.createElement("div");
-            d.textContent = activityMilestonesAll.length > 0
-                ? "(none in window)"
-                : "(no milestones)";
+            d.textContent = activityMilestonesAll.length > 0 ? "(none in window)" : "(no milestones)";
             d.style.cssText = "font-style:italic;color:#888;";
             compactLines.appendChild(d);
         }
