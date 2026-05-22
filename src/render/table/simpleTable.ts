@@ -70,6 +70,10 @@ export interface SimpleTableOptions {
      *  the same group gives band texture without big solid color blocks. */
     readonly rowTintByActivity?: Record<string, string>;
     readonly rowTintByArea?: Record<string, string>;
+    /** audit-fix #24g — when set, rows whose Milestone Date column falls
+     *  OUTSIDE [fromMs, toMs] are filtered out. Drives the Inspector lane
+     *  slider's window into the table when a lane is focused. */
+    readonly filterMilestoneDateMs?: { fromMs: number; toMs: number };
 }
 
 function buildRow(
@@ -188,9 +192,11 @@ export function renderSimpleTable(
     // activity filter (when set) AND Area matches the area filter (when set).
     const activityCol = cols.findIndex(c => /^activity$/i.test(c.displayName ?? ""));
     const areaCol = cols.findIndex(c => /^area$/i.test(c.displayName ?? "") || /swim/i.test(c.displayName ?? ""));
+    const msDateCol = cols.findIndex(c => /^milestone\s*date$/i.test(c.displayName ?? ""));
     const actFilter = options?.filterActivityNames;
     const areaFilter = options?.filterAreaNames;
-    const rows = (actFilter == null && areaFilter == null)
+    const msFilter = options?.filterMilestoneDateMs;
+    const rows = (actFilter == null && areaFilter == null && msFilter == null)
         ? allRows
         : allRows.filter(r => {
             if (actFilter != null && activityCol >= 0) {
@@ -200,6 +206,13 @@ export function renderSimpleTable(
             if (areaFilter != null && areaCol >= 0) {
                 const v = String(r[areaCol] ?? "").trim();
                 if (!areaFilter.includes(v)) return false;
+            }
+            if (msFilter != null && msDateCol >= 0) {
+                const raw = r[msDateCol];
+                const d = raw instanceof Date ? raw : (raw != null ? new Date(raw as string | number) : null);
+                if (d == null || isNaN(d.getTime())) return false;
+                const t = d.getTime();
+                if (t < msFilter.fromMs || t > msFilter.toMs) return false;
             }
             return true;
         });

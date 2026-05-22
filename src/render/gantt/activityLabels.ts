@@ -8,7 +8,7 @@ import { FontStyle, applyFont, canvasFontString } from "../../utils/font";
 
 const LOLLIPOP_CIRCLE_R = 4;
 const LOLLIPOP_STROKE_WIDTH = 2;
-const LABEL_TO_LOLLIPOP_GAP = 14;   // generous breathing room — no crowding
+const LABEL_TO_LOLLIPOP_GAP = 24;   // audit-fix #24g — extra buffer between label text end and lollipop circle
 const LOLLIPOP_TO_BAR_GAP = 6;
 const MIN_LOLLIPOP_LINE_LEN = 16;
 const LINE_OFFSET_PX = 6;           // half of inter-line spacing when wrapped to 2 lines

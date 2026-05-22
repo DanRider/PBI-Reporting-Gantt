@@ -708,6 +708,23 @@ export class Visual implements IVisual {
         this.lastViewmodel = vm;
         this.lastActivityColors = activityColors;
 
+        // audit-fix #24g — Inspector's lane slider ALSO scopes the chart +
+        // table milestones when a lane is focused. lastViewmodel above
+        // stays UNFILTERED by this window so the Inspector's badge ratios
+        // (X of Y in window) remain accurate; the further filter applies
+        // only to chart-render vm + table row filter below.
+        const inspectorWindow: { fromMs: number; toMs: number } | null =
+            focusedLaneName != null ? rangeToWindow(this.galleryRange, today) : null;
+        if (inspectorWindow) {
+            vm = {
+                ...vm,
+                milestones: vm.milestones.filter(m => {
+                    const t = m.date.getTime();
+                    return t >= inspectorWindow.fromMs && t <= inspectorWindow.toMs;
+                }),
+            };
+        }
+
         const areaColorMap = buildAreaColorMap(vm.areaBindings, this.settings.swimlanes);
         const milestoneConfig = buildMilestoneConfigMap(vm.typeBindings, this.settings.milestones);
         const colors: ColorContext = buildColorContext(areaColorMap, milestoneConfig, activityColors);
@@ -825,6 +842,8 @@ export class Visual implements IVisual {
                 highlightActivityName,
                 rowTintByActivity,
                 rowTintByArea,
+                // audit-fix #24g — Inspector lane slider scopes table rows too.
+                filterMilestoneDateMs: inspectorWindow ?? undefined,
             });
         } else {
             this.matrixDiv.style.display = "none";
