@@ -460,6 +460,10 @@ export class Visual implements IVisual {
                                         ));
                                     }
                                 }
+                                // audit-fix #24g — chart + table also depend on
+                                // galleryRange (via inspectorWindow). Without this
+                                // they stayed stale until the next unrelated re-render.
+                                this.requestRerender();
                             };
                             this.controls.setContent(renderLaneDetail(
                                 sel.laneName,
