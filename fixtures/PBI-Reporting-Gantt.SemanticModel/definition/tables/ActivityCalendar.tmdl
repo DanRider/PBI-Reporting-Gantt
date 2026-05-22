@@ -1,0 +1,37 @@
+table ActivityCalendar
+	isHidden
+	lineageTag: 0f436de5-f8c9-40a1-8d20-c0c8b8107cb4
+
+	column Activity
+		dataType: string
+		lineageTag: 01f23269-729d-4816-aedc-43e595e4a7c6
+		summarizeBy: none
+		sourceColumn: [Activity]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Date
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: e0fe6556-d154-4af4-89f7-f45b75a35a4f
+		summarizeBy: none
+		sourceColumn: [Date]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition ActivityCalendar = calculated
+		mode: import
+		source =
+				SELECTCOLUMNS(
+				    GENERATE(
+				        Activities,
+				        CALENDAR(Activities[Start Date], Activities[End Date])
+				    ),
+				    "Activity", Activities[Activity],
+				    "Date", [Date]
+				)
+
+	annotation PBI_ResultType = Table
+

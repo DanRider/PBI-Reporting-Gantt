@@ -1,0 +1,48 @@
+{
+    "name": "reporting-gantt",
+    "description": "Reporting Gantt \u2014 generic timeline visual for Power BI. Activity swim lanes, chevron time axis, milestone markers with conditional labels. v2.0 mounts a sortable rg-matrix-substrate table below the Gantt SVG.",
+    "version": "2.1.0.0",
+    "author": {
+        "name": "Daniel Rider",
+        "email": "daniel.rider@hotmail.com"
+    },
+    "license": "MIT",
+    "private": true,
+    "scripts": {
+        "pbiviz": "pbiviz",
+        "start": "pbiviz start",
+        "package": "pbiviz package && node scripts/rename-pbiviz.js",
+        "lint": "eslint src --ext .ts",
+        "check-cycles": "madge --circular --extensions ts src/",
+        "check-strict": "tsc --noEmit",
+        "find-dead-exports": "ts-prune --project tsconfig.json",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "prepare": "husky"
+    },
+    "dependencies": {
+        "@types/d3": "7.4.3",
+        "d3": "7.9.0",
+        "powerbi-visuals-api": "5.11.0",
+        "powerbi-visuals-utils-formattingmodel": "6.0.4",
+        "powerbi-visuals-utils-formattingutils": "^6.1.2",
+        "powerbi-visuals-utils-tooltiputils": "^6.0.4"
+    },
+    "devDependencies": {
+        "@typescript-eslint/eslint-plugin": "^8.8.0",
+        "@typescript-eslint/parser": "^8.0.0",
+        "@vitest/coverage-v8": "^4.1.6",
+        "eslint": "^9.11.1",
+        "eslint-plugin-import": "^2.32.0",
+        "eslint-plugin-powerbi-visuals": "^1.0.0",
+        "husky": "^9.1.7",
+        "jsdom": "^29.1.1",
+        "lint-staged": "^16.4.0",
+        "madge": "^8.0.0",
+        "powerbi-visuals-tools": "^6.2.0",
+        "ts-loader": "^9.5.7",
+        "ts-prune": "^0.10.3",
+        "typescript": "5.5.4",
+        "vitest": "^4.1.6"
+    }
+}

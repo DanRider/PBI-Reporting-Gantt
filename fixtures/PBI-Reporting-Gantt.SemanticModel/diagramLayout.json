@@ -1,0 +1,74 @@
+{
+  "version": "1.1.0",
+  "diagrams": [
+    {
+      "ordinal": 0,
+      "scrollPosition": {
+        "x": 0,
+        "y": 0
+      },
+      "nodes": [
+        {
+          "location": {
+            "x": 337.04024351628152,
+            "y": 250.16465242264098
+          },
+          "nodeIndex": "Activities",
+          "nodeLineageTag": "216db749-d1bf-4a94-aee4-048371a96fa5",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 624.0475039749748,
+            "y": 121.35435067513967
+          },
+          "nodeIndex": "ActivityCalendar",
+          "nodeLineageTag": "0f436de5-f8c9-40a1-8d20-c0c8b8107cb4",
+          "size": {
+            "height": 128,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 337.013558657698,
+            "y": -50
+          },
+          "nodeIndex": "Calendar",
+          "nodeLineageTag": "32e1261c-05ce-45ca-9fb1-96e4b0f399d3",
+          "size": {
+            "height": 248,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 49.999999999999986,
+            "y": 118.39189467228479
+          },
+          "nodeIndex": "Milestones",
+          "nodeLineageTag": "934cc277-d89f-4a28-a9eb-c9e4ce1f1822",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        }
+      ],
+      "name": "All tables",
+      "zoomValue": 100,
+      "pinKeyFieldsToTop": false,
+      "showExtraHeaderInfo": false,
+      "hideKeyFieldsWhenCollapsed": false,
+      "tablesLocked": false
+    }
+  ],
+  "selectedDiagram": "All tables",
+  "defaultDiagram": "All tables"
+}

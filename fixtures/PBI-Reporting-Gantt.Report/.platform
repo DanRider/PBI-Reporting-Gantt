@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "PBI-Reporting-Gantt"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "c51f9670-b472-4868-8cdc-a2d7120b9beb"
+  }
+}

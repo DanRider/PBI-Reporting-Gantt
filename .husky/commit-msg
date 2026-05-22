@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+# Reporting Gantt commit-msg hook (public release).
+# Permissive: enforces only that the subject is non-empty. Forks can
+# tighten this to match their own commit-convention.
+#
+# Merge/revert/fixup/squash envelopes are exempt so rebases and reverts
+# are not blocked.
+
+msg_file="$1"
+first_line=$(head -n 1 "$msg_file")
+
+case "$first_line" in
+  "Merge "*|"Revert "*|"fixup! "*|"squash! "*) exit 0 ;;
+esac
+
+if [ -z "$first_line" ]; then
+  echo "REJECTED: commit subject is empty" >&2
+  exit 1
+fi

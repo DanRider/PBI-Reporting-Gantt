@@ -1,0 +1,28 @@
+relationship e8a4be81-637f-4ac2-afb3-5c4e3aa28430
+	fromColumn: Milestones.Activity
+	toColumn: Activities.Activity
+
+relationship e069ada8-6d20-4161-ac30-21b5b2c4e787
+	crossFilteringBehavior: bothDirections
+	fromColumn: ActivityCalendar.Activity
+	toColumn: Activities.Activity
+
+relationship 1b01d862-0b09-438d-a309-37ffeef3f7c6
+	fromColumn: ActivityCalendar.Date
+	toColumn: Calendar.Date
+
+relationship a66b28be-c92e-49ee-ab4b-c602fa2db5ef
+	isActive: false
+	fromColumn: Activities.'Start Date'
+	toColumn: Calendar.Date
+
+relationship 8dc99a22-1e05-489f-8fe5-af81be3e9569
+	isActive: false
+	fromColumn: Activities.'End Date'
+	toColumn: Calendar.Date
+
+relationship 6470e121-7b85-4fc7-a857-610c519ae671
+	isActive: false
+	fromColumn: Milestones.'Milestone Date'
+	toColumn: Calendar.Date
+

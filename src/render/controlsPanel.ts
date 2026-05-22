@@ -1,0 +1,253 @@
+// v2.1 W1.5a — selection-driven controls panel.
+//
+// Mounts ONLY the slide-in panel — no hamburger. External code (the visual's
+// selectionStore subscriber) calls setOpen(true|false) and setContent(node).
+// The panel header carries the "Controls" title + × close button; clicking ×
+// fires onDismiss so the caller can clear its selection state (which then
+// closes the panel via the subscribe chain).
+//
+// Replaces the hamburger journey-and-morph approach from v2.1 W1
+// (commits bd9a37b → 8ebe3ff → c3c4d3f) — the controls panel is now
+// auto-driven by what the user clicks in the Gantt/table, not toggled
+// independently.
+//
+// Pure DOM, no innerHTML. Strict-TS clean.
+
+const PANEL_WIDTH_PCT_OPEN_DEFAULT = 20;
+const PANEL_WIDTH_PCT_CLOSED = 0;
+// v2.1 audit-fix #15 — user-draggable panel width clamps.
+const PANEL_WIDTH_PCT_MIN = 10;
+const PANEL_WIDTH_PCT_MAX = 60;
+// 400ms slide — matches the duration tuned in c3c4d3f under W1.
+const PANEL_TRANSITION_MS = 400;
+const PANEL_Z_INDEX = 10;
+const PANEL_BG = "#ffffff";
+const PANEL_BORDER = "#d0d0d0";
+// v2.1 audit-fix #15 — drag handle on panel right edge.
+const RESIZE_HANDLE_WIDTH_PX = 4;
+const RESIZE_HANDLE_HOVER_BG = "#a3b8d4";
+
+export interface ControlsPanelOptions {
+    /** Called when the user clicks × in the panel header. The caller is
+     *  responsible for clearing its own selection state — which then
+     *  triggers setOpen(false) via the subscriber chain. */
+    onDismiss: () => void;
+    /** v2.1 audit-fix #15 — called when the user drags the right-edge
+     *  handle to resize the panel. Caller should trigger a layout
+     *  re-render so the Gantt + table regions resize against the new
+     *  widthPct(). */
+    onWidthChange?: () => void;
+}
+
+export interface ControlsPanelHandle {
+    /** Slide the panel open (true) or closed (false). No-op if already in
+     *  that state. */
+    setOpen(open: boolean): void;
+    /** Replace the panel body content. The header (title + ×) stays static
+     *  across content swaps. */
+    setContent(node: HTMLElement): void;
+    /** Percent of root width the panel reserves. 0 when closed, 20 when
+     *  open. Read by the layout coordinator to compute region sizing. */
+    widthPct(): number;
+    /** The panel root element. Exposed for cases where the caller needs to
+     *  reach in (e.g. test fixtures). */
+    element: HTMLElement;
+}
+
+function buildPanel(): HTMLDivElement {
+    const panel = document.createElement("div");
+    panel.className = "controls-panel";
+    panel.style.cssText = [
+        "position:absolute",
+        "left:0",
+        "top:0",
+        "height:100%",
+        `background:${PANEL_BG}`,
+        `border-right:1px solid ${PANEL_BORDER}`,
+        "overflow:auto",
+        `z-index:${PANEL_Z_INDEX}`,
+        `transition:width ${PANEL_TRANSITION_MS}ms ease`,
+        "box-sizing:border-box",
+        "display:flex",
+        "flex-direction:column",
+    ].join(";");
+    return panel;
+}
+
+function buildPanelHeader(onDismiss: () => void): HTMLDivElement {
+    const header = document.createElement("div");
+    header.className = "controls-panel-header";
+    header.style.cssText = [
+        "display:flex",
+        "align-items:center",
+        "justify-content:space-between",
+        "padding:8px 12px",
+        `border-bottom:1px solid ${PANEL_BORDER}`,
+        "min-height:32px",
+        "box-sizing:border-box",
+        "flex-shrink:0",
+    ].join(";");
+
+    // Orchestrator audit: "labeling the menu at the top is largely a waste
+    // of space" — the panel content always provides its own h3 title for
+    // whatever is selected. Header now hosts only the × close affordance,
+    // with the title space replaced by a thin grow spacer so × stays at
+    // the right edge.
+    const spacer = document.createElement("div");
+    spacer.style.cssText = "flex:1;";
+    header.appendChild(spacer);
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "controls-panel-close";
+    closeBtn.type = "button";
+    closeBtn.setAttribute("aria-label", "Close controls panel");
+    closeBtn.textContent = "\u2715"; // ×
+    closeBtn.style.cssText = [
+        "background:transparent",
+        "border:none",
+        "cursor:pointer",
+        "font-size:16px",
+        "color:#555",
+        "padding:2px 8px",
+        "line-height:1",
+        "border-radius:3px",
+    ].join(";");
+    closeBtn.addEventListener("mouseenter", () => { closeBtn.style.background = "#f0f0f3"; });
+    closeBtn.addEventListener("mouseleave", () => { closeBtn.style.background = "transparent"; });
+    closeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onDismiss();
+    });
+    header.appendChild(closeBtn);
+
+    return header;
+}
+
+export function mountControlsPanel(
+    root: HTMLElement,
+    options: ControlsPanelOptions,
+): ControlsPanelHandle {
+    let open = false;
+    // v2.1 audit-fix #15 — user-draggable open width. Defaults to the
+    // historical 20% but the user can drag the right edge to resize.
+    // Persists across open/close cycles (closing the panel doesn't reset
+    // the width; reopening uses the same width the user last set).
+    let userWidthPct = PANEL_WIDTH_PCT_OPEN_DEFAULT;
+
+    const panel = buildPanel();
+    const header = buildPanelHeader(() => options.onDismiss());
+    panel.appendChild(header);
+
+    // Body container — setContent swaps THIS element's children, never
+    // touches the header. flex:1 so it takes all space below the header
+    // and clips its own overflow.
+    const body = document.createElement("div");
+    body.className = "controls-panel-body";
+    body.style.cssText = "flex:1;overflow:auto;padding:12px;box-sizing:border-box;";
+    panel.appendChild(body);
+
+    // Clicks INSIDE the panel must NOT bubble to the root-level whitespace
+    // handler (which would clear selection and close the panel). The ×
+    // close button has its own explicit stopPropagation + onDismiss path.
+    panel.addEventListener("click", (e) => { e.stopPropagation(); });
+
+    // v2.1 audit-fix #15 — vertical drag handle on the panel's right edge.
+    // 4px wide, cursor:ew-resize, hover-tinted. Captures pointer events to
+    // resize the panel; clamped to [10%, 60%] of root width.
+    const resizeHandle = document.createElement("div");
+    resizeHandle.className = "controls-panel-resize-handle";
+    resizeHandle.style.cssText = [
+        "position:absolute",
+        "top:0",
+        "right:0",
+        `width:${RESIZE_HANDLE_WIDTH_PX}px`,
+        "height:100%",
+        "cursor:ew-resize",
+        "background:transparent",
+        "z-index:1",
+        "touch-action:none",
+        "user-select:none",
+    ].join(";");
+    resizeHandle.addEventListener("mouseenter", () => { resizeHandle.style.background = RESIZE_HANDLE_HOVER_BG; });
+    resizeHandle.addEventListener("mouseleave", () => { resizeHandle.style.background = "transparent"; });
+    panel.appendChild(resizeHandle);
+
+    resizeHandle.addEventListener("pointerdown", (e: PointerEvent) => {
+        e.stopPropagation();
+        if (!open) return;
+        resizeHandle.setPointerCapture(e.pointerId);
+        const rootRect = root.getBoundingClientRect();
+        const rootWidth = rootRect.width;
+        const startX = e.clientX;
+        const startPct = userWidthPct;
+
+        const onMove = (mv: PointerEvent): void => {
+            if (!resizeHandle.hasPointerCapture(mv.pointerId)) return;
+            if (rootWidth <= 0) return;
+            const dx = mv.clientX - startX;
+            const deltaPct = (dx / rootWidth) * 100;
+            const next = Math.max(PANEL_WIDTH_PCT_MIN, Math.min(PANEL_WIDTH_PCT_MAX, startPct + deltaPct));
+            if (next !== userWidthPct) {
+                userWidthPct = next;
+                panel.style.width = `${userWidthPct}%`;
+                // Disable the CSS width transition during drag so the panel
+                // tracks the cursor 1:1 instead of easing behind it. Restore
+                // on pointerup.
+                panel.style.transition = "none";
+                if (options.onWidthChange) options.onWidthChange();
+            }
+        };
+        const onUp = (up: PointerEvent): void => {
+            if (resizeHandle.hasPointerCapture(up.pointerId)) {
+                resizeHandle.releasePointerCapture(up.pointerId);
+            }
+            // Restore CSS width transition for subsequent open/close.
+            panel.style.transition = `width ${PANEL_TRANSITION_MS}ms ease`;
+            resizeHandle.removeEventListener("pointermove", onMove);
+            resizeHandle.removeEventListener("pointerup", onUp);
+            // audit-fix #24e — pointer capture redirects pointer events but
+            // the SYNTHETIC click after pointerup still fires on whatever
+            // element is under the cursor at release. If the cursor lands
+            // over root whitespace, that click clears the selection and
+            // closes the panel. Swallow exactly one window-level click
+            // (capture phase, before any handler sees it) to defuse.
+            const swallowNextClick = (ev: Event): void => {
+                ev.stopPropagation();
+                ev.preventDefault();
+                window.removeEventListener("click", swallowNextClick, true);
+            };
+            window.addEventListener("click", swallowNextClick, true);
+        };
+        resizeHandle.addEventListener("pointermove", onMove);
+        resizeHandle.addEventListener("pointerup", onUp);
+    });
+
+    root.appendChild(panel);
+
+    function applyWidth(): void {
+        panel.style.width = open ? `${userWidthPct}%` : `${PANEL_WIDTH_PCT_CLOSED}%`;
+        // Hide from layout / assistive tech when fully closed so screen
+        // readers don't announce a 0-width region's contents.
+        panel.style.visibility = open ? "visible" : "hidden";
+    }
+
+    applyWidth();
+
+    return {
+        setOpen(next: boolean): void {
+            if (next === open) return;
+            open = next;
+            applyWidth();
+        },
+        setContent(node: HTMLElement): void {
+            while (body.firstChild) body.removeChild(body.firstChild);
+            body.appendChild(node);
+        },
+        // v2.1 audit-fix #15 — widthPct returns the USER-DRAGGED width
+        // when open, 0 when closed. Default is 20% but the user can drag
+        // the right-edge handle to resize within [10%, 60%]. Persists
+        // across open/close cycles.
+        widthPct: () => (open ? userWidthPct : PANEL_WIDTH_PCT_CLOSED),
+        element: panel,
+    };
+}

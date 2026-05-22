@@ -1,0 +1,40 @@
+#!/usr/bin/env sh
+# reporting-gantt v2.0 pre-commit gate. Cheapest checks first; first failure
+# short-circuits so a fast lint error does not wait behind the full suite.
+set -e
+
+echo "[pre-commit] eslint..."
+npm run lint --silent
+
+echo "[pre-commit] madge cycle check..."
+npm run check-cycles --silent
+
+echo "[pre-commit] strict tsc..."
+npm run check-strict --silent
+
+echo "[pre-commit] vitest..."
+npm test --silent
+
+echo "[pre-commit] file-size cap (400 lines)..."
+# GRANDFATHERED: v1.8 inheritance files that exceed the cap. Each entry
+# below has a documented removal milestone — when that wave lands, the
+# entry comes off the list and the cap enforces unconditionally.
+#   src/visual.ts (466) — Wave 4 decomposes into layout coordinator
+#                         + dual-render-head shape.
+#   src/settings.ts (407) — Wave 6 decomposes during the format-pane
+#                           card union (Gantt + matrix card builders).
+GRANDFATHERED="src/visual.ts src/settings.ts"
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.ts$' || true)
+for f in $staged; do
+  [ -f "$f" ] || continue
+  case " $GRANDFATHERED " in
+    *" $f "*) continue ;;
+  esac
+  lines=$(wc -l < "$f")
+  if [ "$lines" -gt 400 ]; then
+    echo "REJECTED: $f has $lines lines (cap 400)" >&2
+    exit 1
+  fi
+done
+
+echo "[pre-commit] all gates green."
