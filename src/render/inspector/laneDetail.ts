@@ -6,7 +6,7 @@
 
 import type { Milestone, RoadmapViewModel } from "../../viewmodel";
 import {
-    fmtDate, fmtRelative, makeH3, makeP, makeLabeledLine,
+    fmtDateShort, fmtRelative, makeH3, makeP, makeLabeledLine,
     INSPECTOR_FONT, OnSelect, makeBreadcrumb, makeColorBubble,
 } from "./shared";
 import { mountTimeSlider, rangeToWindow, SliderRange } from "./timeSlider";
@@ -165,7 +165,7 @@ export function renderLaneDetail(
             d.appendChild(relEl);
 
             const dateEl = document.createElement("span");
-            dateEl.textContent = ` (${fmtDate(date)})`;
+            dateEl.textContent = ` (${fmtDateShort(date)})`;
             dateEl.style.color = "#999";
             d.appendChild(dateEl);
 

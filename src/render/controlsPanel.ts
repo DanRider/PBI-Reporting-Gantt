@@ -205,6 +205,18 @@ export function mountControlsPanel(
             panel.style.transition = `width ${PANEL_TRANSITION_MS}ms ease`;
             resizeHandle.removeEventListener("pointermove", onMove);
             resizeHandle.removeEventListener("pointerup", onUp);
+            // audit-fix #24e — pointer capture redirects pointer events but
+            // the SYNTHETIC click after pointerup still fires on whatever
+            // element is under the cursor at release. If the cursor lands
+            // over root whitespace, that click clears the selection and
+            // closes the panel. Swallow exactly one window-level click
+            // (capture phase, before any handler sees it) to defuse.
+            const swallowNextClick = (ev: Event): void => {
+                ev.stopPropagation();
+                ev.preventDefault();
+                window.removeEventListener("click", swallowNextClick, true);
+            };
+            window.addEventListener("click", swallowNextClick, true);
         };
         resizeHandle.addEventListener("pointermove", onMove);
         resizeHandle.addEventListener("pointerup", onUp);

@@ -44,6 +44,12 @@ export function fmtDate(d: Date): string {
     return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
+/** audit-fix #24e — short numeric form for the lane Inspector activity tile,
+ *  where vertical milestone lists need horizontal compactness. "2/15/26". */
+export function fmtDateShort(d: Date): string {
+    return d.toLocaleDateString(undefined, { year: "2-digit", month: "numeric", day: "numeric" });
+}
+
 /** v2.1 audit-fix #18 — relative-time label so users don't do time math
  *  in their head. Past dates → "X ago"; future dates → "X until".
  *  Unit picked by magnitude: <1 wk → days, <8 wks → weeks, else months.
