@@ -73,7 +73,7 @@ import { mountTopRightControls, TopRightControlsHandle } from "./render/topRight
 // data extent; window filters milestones (24c) and (in 24b) tear-clips
 // activity bars at the window bounds.
 import { mountMasterTimeSlider, MasterTimeSliderHandle } from "./render/masterTimeSlider";
-import { SliderRange, quarterIndex, rangeToWindow } from "./render/inspector/timeSliderMath";
+import { SliderRange, quarterIndex, rangeToWindow, parseSliderRange } from "./render/inspector/timeSliderMath";
 
 // v2.1 W1.5a — selection state model. Drives the controls panel
 // (open/close + content). Clicks on selectable elements write to the store;
@@ -451,6 +451,7 @@ export class Visual implements IVisual {
                             // (lesson banked from audit-fix #21).
                             const onRangeChange = (nextRange: typeof this.galleryRange): void => {
                                 this.galleryRange = nextRange;
+                                this.persistSliderRange("laneInspectorSlider", nextRange);
                                 if (this.lastViewmodel) {
                                     const s = this.selectionStore.get();
                                     if (s.kind === "lane") {
@@ -543,6 +544,7 @@ export class Visual implements IVisual {
         this.masterSlider = mountMasterTimeSlider(this.root, {
             onChange: (next: SliderRange) => {
                 this.masterRange = next;
+                this.persistSliderRange("masterTimeSlider", next);
                 this.requestRerender();
             },
         });
@@ -603,6 +605,26 @@ export class Visual implements IVisual {
         // the table region) can read the tint maps. Originally these lived
         // after the layout coordinator, but the table render needs them.
         let vm: RoadmapViewModel = convertDataView(dataView);
+
+        // INF-3736 — restore persisted slider state from PBI objects bag if
+        // present + valid. Null-safe through the whole optional chain; any
+        // missing layer OR JSON.parse failure OR shape-mismatch falls back
+        // silently to the existing in-memory default (no console noise).
+        // Both sliders persist independently as JSON-stringified SliderRange
+        // because the discriminated union doesn't flatten to PBI's properties bag.
+        const objs = dataView?.metadata?.objects as
+            | { masterTimeSlider?: { windowJson?: string }; laneInspectorSlider?: { windowJson?: string } }
+            | undefined;
+        const masterJson = objs?.masterTimeSlider?.windowJson;
+        if (typeof masterJson === "string") {
+            const parsed = parseSliderRange(masterJson);
+            if (parsed) this.masterRange = parsed;
+        }
+        const inspectorJson = objs?.laneInspectorSlider?.windowJson;
+        if (typeof inspectorJson === "string") {
+            const parsed = parseSliderRange(inspectorJson);
+            if (parsed) this.galleryRange = parsed;
+        }
 
         // v2.1 audit-fix #24 — master slider envelope derived from FULL
         // data extent (before lane focus narrows it). Today is the pivot;
@@ -1283,6 +1305,21 @@ export class Visual implements IVisual {
             .attr("font-weight", function (this: SVGTextElement) {
                 return this.getAttribute("data-activity") === selectedActivityName ? "bold" : "normal";
             });
+    }
+
+    // INF-3736 — persist a slider window state into PBI's objects bag so it
+    // survives report reload / page nav. Wrapped here so onChange callbacks
+    // don't need to know the persistProperties shape. PBI fires a fresh
+    // update() asynchronously after this — the top-of-update read picks the
+    // new value up; we don't await it.
+    private persistSliderRange(objectName: "masterTimeSlider" | "laneInspectorSlider", range: SliderRange): void {
+        this.host.persistProperties({
+            merge: [{
+                objectName,
+                selector: undefined as unknown as powerbi.data.Selector,
+                properties: { windowJson: JSON.stringify(range) },
+            }],
+        });
     }
 
     // v2.1 W1 — re-run the full layout + render against the cached lastOptions.

@@ -14,8 +14,8 @@ case "$first_line" in
   "Merge "*|"Revert "*|"fixup! "*|"squash! "*) exit 0 ;;
 esac
 
-if ! echo "$first_line" | grep -qE '^(INF-3727|INF-3728)( Wave [0-9]+(\.[0-9]+[a-z]?)?)?:'; then
-  echo "REJECTED: commit subject must start with 'INF-3727:' / 'INF-3727 Wave N[.Mx]:' or 'INF-3728:' / 'INF-3728 Wave N[.Mx]:'" >&2
+if ! echo "$first_line" | grep -qE '^INF-[0-9]+( Wave [0-9]+(\.[0-9]+[a-z]?)?)?:'; then
+  echo "REJECTED: commit subject must start with 'INF-NNNN:' or 'INF-NNNN Wave N[.Mx]:'" >&2
   echo "Got: $first_line" >&2
   exit 1
 fi

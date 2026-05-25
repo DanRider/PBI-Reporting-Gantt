@@ -92,6 +92,30 @@
         }
     ],
     "objects": {
+        "masterTimeSlider": {
+            "displayName": "Master Time Slider",
+            "description": "Persisted window state of the top master time slider. JSON-stringified SliderRange — written by the visual on slider drag/All-toggle and read at the top of every update().",
+            "properties": {
+                "windowJson": {
+                    "displayName": "Window (JSON)",
+                    "type": {
+                        "text": true
+                    }
+                }
+            }
+        },
+        "laneInspectorSlider": {
+            "displayName": "Lane Inspector Time Slider",
+            "description": "Persisted window state of the lane Inspector time slider. JSON-stringified SliderRange — independent from the master slider.",
+            "properties": {
+                "windowJson": {
+                    "displayName": "Window (JSON)",
+                    "type": {
+                        "text": true
+                    }
+                }
+            }
+        },
         "title": {
             "displayName": "Title",
             "description": "Power BI's built-in platform title. Off by default \u2014 use the Chart Title card below instead for richer styling. Turning this on shows the title as a separate text element above the visual viewport (PBI platform handles rendering).",

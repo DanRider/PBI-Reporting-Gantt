@@ -30,6 +30,23 @@ export function quarterIndex(d: Date): number {
     return d.getFullYear() * 4 + Math.floor(d.getMonth() / 3);
 }
 
+/** INF-3736 — narrow validator for JSON-stringified SliderRange from PBI
+ *  objects bag. Returns null on any malformation so callers can fall back
+ *  to in-memory defaults silently. No exceptions ever escape. */
+export function parseSliderRange(s: string): SliderRange | null {
+    let v: unknown;
+    try { v = JSON.parse(s); } catch { return null; }
+    if (!v || typeof v !== "object") return null;
+    const obj = v as { kind?: unknown; startOffset?: unknown; endOffset?: unknown };
+    if (obj.kind === "all") return { kind: "all" };
+    if (obj.kind === "range"
+        && typeof obj.startOffset === "number" && Number.isFinite(obj.startOffset)
+        && typeof obj.endOffset === "number" && Number.isFinite(obj.endOffset)) {
+        return { kind: "range", startOffset: obj.startOffset, endOffset: obj.endOffset };
+    }
+    return null;
+}
+
 export function rangeToWindow(range: SliderRange, today: Date): { fromMs: number; toMs: number } | null {
     if (range.kind === "all") return null;
     const todayQ = quarterStart(today);

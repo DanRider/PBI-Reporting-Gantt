@@ -1,7 +1,5 @@
-// v2.1 audit-fix #23/#24b — quarterly time slider, Tableau-style polish.
-// Offset-preserving drag, rAF-batched repaint, snap-on-pointerup, 10px
-// thumb on 30px hit-zone, Show-All toggle. Compact mode (#24b) suppresses
-// floating value labels; endpoint labels become live readouts.
+// Quarterly time slider — offset-preserving drag, rAF repaint, snap-on-pointerup, 10px thumb / 30px hit-zone,
+// All toggle, compact mode (suppress floating labels — endpoints become live readouts).
 
 import { SliderRange, quarterStart, offsetQuarter, quarterLabel, rangeToWindow } from "./timeSliderMath";
 export { SliderRange, quarterLabel, rangeToWindow } from "./timeSliderMath";
@@ -51,8 +49,6 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
 
     const accent = opts.colorAccent ?? ACCENT;       // #24c — master overrides w/ grey
     const accentDim = opts.colorAccent ?? ACCENT_DIM;
-
-    // ── State ─────────────────────────────────────────────────────
     let curRange: SliderRange = opts.value;
     const initStart = curRange.kind === "range" ? offsetToIdx(curRange.startOffset) : 0;
     const initEnd = curRange.kind === "range" ? offsetToIdx(curRange.endOffset) : totalTicks - 1;
@@ -63,8 +59,6 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
     // pointerup). These hold the live fractional indexes per thumb.
     let liveStartIdx = startIdx;
     let liveEndIdx = endIdx;
-
-    // ── DOM ───────────────────────────────────────────────────────
     const root = document.createElement("div");
     root.className = "time-slider";
     root.style.cssText = "display:flex;align-items:center;gap:8px;margin:6px 0 12px 0;font-family:'Segoe UI', system-ui, sans-serif;";
@@ -242,7 +236,8 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
         rail.appendChild(endT.label);
     }
 
-    // ── Layout / paint ────────────────────────────────────────────
+    // INF-3736 — smooth transition + 3 explicit states (all/range/empty); thumbs NEVER move on toggle.
+    band.style.transition = "opacity 180ms ease, left 180ms ease, width 180ms ease";
     let rafPending = false;
     function repaint(): void {
         if (rafPending) return;
@@ -250,20 +245,25 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
         requestAnimationFrame(() => {
             rafPending = false;
             const isAll = curRange.kind === "all";
-            const sIdx = isAll ? 0 : liveStartIdx;
-            const eIdx = isAll ? totalTicks - 1 : liveEndIdx;
-            const sPct = (sIdx / (totalTicks - 1)) * 100;
-            const ePct = (eIdx / (totalTicks - 1)) * 100;
+            // Thumbs ALWAYS reflect liveStartIdx/liveEndIdx — no jump on toggle.
+            const sPct = (liveStartIdx / (totalTicks - 1)) * 100;
+            const ePct = (liveEndIdx / (totalTicks - 1)) * 100;
             startT.hit.style.left = `${sPct}%`;
             endT.hit.style.left = `${ePct}%`;
             startT.label.style.left = `${sPct}%`;
             endT.label.style.left = `${ePct}%`;
-            band.style.left = `${sPct}%`;
-            band.style.width = `${ePct - sPct}%`;
-            band.style.opacity = isAll ? "0.4" : "1";
-            // Update label text — when "all", show actual snapped indexes anyway
-            const sLabelQ = offsetQuarter(todayQ, idxToOffset(Math.round(sIdx)));
-            const eLabelQ = offsetQuarter(todayQ, idxToOffset(Math.round(eIdx)));
+            // Band: in "all" mode spans entire envelope at low opacity; in "range" mode spans the selection.
+            const bandLeftPct = isAll ? 0 : sPct;
+            const bandRightPct = isAll ? 100 : ePct;
+            band.style.left = `${bandLeftPct}%`;
+            band.style.width = `${bandRightPct - bandLeftPct}%`;
+            band.style.opacity = isAll ? "0.3" : "1";
+            // Thumb opacity signals whether they're driving filter or just remembering.
+            startT.visible.style.opacity = isAll ? "0.6" : "1";
+            endT.visible.style.opacity = isAll ? "0.6" : "1";
+            // Floating + endpoint labels track the THUMB position (which is liveStart/liveEnd).
+            const sLabelQ = offsetQuarter(todayQ, idxToOffset(Math.round(liveStartIdx)));
+            const eLabelQ = offsetQuarter(todayQ, idxToOffset(Math.round(liveEndIdx)));
             startT.label.textContent = quarterLabel(sLabelQ);
             endT.label.textContent = quarterLabel(eLabelQ);
             startT.label.style.opacity = isAll ? "0.5" : "1";
@@ -278,8 +278,6 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
         });
     }
     repaint();
-
-    // ── Pointer math ──────────────────────────────────────────────
     function clientXToFractionalIdx(clientX: number): number {
         const rect = rail.getBoundingClientRect();
         if (rect.width <= 0) return 0;
@@ -304,8 +302,6 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
         repaint();
         opts.onChange(curRange);
     }
-
-    // ── Drag handlers ─────────────────────────────────────────────
     function attachDrag(thumb: ReturnType<typeof makeThumb>, side: "start" | "end"): void {
         thumb.hit.addEventListener("pointerdown", (e: PointerEvent) => {
             e.stopPropagation();
@@ -353,8 +349,6 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
     }
     attachDrag(startT, "start");
     attachDrag(endT, "end");
-
-    // ── Track-click: jump nearest thumb ───────────────────────────
     rail.addEventListener("pointerdown", (e: PointerEvent) => {
         // If a thumb already grabbed the pointer, skip.
         const target = e.target as HTMLElement;
