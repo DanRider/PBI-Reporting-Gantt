@@ -14,15 +14,13 @@
 import { mountTimeSlider } from "./inspector/timeSlider";
 import { SliderRange } from "./inspector/timeSliderMath";
 
-// INF-3736 — anchor at top:1 with 24px fixed height + align-items:center.
-// Icon (24x24) is naturally centered at visual y=13 (matches the Gantt/Table
-// toggle row center). The slider container, which is 44px tall internally
-// with its rail center at y=25 (not centered), gets a translateY(-4px) so
-// its rail visually aligns with the same y=13 centerline.
+// INF-3736 — anchor at top:1, height:24, align-items:center. Everything inside
+// (icon, slider rail, text labels, checkboxes) center-aligns to visual y=13 to
+// match the Gantt/Table toggle row centerline. timeSlider's railCenterY was
+// changed to true geometric center so no extra nudge is needed.
 const ANCHOR_TOP_PX = 1;
 const ANCHOR_HEIGHT_PX = 24;
 const ANCHOR_RIGHT_PX = 6;
-const SLIDER_VERTICAL_NUDGE_PX = -4;
 const STRIP_Z_INDEX = 11;
 const STRIP_MAX_WIDTH_PX = 1440;
 const SLIDER_MIN_WIDTH_PX = 600;
@@ -197,7 +195,7 @@ export function mountMasterTimeSlider(
         "opacity:1",
     ].join(";");
 
-    const ganttCheck = buildScopeCheckbox("Chart", true, (next) => {
+    const ganttCheck = buildScopeCheckbox("Gantt", true, (next) => {
         curScope = { ...curScope, filtersGantt: next };
         options.onScopeChange(curScope);
         applyAutoCollapse();
@@ -263,9 +261,9 @@ export function mountMasterTimeSlider(
         sliderContainer.style.flex = "1";
         sliderContainer.style.minWidth = `${SLIDER_MIN_WIDTH_PX}px`;
         sliderContainer.style.margin = "0";
-        // INF-3736 — nudge the slider container up so its rail center
-        // aligns with the icon center (y=13 of the visual).
-        sliderContainer.style.transform = `translateY(${SLIDER_VERTICAL_NUDGE_PX}px)`;
+        // INF-3736 — no transform nudge needed: railCenterY is now RAIL_HEIGHT/2
+        // (true geometric center), so the slider's rail naturally aligns with
+        // the flex-centered text labels and the anchor's centerline.
         strip.insertBefore(sliderContainer, ganttCheck);
         lastEnvelope = { p: envelope.pastMonths, f: envelope.futureMonths };
     }

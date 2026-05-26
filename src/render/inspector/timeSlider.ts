@@ -18,9 +18,7 @@ export interface TimeSliderOptions {
     readonly colorAccent?: string;
 }
 
-export interface TimeSliderHandle {
-    readonly element: HTMLElement;
-}
+export interface TimeSliderHandle { readonly element: HTMLElement; }
 
 const TRACK_HEIGHT = 6;
 const BAND_HEIGHT = 8;
@@ -48,7 +46,7 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
     const idxToOffset = (idx: number): number => idx - opts.pastMonths;
     const offsetToIdx = (offset: number): number => offset + opts.pastMonths;
 
-    const accent = opts.colorAccent ?? ACCENT;       // #24c — master overrides w/ grey
+    const accent = opts.colorAccent ?? ACCENT;
     const accentDim = opts.colorAccent ?? ACCENT_DIM;
     let curRange: SliderRange = opts.value;
     const initStart = curRange.kind === "range" ? offsetToIdx(curRange.startOffset) : 0;
@@ -56,8 +54,7 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
     let startIdx = Math.max(0, Math.min(totalTicks - 1, Math.min(initStart, initEnd)));
     let endIdx = Math.max(0, Math.min(totalTicks - 1, Math.max(initStart, initEnd)));
 
-    // Live fractional indexes during drag (snapped to int only at pointerup).
-    let liveStartIdx = startIdx;
+    let liveStartIdx = startIdx; // fractional during drag, int after snap
     let liveEndIdx = endIdx;
     const root = document.createElement("div");
     root.className = "time-slider";
@@ -76,6 +73,7 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
             : "Show all milestones (clear window filter)";
         allBtn.style.cssText = [
             "padding:2px 8px",
+            "font-family:'Segoe UI',system-ui,sans-serif",
             "font-size:10px",
             "line-height:1.3",
             "border-radius:10px",
@@ -83,17 +81,17 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
             `border:1px solid ${active ? accent : "#ccc"}`,
             `background:${active ? "#e6f0fb" : "#ffffff"}`,
             `color:${active ? accent : "#555"}`,
-            `font-weight:${active ? "600" : "400"}`,
+            "font-weight:600",
             "flex-shrink:0",
         ].join(";");
     };
     restyleAll();
     root.appendChild(allBtn);
 
-    // Endpoint labels — pointer-events:none + (compact) live readouts via repaint.
+    // Endpoint labels — pointer-events:none + (compact) live readouts; 10px Segoe UI 600 matches toggles.
     const LABEL_CSS = opts.compact
-        ? `font-size:9px;color:${opts.colorAccent ?? ACCENT};font-weight:600;flex-shrink:0;font-variant-numeric:tabular-nums;pointer-events:none;`
-        : "font-size:9px;color:#666;flex-shrink:0;font-variant-numeric:tabular-nums;pointer-events:none;";
+        ? `font-family:'Segoe UI',system-ui,sans-serif;font-size:10px;color:${opts.colorAccent ?? ACCENT};font-weight:600;flex-shrink:0;font-variant-numeric:tabular-nums;pointer-events:none;`
+        : "font-family:'Segoe UI',system-ui,sans-serif;font-size:10px;color:#555;font-weight:600;flex-shrink:0;font-variant-numeric:tabular-nums;pointer-events:none;";
     const leftLabel = document.createElement("span");
     leftLabel.textContent = monthLabel(offsetMonth(todayQ, -opts.pastMonths));
     leftLabel.style.cssText = LABEL_CSS;
@@ -107,7 +105,8 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
     rail.style.cssText = `position:relative;flex:1;height:${RAIL_HEIGHT}px;cursor:pointer;touch-action:none;`;
     root.appendChild(rail);
 
-    const railCenterY = RAIL_HEIGHT - HIT_ZONE_SIZE / 2 - 4;
+    // INF-3736 — true geometric center: rail + flex-centered text labels share y=22 of the 44px root.
+    const railCenterY = RAIL_HEIGHT / 2;
 
     // Track (background line)
     const track = document.createElement("div");
