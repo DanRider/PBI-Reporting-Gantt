@@ -110,7 +110,7 @@ export function mountTopRightControls(
     container.addEventListener("click", (e) => { e.stopPropagation(); });
     container.addEventListener("pointerdown", (e) => { e.stopPropagation(); });
 
-    const ganttToggle = buildToggle("Gantt", "Toggle Gantt visibility");
+    const ganttToggle = buildToggle("Roadmap", "Toggle Roadmap visibility");
     const tableToggle = buildToggle("Table", "Toggle Table visibility");
 
     function applyState(toggle: Toggle, hidden: boolean): void {

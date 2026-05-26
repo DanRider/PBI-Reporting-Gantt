@@ -195,7 +195,7 @@ export function mountMasterTimeSlider(
         "opacity:1",
     ].join(";");
 
-    const ganttCheck = buildScopeCheckbox("Gantt", true, (next) => {
+    const ganttCheck = buildScopeCheckbox("Roadmap", true, (next) => {
         curScope = { ...curScope, filtersGantt: next };
         options.onScopeChange(curScope);
         applyAutoCollapse();

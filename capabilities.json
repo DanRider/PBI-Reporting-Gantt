@@ -103,7 +103,7 @@
                     }
                 },
                 "filtersGantt": {
-                    "displayName": "Filter applies to Gantt chart",
+                    "displayName": "Filter applies to Roadmap chart",
                     "type": {
                         "bool": true
                     }
@@ -1067,8 +1067,8 @@
             }
         },
         "ganttLayout": {
-            "displayName": "Gantt Layout",
-            "description": "Outer margins around the Gantt chart region. Percentages of viewport.",
+            "displayName": "Roadmap Layout",
+            "description": "Outer margins around the Roadmap chart region. Percentages of viewport.",
             "properties": {
                 "topMarginPercent": {
                     "displayName": "Top margin (%)",
