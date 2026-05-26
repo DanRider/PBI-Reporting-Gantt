@@ -55,8 +55,7 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
     let startIdx = Math.max(0, Math.min(totalTicks - 1, Math.min(initStart, initEnd)));
     let endIdx = Math.max(0, Math.min(totalTicks - 1, Math.max(initStart, initEnd)));
 
-    // During drag the thumb tracks a fractional position (snapped only on
-    // pointerup). These hold the live fractional indexes per thumb.
+    // Live fractional indexes during drag (snapped to int only at pointerup).
     let liveStartIdx = startIdx;
     let liveEndIdx = endIdx;
     const root = document.createElement("div");
@@ -69,9 +68,7 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
     allBtn.type = "button";
     const restyleAll = (): void => {
         const active = curRange.kind === "all";
-        // INF-3736 — button label communicates the ACTION on next click.
-        // range mode → click goes to "All" (show everything).
-        // all mode   → click restores "Last" filtered range.
+        // INF-3736 — button label = action on click: "All" (show everything) or "Last" (restore range).
         allBtn.textContent = active ? "Last" : "All";
         allBtn.title = active
             ? "Restore the last filtered range"
@@ -92,11 +89,8 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
     restyleAll();
     root.appendChild(allBtn);
 
-    // Left endpoint label
-    // audit-fix #24b — endpoint labels; compact mode makes them live readouts (see repaint).
-    // INF-3736 — pointer-events:none so the right thumb's hit zone, which extends
-    // 15px past the rail's right edge into rightLabel's flex space, isn't stolen
-    // by the label catching clicks. Labels are display-only — never interactive.
+    // Endpoint labels — compact mode makes them live readouts (see repaint).
+    // pointer-events:none so right thumb's overflowing hit zone isn't stolen by rightLabel.
     const LABEL_CSS = opts.compact
         ? `font-size:9px;color:${opts.colorAccent ?? ACCENT};font-weight:600;flex-shrink:0;font-variant-numeric:tabular-nums;pointer-events:none;`
         : "font-size:9px;color:#666;flex-shrink:0;font-variant-numeric:tabular-nums;pointer-events:none;";
@@ -107,8 +101,7 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
     const rightLabel = document.createElement("span");
     rightLabel.textContent = quarterLabel(offsetQuarter(todayQ, opts.futureQuarters));
     rightLabel.style.cssText = LABEL_CSS;
-    // rightLabel appended to root AFTER the rail (below) so flex order
-    // is: [All] [leftLabel] [rail flex:1] [rightLabel].
+    // rightLabel appended after rail below → flex order [All] [leftLabel] [rail flex:1] [rightLabel].
 
     // Rail (grows to fill available width)
     const rail = document.createElement("div");
@@ -295,12 +288,8 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
         endIdx = Math.max(sIdx, eIdx);
         liveStartIdx = startIdx;
         liveEndIdx = endIdx;
-        if (curRange.kind === "all") {
-            // Dragging implicitly exits "all" mode.
-            curRange = { kind: "range", startOffset: idxToOffset(startIdx), endOffset: idxToOffset(endIdx) };
-        } else {
-            curRange = { kind: "range", startOffset: idxToOffset(startIdx), endOffset: idxToOffset(endIdx) };
-        }
+        // INF-3736 — any commit (drag/rail-click) lands in "range"; only the pill toggles state.
+        curRange = { kind: "range", startOffset: idxToOffset(startIdx), endOffset: idxToOffset(endIdx) };
         restyleAll();
         repaint();
         opts.onChange(curRange);
@@ -313,6 +302,12 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
             thumb.hit.style.cursor = "grabbing";
             thumb.visible.style.transform = "scale(1.15)";
             thumb.visible.style.boxShadow = THUMB_SHADOW_HOVER;
+
+            // INF-3736 — sync live indexes to envelope in "all" mode so grabOffset is 1:1.
+            if (curRange.kind === "all") {
+                liveStartIdx = 0;
+                liveEndIdx = totalTicks - 1;
+            }
 
             // Offset-preserving drag: capture the cursor's fractional index
             // at pointerdown, and the thumb's own fractional index. Maintain
@@ -332,6 +327,11 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
                 } else {
                     if (nextIdx < liveStartIdx) nextIdx = liveStartIdx;
                     liveEndIdx = nextIdx;
+                }
+                    // INF-3736 — first movement exits "all" mode so repaint follows the drag.
+                if (curRange.kind === "all") {
+                    curRange = { kind: "range", startOffset: idxToOffset(Math.round(liveStartIdx)), endOffset: idxToOffset(Math.round(liveEndIdx)) };
+                    restyleAll();
                 }
                 repaint();
             };
@@ -360,6 +360,11 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
             return;
         }
         e.stopPropagation();
+        // INF-3736 — sync live indexes to envelope before nearest-thumb-jump in "all" mode.
+        if (curRange.kind === "all") {
+            liveStartIdx = 0;
+            liveEndIdx = totalTicks - 1;
+        }
         const cursorIdx = clientXToFractionalIdx(e.clientX);
         const distStart = Math.abs(cursorIdx - liveStartIdx);
         const distEnd = Math.abs(cursorIdx - liveEndIdx);
@@ -370,9 +375,7 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
         } else {
             liveEndIdx = Math.max(snapped, liveStartIdx);
         }
-        if (curRange.kind === "all") {
-            curRange = { kind: "range", startOffset: idxToOffset(Math.round(liveStartIdx)), endOffset: idxToOffset(Math.round(liveEndIdx)) };
-        }
+        // snapAndCommit unconditionally lands in "range" mode (single commit path).
         snapAndCommit();
     });
 
