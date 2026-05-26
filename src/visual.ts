@@ -486,6 +486,15 @@ export class Visual implements IVisual {
                                 // v2.2 B2 — host.launchUrl is the supported way
                                 // to open external URLs from a PBI custom visual.
                                 (url: string) => this.host.launchUrl(url),
+                                // v2.2 B3 — Health dot palette from the Format
+                                // pane's Milestone Health Colors card. Allows
+                                // domain-specific overrides of the green/yellow/red.
+                                {
+                                    green:    this.settings.milestoneHealthColors.green.value.value,
+                                    yellow:   this.settings.milestoneHealthColors.yellow.value.value,
+                                    red:      this.settings.milestoneHealthColors.red.value.value,
+                                    fallback: "#888888",
+                                },
                             ));
                             break;
                     }

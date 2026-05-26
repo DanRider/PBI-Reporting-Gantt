@@ -388,11 +388,31 @@ class TimeAxisCard extends CompositeCard {
     ];
 }
 
+// v2.2 B3 — palette for the milestone Inspector's Health dot. Drives the
+// healthColor() utility, which maps both literal color names AND semantic
+// status strings (On Track / At Risk / Off Track / Blocked / etc.) to
+// these 3 colors. Defaults pick standard data-viz hues.
+class MilestoneHealthColorsCard extends SimpleCard {
+    green = new formattingSettings.ColorPicker({
+        name: "green",  displayName: "Green (on-track)",  value: { value: "#2ca02c" },
+    });
+    yellow = new formattingSettings.ColorPicker({
+        name: "yellow", displayName: "Yellow (at-risk)",  value: { value: "#e6b800" },
+    });
+    red = new formattingSettings.ColorPicker({
+        name: "red",    displayName: "Red (off-track)",   value: { value: "#d62728" },
+    });
+    name: string = "milestoneHealthColors";
+    displayName: string = "Milestone Health Colors";
+    slices: FormattingSettingsSlice[] = [this.green, this.yellow, this.red];
+}
+
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     title = new TitleCard();
     chartTitle = new ChartTitleCard();
     layout = new LayoutCard();
     milestones = new MilestonesCard();
+    milestoneHealthColors = new MilestoneHealthColorsCard();
     activityLabels = new ActivityLabelsCard();
     swimlanes = new SwimlanesCard();
     timeAxis = new TimeAxisCard();
@@ -405,6 +425,7 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
         this.swimlanes,
         this.activityLabels,
         this.milestones,
+        this.milestoneHealthColors,
         this.timeAxis,
         this.tooltip,
     ];

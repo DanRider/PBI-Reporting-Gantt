@@ -501,6 +501,42 @@
                 }
             }
         },
+        "milestoneHealthColors": {
+            "displayName": "Milestone Health Colors",
+            "description": "Color palette for the milestone Inspector's Health dot. The visual matches the bound Milestone Health value against literal color names (Green/Yellow/Red) AND common semantic-status strings (On Track / At Risk / Off Track / Blocked / Complete / Done) — change these colors to align the palette to your domain's status taxonomy.",
+            "properties": {
+                "green": {
+                    "displayName": "Green (on-track)",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "yellow": {
+                    "displayName": "Yellow (at-risk)",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "red": {
+                    "displayName": "Red (off-track)",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "activityLabels": {
             "displayName": "Activity Labels",
             "properties": {

@@ -7,6 +7,7 @@
 
 import type { RoadmapViewModel } from "../../viewmodel";
 import { fmtDate, makeH3, makeP, makeLabeledLine, INSPECTOR_FONT, makeBreadcrumb, OnSelect, makeColorBubble } from "./shared";
+import { healthColor, HealthColorPalette } from "../../utils/healthColor";
 
 export function renderMilestoneDetail(
     milestoneLabel: string,
@@ -18,6 +19,10 @@ export function renderMilestoneDetail(
     // (visual.ts) passes (url) => this.host.launchUrl(url) so the URL
     // opens via PBI's supported API. Optional for backward compat.
     launchUrl?: (url: string) => void,
+    // v2.2 B3 — palette override for the Health dot. Caller passes the
+    // bound Format-pane settings.milestoneHealthColors values. When
+    // undefined, healthColor() uses DEFAULT_HEALTH_PALETTE.
+    healthPalette?: HealthColorPalette,
 ): HTMLElement {
     const root = document.createElement("div");
     root.className = "inspector-milestone";
@@ -73,10 +78,12 @@ export function renderMilestoneDetail(
         fields.appendChild(makeLabeledLine("Owner:", milestone.owner));
     }
     if (milestone.health) {
-        const healthColor =
-            /green/i.test(milestone.health) ? "#2ca02c" :
-            /yellow|amber/i.test(milestone.health) ? "#e6b800" :
-            /red/i.test(milestone.health) ? "#d62728" : "#888";
+        // v2.2 B3 — was an inline regex matching only literal "green"/
+        // "yellow"/"red"; real-data semantic values like "On Track" /
+        // "At Risk" / "Off Track" / "Blocked" all fell through to #888.
+        // healthColor() recognizes the full semantic vocabulary AND uses
+        // the user-configurable palette from settings.milestoneHealthColors.
+        const dotColor = healthColor(milestone.health, healthPalette);
         const healthDiv = document.createElement("div");
         healthDiv.style.cssText = "margin:0 0 4px 0;font-family:inherit;font-size:12px;color:#222;line-height:1.4;display:flex;align-items:center;gap:6px;";
         const lab = document.createElement("span");
@@ -84,7 +91,7 @@ export function renderMilestoneDetail(
         lab.style.cssText = "font-weight:600;color:#555;";
         const dot = document.createElement("span");
         dot.textContent = "\u25cf"; // ●
-        dot.style.cssText = `color:${healthColor};font-size:14px;`;
+        dot.style.cssText = `color:${dotColor};font-size:14px;`;
         const val = document.createElement("span");
         val.textContent = milestone.health;
         healthDiv.appendChild(lab);
