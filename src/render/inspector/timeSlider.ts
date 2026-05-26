@@ -244,38 +244,31 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
         rafPending = true;
         requestAnimationFrame(() => {
             rafPending = false;
+            // INF-3736 — slicer-style: band ALWAYS shows current selection at full
+            // opacity. In "all" mode thumbs+band sit at envelope endpoints (everything
+            // selected = band fills rail). In "range" mode thumbs+band sit at the user's
+            // saved range. No ghosting, no opacity tricks — what you see IS what's selected.
             const isAll = curRange.kind === "all";
-            // Thumbs ALWAYS reflect liveStartIdx/liveEndIdx — no jump on toggle.
-            const sPct = (liveStartIdx / (totalTicks - 1)) * 100;
-            const ePct = (liveEndIdx / (totalTicks - 1)) * 100;
+            const sIdx = isAll ? 0 : liveStartIdx;
+            const eIdx = isAll ? totalTicks - 1 : liveEndIdx;
+            const sPct = (sIdx / (totalTicks - 1)) * 100;
+            const ePct = (eIdx / (totalTicks - 1)) * 100;
             startT.hit.style.left = `${sPct}%`;
             endT.hit.style.left = `${ePct}%`;
             startT.label.style.left = `${sPct}%`;
             endT.label.style.left = `${ePct}%`;
-            // Band: in "all" mode spans entire envelope at low opacity; in "range" mode spans the selection.
-            const bandLeftPct = isAll ? 0 : sPct;
-            const bandRightPct = isAll ? 100 : ePct;
-            band.style.left = `${bandLeftPct}%`;
-            band.style.width = `${bandRightPct - bandLeftPct}%`;
-            // INF-3736 — hide band entirely in "all" mode for unambiguous state signal
-            // (was 30% — too subtle when range == envelope).
-            band.style.opacity = isAll ? "0" : "1";
-            // Thumb opacity signals whether they're driving filter or just remembering.
-            startT.visible.style.opacity = isAll ? "0.6" : "1";
-            endT.visible.style.opacity = isAll ? "0.6" : "1";
-            // Floating + endpoint labels track the THUMB position (which is liveStart/liveEnd).
-            const sLabelQ = offsetQuarter(todayQ, idxToOffset(Math.round(liveStartIdx)));
-            const eLabelQ = offsetQuarter(todayQ, idxToOffset(Math.round(liveEndIdx)));
+            band.style.left = `${sPct}%`;
+            band.style.width = `${ePct - sPct}%`;
+            band.style.opacity = "1";
+            startT.visible.style.opacity = "1";
+            endT.visible.style.opacity = "1";
+            const sLabelQ = offsetQuarter(todayQ, idxToOffset(Math.round(sIdx)));
+            const eLabelQ = offsetQuarter(todayQ, idxToOffset(Math.round(eIdx)));
             startT.label.textContent = quarterLabel(sLabelQ);
             endT.label.textContent = quarterLabel(eLabelQ);
-            startT.label.style.opacity = isAll ? "0.5" : "1";
-            endT.label.style.opacity = isAll ? "0.5" : "1";
-            // audit-fix #24b — compact mode: endpoint labels show LIVE
-            // selected range (replaces the floating "ghost" labels).
             if (opts.compact) {
                 leftLabel.textContent = quarterLabel(sLabelQ);
                 rightLabel.textContent = quarterLabel(eLabelQ);
-                leftLabel.style.opacity = rightLabel.style.opacity = isAll ? "0.6" : "1";
             }
         });
     }
