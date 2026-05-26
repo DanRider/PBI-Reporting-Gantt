@@ -67,10 +67,15 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
     // Show-All button
     const allBtn = document.createElement("button");
     allBtn.type = "button";
-    allBtn.textContent = "All";
-    allBtn.title = "Show all milestones (clear window filter)";
     const restyleAll = (): void => {
         const active = curRange.kind === "all";
+        // INF-3736 — button label communicates the ACTION on next click.
+        // range mode → click goes to "All" (show everything).
+        // all mode   → click restores "Last" filtered range.
+        allBtn.textContent = active ? "Last" : "All";
+        allBtn.title = active
+            ? "Restore the last filtered range"
+            : "Show all milestones (clear window filter)";
         allBtn.style.cssText = [
             "padding:2px 8px",
             "font-size:10px",
