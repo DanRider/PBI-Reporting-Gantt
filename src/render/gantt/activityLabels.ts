@@ -49,6 +49,23 @@ function measureWidth(text: string, font: FontStyle): number {
     return ctx.measureText(text).width;
 }
 
+// INF-3736 — caller (visual.ts) uses this to detect whether the current
+// activityLabelWidth will force any label to wrap, so it can lift the
+// rowHeight floor and keep the 2-line render from clipping into adjacent
+// rows. Measures with the bold variant to match the render-side
+// measurement (see "measure-bold-apply-config" pattern below).
+export function anyActivityLabelWraps(
+    activities: Activity[],
+    maxWidth: number,
+    font: FontStyle,
+): boolean {
+    const measureFont = font.bold ? font : { ...font, bold: true };
+    for (const a of activities) {
+        if (measureWidth(a.name, measureFont) > maxWidth) return true;
+    }
+    return false;
+}
+
 function truncateToWidth(text: string, maxWidth: number, font: FontStyle): string {
     const fullWidth = measureWidth(text, font);
     if (fullWidth <= maxWidth) return text;

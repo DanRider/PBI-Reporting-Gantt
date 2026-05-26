@@ -34,6 +34,7 @@ import { renderMilestones, renderMilestoneLabels, computeVisibleLabels } from ".
 import { renderSwimlanes } from "./render/gantt/swimlanes";
 import {
     renderActivityLabels,
+    anyActivityLabelWraps,
     ACTIVITY_LOLLIPOP_MIN_WIDTH,
     ActivityLabelsLayout,
 } from "./render/gantt/activityLabels";
@@ -106,9 +107,17 @@ const MIN_GANTT_PX = 0;
 const MIN_MATRIX_PX = 0;
 
 const SWIM_LANE_MIN = 100;
-const SWIM_LANE_MAX = 200;
+// INF-3736 — caps raised from 200/320 to give the new drag handles real
+// travel. The widthDrag percent clamps (swim-lane 3-70%, activity-label
+// 5-70% in update()) are the user-facing ceilings; these pixel caps are
+// the sanity bound for extreme viewports.
+const SWIM_LANE_MAX = 800;
 const ACTIVITY_LABEL_MIN = 100;
-const ACTIVITY_LABEL_MAX = 320;
+const ACTIVITY_LABEL_MAX = 800;
+// INF-3736 — when activity labels will wrap at the current width, the
+// 2-line render (cy ± LINE_OFFSET_PX) needs ≥ this row height to clear
+// adjacent rows. Single-line keeps the original MIN_ROW_HEIGHT = 16.
+const MIN_ROW_HEIGHT_FOR_WRAP = 24;
 const OUTER_MARGIN_MIN = 0;
 const OUTER_MARGIN_MAX = 80;
 
@@ -1018,12 +1027,25 @@ export class Visual implements IVisual {
         );
         const axisH = axisLayout.totalH;
 
+        // INF-3736 — when the activity label column is narrow enough that
+        // any label will wrap to 2 lines, lift the row-height floor so the
+        // wrapped lines (cy ± LINE_OFFSET_PX) clear adjacent rows. Detected
+        // per render so the chart breathes cleanly as the user drags narrower.
+        const labelsWillWrap =
+            this.settings.activityLabels.wrapText.value &&
+            anyActivityLabelWraps(
+                vm.activities,
+                activityLabelWidth,
+                fontFromCard(this.settings.activityLabels),
+            );
+        const minRowH = labelsWillWrap ? MIN_ROW_HEIGHT_FOR_WRAP : MIN_ROW_HEIGHT;
+
         const availableBodyH = Math.max(
-            MIN_ROW_HEIGHT * vm.activities.length,
+            minRowH * vm.activities.length,
             height - headerOffset - axisH - bottomMarginPx
         );
         const computedRowH = Math.floor(availableBodyH / Math.max(1, vm.activities.length));
-        const rowHeight = Math.max(MIN_ROW_HEIGHT, Math.min(MAX_ROW_HEIGHT, computedRowH || TARGET_ROW_HEIGHT));
+        const rowHeight = Math.max(minRowH, Math.min(MAX_ROW_HEIGHT, computedRowH || TARGET_ROW_HEIGHT));
         const bodyH = rowHeight * vm.activities.length;
 
         const domain = quarterAlignedExtent(vm.dateExtent);
@@ -1219,7 +1241,7 @@ export class Visual implements IVisual {
             .style("pointer-events", "all")
             .node();
         if (swimLaneHandle) {
-            attachWidthDrag(swimLaneHandle, leftMarginPx, options.viewport.width, 3, 30, onResizeSwimLane);
+            attachWidthDrag(swimLaneHandle, leftMarginPx, options.viewport.width, 3, 70, onResizeSwimLane);
         }
 
         const activityLabelHandle = this.dragHandlesG.append("rect")
@@ -1232,7 +1254,7 @@ export class Visual implements IVisual {
             .style("pointer-events", "all")
             .node();
         if (activityLabelHandle) {
-            attachWidthDrag(activityLabelHandle, leftMarginPx + leftRailWidth + 8, options.viewport.width, 5, 60, onResizeActivityLabel);
+            attachWidthDrag(activityLabelHandle, leftMarginPx + leftRailWidth + 8, options.viewport.width, 5, 70, onResizeActivityLabel);
         }
 
         const tooltipCard = this.settings.tooltip;
