@@ -3,10 +3,10 @@
   "name": "285244ca6371466ca4f7",
   "position": {
     "x": 0,
-    "y": 0,
+    "y": 88.79189399844114,
     "z": 0,
-    "height": 700,
-    "width": 1260
+    "height": 611.56664068589237,
+    "width": 1280
   },
   "visual": {
     "visualType": "reportingGantt7C9F3E5A1B2D4F8E6A0C3B5D7E9F1A2C",
@@ -226,7 +226,7 @@
             "swimLaneWidthPercent": {
               "expr": {
                 "Literal": {
-                  "Value": "10D"
+                  "Value": "7.950591127891241D"
                 }
               }
             }
@@ -354,6 +354,46 @@
               "expr": {
                 "Literal": {
                   "Value": "'center'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "activityLabels": [
+        {
+          "properties": {
+            "activityLabelWidthPercent": {
+              "expr": {
+                "Literal": {
+                  "Value": "15.629198257566438D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "masterTimeSlider": [
+        {
+          "properties": {
+            "filtersGantt": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "filtersTable": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "windowJson": {
+              "expr": {
+                "Literal": {
+                  "Value": "'{\"kind\":\"range\",\"startOffset\":-3,\"endOffset\":10}'"
                 }
               }
             }
