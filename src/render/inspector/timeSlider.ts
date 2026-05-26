@@ -257,7 +257,9 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
             const bandRightPct = isAll ? 100 : ePct;
             band.style.left = `${bandLeftPct}%`;
             band.style.width = `${bandRightPct - bandLeftPct}%`;
-            band.style.opacity = isAll ? "0.3" : "1";
+            // INF-3736 — hide band entirely in "all" mode for unambiguous state signal
+            // (was 30% — too subtle when range == envelope).
+            band.style.opacity = isAll ? "0" : "1";
             // Thumb opacity signals whether they're driving filter or just remembering.
             startT.visible.style.opacity = isAll ? "0.6" : "1";
             endT.visible.style.opacity = isAll ? "0.6" : "1";
