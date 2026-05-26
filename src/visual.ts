@@ -90,6 +90,7 @@ import { createSelectionStore, SelectionStore, Selection } from "./model/selecti
 import { renderLaneDetail } from "./render/inspector/laneDetail";
 import { renderActivityDetail } from "./render/inspector/activityDetail";
 import { renderMilestoneDetail } from "./render/inspector/milestoneDetail";
+import { bindingDisplayName, pluralize } from "./utils/bindingNames";
 
 // v2.1 audit-fix #24 — slider + toggles share the top:6 chrome row.
 // Just enough push so chart title doesn't render under the chrome.
@@ -137,15 +138,20 @@ interface TooltipConfig {
     showNote: boolean;
     hideRowWhenEmpty: boolean;
     emptyPlaceholder: string;
+    // v2.2 T2 — bound-field labels. Resolved via bindingDisplayName at
+    // call site so a user binding an "Initiative" column to the activity
+    // role sees "Initiative" (not "Activity") as the tooltip row label.
+    areaLabel: string;
+    activityLabel: string;
 }
 
 function makeActivityTooltip(cfg: TooltipConfig): (a: Activity) => VisualTooltipDataItem[] {
     return (a: Activity) => {
         // First item's `header` field renders as the tooltip's title row (bold heading).
         const items: VisualTooltipDataItem[] = [
-            { displayName: "Swim Lane", value: a.area, header: a.name },
-            { displayName: "Start",     value: fmtDate(a.start) },
-            { displayName: "End",       value: fmtDate(a.end) },
+            { displayName: cfg.areaLabel, value: a.area, header: a.name },
+            { displayName: "Start",       value: fmtDate(a.start) },
+            { displayName: "End",         value: fmtDate(a.end) },
         ];
         if (cfg.showNote) {
             const hasNote = a.note != null && a.note.trim().length > 0;
@@ -163,9 +169,9 @@ function makeMilestoneTooltip(cfg: TooltipConfig): (m: Milestone) => VisualToolt
     return (m: Milestone) => {
         const headerText = m.label ?? "(unlabeled)";
         const items: VisualTooltipDataItem[] = [
-            { displayName: "Type",     value: m.type, header: headerText },
-            { displayName: "Activity", value: m.activity },
-            { displayName: "Date",     value: fmtDate(m.date) },
+            { displayName: "Type",             value: m.type, header: headerText },
+            { displayName: cfg.activityLabel,  value: m.activity },
+            { displayName: "Date",             value: fmtDate(m.date) },
         ];
         if (cfg.showNote) {
             const hasNote = m.note != null && m.note.trim().length > 0;
@@ -465,6 +471,12 @@ export class Visual implements IVisual {
                                 this.lastViewmodel,
                                 onSelect,
                                 this.lastActivityColors,
+                                // v2.2 T2 + S2 — bound-field nouns for the count
+                                // line. Read from lastOptions (the closure can't
+                                // capture dataView directly; subscriber fires
+                                // after update()).
+                                bindingDisplayName("activity", this.lastOptions?.dataViews?.[0], "activity"),
+                                "milestone",
                             ));
                             break;
                         case "activity":
@@ -1305,12 +1317,17 @@ export class Visual implements IVisual {
         }
 
         const tooltipCard = this.settings.tooltip;
+        // v2.2 T2 — resolve bound-field labels so tooltips reflect the
+        // user's column names ("Initiative" / "Department") instead of
+        // the static "Activity" / "Swim Lane" fallbacks.
         const tooltipCfg: TooltipConfig = {
             showNote: tooltipCard.showNote.value,
             hideRowWhenEmpty: tooltipCard.hideRowWhenEmpty.value,
             emptyPlaceholder: (tooltipCard.emptyPlaceholder.value ?? "").length > 0
                 ? tooltipCard.emptyPlaceholder.value
                 : "(no note recorded)",
+            areaLabel:     bindingDisplayName("area",     dataView, "Swim Lane"),
+            activityLabel: bindingDisplayName("activity", dataView, "Activity"),
         };
         this.tooltipService.addTooltip(barsSel, makeActivityTooltip(tooltipCfg));
         this.tooltipService.addTooltip(starsSel, makeMilestoneTooltip(tooltipCfg));

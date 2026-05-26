@@ -13,12 +13,20 @@ import {
     fmtDateShort, fmtRelative, makeH3, makeP,
     INSPECTOR_FONT, OnSelect, makeBreadcrumb, makeColorBubble,
 } from "./shared";
+import { pluralize } from "../../utils/bindingNames";
 
 export function renderLaneDetail(
     laneName: string,
     vm: RoadmapViewModel,
     onSelect?: OnSelect,
     activityColors?: Record<string, string>,
+    // v2.2 T2 + S2 — bound-field nouns for the count summary line. Caller
+    // (visual.ts) passes bindingDisplayName("activity", ...) /
+    // bindingDisplayName("milestoneActivity", ...) so labels reflect the
+    // user's column names ("Initiative" / "Milestone"). Optional for
+    // backward compat — undefined falls back to "activity" / "milestone".
+    activityNoun?: string,
+    milestoneNoun?: string,
 ): HTMLElement {
     const root = document.createElement("div");
     root.className = "inspector-lane";
@@ -37,9 +45,14 @@ export function renderLaneDetail(
     const milestonesInLane = vm.milestones.filter(m => activityNamesInLane.has(m.activity));
     const today = new Date();
 
+    // v2.2 T2 + S2 — use bound-field nouns when available, fall back to
+    // generic "activity" / "milestone" otherwise.
+    const aNoun = activityNoun ?? "activity";
+    const mNoun = milestoneNoun ?? "milestone";
+    const aText = activitiesInLane.length === 1 ? aNoun : pluralize(aNoun);
+    const mText = milestonesInLane.length === 1 ? mNoun : pluralize(mNoun);
     root.appendChild(makeP(
-        `${activitiesInLane.length} ${activitiesInLane.length === 1 ? "activity" : "activities"} · ` +
-        `${milestonesInLane.length} ${milestonesInLane.length === 1 ? "milestone" : "milestones"}`,
+        `${activitiesInLane.length} ${aText} · ${milestonesInLane.length} ${mText}`,
         { muted: true, small: true },
     ));
 
