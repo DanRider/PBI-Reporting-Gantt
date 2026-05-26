@@ -6,6 +6,7 @@
 // composed visual visibly working in PBI Desktop.
 
 import powerbi from "powerbi-visuals-api";
+import { indexMap } from "../../columns";
 
 type DataView = powerbi.DataView;
 type Row = powerbi.DataViewTableRow;
@@ -190,9 +191,18 @@ export function renderSimpleTable(
     // v2.1 audit-fix — filter by selection. filterActivityNames and
     // filterAreaNames are AND'd. Row passes iff Activity matches the
     // activity filter (when set) AND Area matches the area filter (when set).
-    const activityCol = cols.findIndex(c => /^activity$/i.test(c.displayName ?? ""));
-    const areaCol = cols.findIndex(c => /^area$/i.test(c.displayName ?? "") || /swim/i.test(c.displayName ?? ""));
-    const msDateCol = cols.findIndex(c => /^milestone\s*date$/i.test(c.displayName ?? ""));
+    //
+    // v2.2 B1 — column lookup is ROLE-BASED, not displayName-regex. The
+    // prior regex (`/^activity$/i`, `/^area$|/swim/i`) only worked when the
+    // user's bound column happened to be named "Activity" / "Area" / "Swim
+    // Lane". With real data where columns are bound with names like
+    // "Initiative" or "Department", the regex missed, areaCol = -1, rowArea
+    // = "", and the rowTintByArea lookup silently fell back to neutral
+    // stripes — the table lost its responsive coloring entirely.
+    const idx = indexMap(dataView?.table);
+    const activityCol = idx.activity;
+    const areaCol = idx.area;
+    const msDateCol = idx.milestoneDate;
     const actFilter = options?.filterActivityNames;
     const areaFilter = options?.filterAreaNames;
     const msFilter = options?.filterMilestoneDateMs;
