@@ -94,24 +94,24 @@
     "objects": {
         "masterTimeSlider": {
             "displayName": "Master Time Slider",
-            "description": "Persisted window state of the top master time slider. JSON-stringified SliderRange — written by the visual on slider drag/All-toggle and read at the top of every update().",
+            "description": "Persisted state of the top master time slider — window (JSON-stringified SliderRange) plus scope booleans selecting which regions the filter applies to.",
             "properties": {
                 "windowJson": {
                     "displayName": "Window (JSON)",
                     "type": {
                         "text": true
                     }
-                }
-            }
-        },
-        "laneInspectorSlider": {
-            "displayName": "Lane Inspector Time Slider",
-            "description": "Persisted window state of the lane Inspector time slider. JSON-stringified SliderRange — independent from the master slider.",
-            "properties": {
-                "windowJson": {
-                    "displayName": "Window (JSON)",
+                },
+                "filtersGantt": {
+                    "displayName": "Filter applies to Gantt chart",
                     "type": {
-                        "text": true
+                        "bool": true
+                    }
+                },
+                "filtersTable": {
+                    "displayName": "Filter applies to detail table",
+                    "type": {
+                        "bool": true
                     }
                 }
             }

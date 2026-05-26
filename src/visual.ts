@@ -72,7 +72,7 @@ import { mountTopRightControls, TopRightControlsHandle } from "./render/topRight
 // visual, above the Gantt/Table toggles. Auto-envelope derived from
 // data extent; window filters milestones (24c) and (in 24b) tear-clips
 // activity bars at the window bounds.
-import { mountMasterTimeSlider, MasterTimeSliderHandle } from "./render/masterTimeSlider";
+import { mountMasterTimeSlider, MasterTimeSliderHandle, MasterScope } from "./render/masterTimeSlider";
 import { SliderRange, quarterIndex, rangeToWindow, parseSliderRange } from "./render/inspector/timeSliderMath";
 
 // v2.1 W1.5a — selection state model. Drives the controls panel
@@ -258,6 +258,11 @@ export class Visual implements IVisual {
     // 6Q (forward-biased for roadmap use case). Clamped to envelope in
     // update() when data is delivered.
     private masterRange: SliderRange = { kind: "range", startOffset: -2, endOffset: 6 };
+    // INF-3736 — master slider scope flags. Default: both true (master filters
+    // gantt AND table — same effective behavior as v2.1 + the new table path).
+    // Persisted on objects.masterTimeSlider.filtersGantt/filtersTable.
+    private masterFiltersGantt: boolean = true;
+    private masterFiltersTable: boolean = true;
     // v2.1 W1.5a — selection state store. Single source of truth for what
     // the user has clicked; drives the panel + (future) renderer highlights.
     private selectionStore: SelectionStore;
@@ -274,14 +279,9 @@ export class Visual implements IVisual {
     // black, etc.) cached for the activity Inspector's milestone gallery
     // tiles, which front each milestone with a type-colored ★.
     private lastTypeColors: Record<string, string> | undefined = undefined;
-    // v2.1 audit-fix #22 — quarterly time slider state for the lane
-    // Inspector. Range = { startOffset, endOffset } in quarter offsets
-    // from today's quarter. "all" disables the window filter entirely.
-    // Default: ±1 quarter centered on today.
-    private galleryRange:
-        | { kind: "all" }
-        | { kind: "range"; startOffset: number; endOffset: number }
-        = { kind: "range", startOffset: -1, endOffset: 1 };
+    // INF-3736 — galleryRange (lane Inspector slider state) removed: master
+    // slider with scope toggles now owns all filtering. mountTimeSlider stays
+    // in the library; the Inspector no longer mounts it.
     // v2.1 audit-fix #11 — 3-state milestone-type cycle per legend entry.
     // Click sequence: visible → transparent → hidden → visible.
     //   "visible"     → opacity 1, normal render
@@ -444,42 +444,16 @@ export class Visual implements IVisual {
                 this.requestRerender();
                 if (this.lastViewmodel) {
                     switch (sel.kind) {
-                        case "lane": {
-                            // v2.1 audit-fix #22 — quarterly slider replaces
-                            // chips. Range handler self-references so the
-                            // slider stays interactive across multiple drags
-                            // (lesson banked from audit-fix #21).
-                            const onRangeChange = (nextRange: typeof this.galleryRange): void => {
-                                this.galleryRange = nextRange;
-                                this.persistSliderRange("laneInspectorSlider", nextRange);
-                                if (this.lastViewmodel) {
-                                    const s = this.selectionStore.get();
-                                    if (s.kind === "lane") {
-                                        this.controls.setContent(renderLaneDetail(
-                                            s.laneName,
-                                            this.lastViewmodel,
-                                            onSelect,
-                                            this.lastActivityColors,
-                                            this.galleryRange,
-                                            onRangeChange,
-                                        ));
-                                    }
-                                }
-                                // audit-fix #24g — chart + table also depend on
-                                // galleryRange (via inspectorWindow). Without this
-                                // they stayed stale until the next unrelated re-render.
-                                this.requestRerender();
-                            };
+                        case "lane":
+                            // INF-3736 — lane Inspector no longer mounts its own slider
+                            // (master slider with scope toggles owns all filtering).
                             this.controls.setContent(renderLaneDetail(
                                 sel.laneName,
                                 this.lastViewmodel,
                                 onSelect,
                                 this.lastActivityColors,
-                                this.galleryRange,
-                                onRangeChange,
                             ));
                             break;
-                        }
                         case "activity":
                             this.controls.setContent(renderActivityDetail(
                                 sel.activityName,
@@ -547,6 +521,13 @@ export class Visual implements IVisual {
                 this.persistSliderRange("masterTimeSlider", next);
                 this.requestRerender();
             },
+            // INF-3736 — scope toggles. User picks which regions the filter applies to.
+            onScopeChange: (next: MasterScope) => {
+                this.masterFiltersGantt = next.filtersGantt;
+                this.masterFiltersTable = next.filtersTable;
+                this.persistMasterScope(next);
+                this.requestRerender();
+            },
         });
 
         this.bgG = this.svg.append("g").attr("class", "background-layer");
@@ -606,24 +587,26 @@ export class Visual implements IVisual {
         // after the layout coordinator, but the table render needs them.
         let vm: RoadmapViewModel = convertDataView(dataView);
 
-        // INF-3736 — restore persisted slider state from PBI objects bag if
-        // present + valid. Null-safe through the whole optional chain; any
-        // missing layer OR JSON.parse failure OR shape-mismatch falls back
-        // silently to the existing in-memory default (no console noise).
-        // Both sliders persist independently as JSON-stringified SliderRange
-        // because the discriminated union doesn't flatten to PBI's properties bag.
+        // INF-3736 — restore persisted master slider state from PBI objects bag.
+        // Null-safe through the whole optional chain; any missing layer OR
+        // JSON.parse failure OR shape-mismatch falls back silently to the
+        // existing in-memory defaults (no console noise). The window itself
+        // is JSON-stringified because the discriminated-union SliderRange
+        // doesn't flatten to PBI's properties bag; the scope booleans are
+        // native bool properties.
         const objs = dataView?.metadata?.objects as
-            | { masterTimeSlider?: { windowJson?: string }; laneInspectorSlider?: { windowJson?: string } }
+            | { masterTimeSlider?: { windowJson?: string; filtersGantt?: boolean; filtersTable?: boolean } }
             | undefined;
         const masterJson = objs?.masterTimeSlider?.windowJson;
         if (typeof masterJson === "string") {
             const parsed = parseSliderRange(masterJson);
             if (parsed) this.masterRange = parsed;
         }
-        const inspectorJson = objs?.laneInspectorSlider?.windowJson;
-        if (typeof inspectorJson === "string") {
-            const parsed = parseSliderRange(inspectorJson);
-            if (parsed) this.galleryRange = parsed;
+        if (typeof objs?.masterTimeSlider?.filtersGantt === "boolean") {
+            this.masterFiltersGantt = objs.masterTimeSlider.filtersGantt;
+        }
+        if (typeof objs?.masterTimeSlider?.filtersTable === "boolean") {
+            this.masterFiltersTable = objs.masterTimeSlider.filtersTable;
         }
 
         // v2.1 audit-fix #24 — master slider envelope derived from FULL
@@ -646,7 +629,17 @@ export class Visual implements IVisual {
                 this.masterRange = { kind: "range", startOffset: s, endOffset: e };
             }
         }
-        this.masterSlider.update({ pastQuarters, futureQuarters }, this.masterRange);
+        this.masterSlider.update(
+            { pastQuarters, futureQuarters },
+            this.masterRange,
+            { filtersGantt: this.masterFiltersGantt, filtersTable: this.masterFiltersTable },
+        );
+        // INF-3736 — hide the master slider strip when it has no useful scope.
+        // Show iff at least one (scope flag && target region visible) pair holds.
+        const ganttVisible = this.splitter.hiddenMode() !== "gantt";
+        const tableVisible = this.splitter.hiddenMode() !== "table";
+        const sliderUseful = (this.masterFiltersGantt && ganttVisible) || (this.masterFiltersTable && tableVisible);
+        this.masterSlider.setVisible(sliderUseful);
 
         // v2.1 audit-fix #24b — master window applied to vm BEFORE lane
         // focus so the chart axis (xScale from vm.dateExtent), activities,
@@ -657,7 +650,8 @@ export class Visual implements IVisual {
         //  - Milestones outside window: dropped (no marker rendered).
         //  - vm.dateExtent overridden to window so xScale fits exactly.
         const masterWindow = rangeToWindow(this.masterRange, today);
-        if (masterWindow) {
+        // INF-3736 — apply window to chart vm only when scope includes Gantt.
+        if (masterWindow && this.masterFiltersGantt) {
             const fromMs = masterWindow.fromMs;
             const toMs = masterWindow.toMs;
             const windowedActivities = vm.activities
@@ -740,22 +734,9 @@ export class Visual implements IVisual {
         this.lastViewmodel = vm;
         this.lastActivityColors = activityColors;
 
-        // audit-fix #24g — Inspector's lane slider ALSO scopes the chart +
-        // table milestones when a lane is focused. lastViewmodel above
-        // stays UNFILTERED by this window so the Inspector's badge ratios
-        // (X of Y in window) remain accurate; the further filter applies
-        // only to chart-render vm + table row filter below.
-        const inspectorWindow: { fromMs: number; toMs: number } | null =
-            focusedLaneName != null ? rangeToWindow(this.galleryRange, today) : null;
-        if (inspectorWindow) {
-            vm = {
-                ...vm,
-                milestones: vm.milestones.filter(m => {
-                    const t = m.date.getTime();
-                    return t >= inspectorWindow.fromMs && t <= inspectorWindow.toMs;
-                }),
-            };
-        }
+        // INF-3736 — inspector slider removed; master slider's filtersTable
+        // scope now drives the table window. The table-filter wiring is
+        // applied in the renderSimpleTable call below.
 
         const areaColorMap = buildAreaColorMap(vm.areaBindings, this.settings.swimlanes);
         const milestoneConfig = buildMilestoneConfigMap(vm.typeBindings, this.settings.milestones);
@@ -874,8 +855,8 @@ export class Visual implements IVisual {
                 highlightActivityName,
                 rowTintByActivity,
                 rowTintByArea,
-                // audit-fix #24g — Inspector lane slider scopes table rows too.
-                filterMilestoneDateMs: inspectorWindow ?? undefined,
+                // INF-3736 — master slider's filtersTable scope drives table window.
+                filterMilestoneDateMs: (masterWindow && this.masterFiltersTable) ? masterWindow : undefined,
             });
         } else {
             this.matrixDiv.style.display = "none";
@@ -1312,12 +1293,23 @@ export class Visual implements IVisual {
     // don't need to know the persistProperties shape. PBI fires a fresh
     // update() asynchronously after this — the top-of-update read picks the
     // new value up; we don't await it.
-    private persistSliderRange(objectName: "masterTimeSlider" | "laneInspectorSlider", range: SliderRange): void {
+    private persistSliderRange(objectName: "masterTimeSlider", range: SliderRange): void {
         this.host.persistProperties({
             merge: [{
                 objectName,
                 selector: undefined as unknown as powerbi.data.Selector,
                 properties: { windowJson: JSON.stringify(range) },
+            }],
+        });
+    }
+
+    // INF-3736 — persist master slider scope booleans (filtersGantt / filtersTable).
+    private persistMasterScope(scope: MasterScope): void {
+        this.host.persistProperties({
+            merge: [{
+                objectName: "masterTimeSlider",
+                selector: undefined as unknown as powerbi.data.Selector,
+                properties: { filtersGantt: scope.filtersGantt, filtersTable: scope.filtersTable },
             }],
         });
     }
