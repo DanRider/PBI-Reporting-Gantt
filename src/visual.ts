@@ -93,13 +93,6 @@ import { renderMilestoneDetail } from "./render/inspector/milestoneDetail";
 // Just enough push so chart title doesn't render under the chrome.
 // Tighter than the original 80px attempt (operator: "minimal").
 const MASTER_SLIDER_CHROME_PX = 44;
-// Toggle area horizontal reservation — Gantt/Table pill controls live at
-// left:6 in the topRightControls module; the slider host starts after.
-const TOGGLE_AREA_RESERVE_PX = 190;
-// audit-fix #24i — slider position/width is STATIC across panel open/close.
-// Reserve the default-open panel width (20%) so the slider doesn't shift
-// when the controls panel slides in/out.
-const PANEL_RESERVE_PCT = 20;
 
 // v2.1 W1 — initial Gantt/Table split (fraction of usable height given to
 // Gantt) before the user drags the splitter or flips a toggle.
@@ -572,14 +565,8 @@ export class Visual implements IVisual {
         // 0, panelWidthPx is 0, and the v2.0 render is preserved byte-identical.
         const panelWidthPct = this.controls.widthPct();
         const panelWidthPx = options.viewport.width * (panelWidthPct / 100);
-        // audit-fix #24i — slider stays STATIC across panel open/close.
-        // Always reserve PANEL_RESERVE_PCT (20%) + toggle area regardless of
-        // actual panel state, so the slider doesn't shift when the panel
-        // slides in or out.
-        const reservedPanelPx = options.viewport.width * (PANEL_RESERVE_PCT / 100);
-        const sliderLeft = reservedPanelPx + TOGGLE_AREA_RESERVE_PX;
-        const sliderWidth = Math.max(200, options.viewport.width - sliderLeft - 12);
-        this.masterSlider.setBounds(sliderLeft, sliderWidth);
+        // INF-3736 — master slider now self-positions (top:6 right:6 anchor,
+        // expands leftward from a time-filter icon). No external sizing needed.
 
         // v2.1 audit-fix #8 — vm + focused-lane + activityColors computed
         // EARLY so the layout coordinator (which calls renderSimpleTable for
@@ -634,12 +621,13 @@ export class Visual implements IVisual {
             this.masterRange,
             { filtersGantt: this.masterFiltersGantt, filtersTable: this.masterFiltersTable },
         );
-        // INF-3736 — hide the master slider strip when it has no useful scope.
-        // Show iff at least one (scope flag && target region visible) pair holds.
+        // INF-3736 — hide the entire anchor (icon + strip) only when there's no
+        // useful target region at all (both regions hidden). Otherwise the icon
+        // stays visible so the user can always re-expand. Scope-based collapse
+        // to icon is handled inside masterTimeSlider via applyAutoCollapse().
         const ganttVisible = this.splitter.hiddenMode() !== "gantt";
         const tableVisible = this.splitter.hiddenMode() !== "table";
-        const sliderUseful = (this.masterFiltersGantt && ganttVisible) || (this.masterFiltersTable && tableVisible);
-        this.masterSlider.setVisible(sliderUseful);
+        this.masterSlider.setVisible(ganttVisible || tableVisible);
 
         // v2.1 audit-fix #24b — master window applied to vm BEFORE lane
         // focus so the chart axis (xScale from vm.dateExtent), activities,

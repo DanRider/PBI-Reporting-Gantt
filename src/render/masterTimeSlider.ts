@@ -1,19 +1,25 @@
-// Master time slider mount — top chrome row.
-// One slider, user-selectable scope. Two pill toggles ([▣ Chart] [▣ Table])
-// to the right of the rail let the user pick which regions the window
-// filters. Caller passes setVisible() to auto-hide when the slider's
-// scope makes it pointless (no scope OR target region hidden).
+// Master time slider — anchored top-right, expands leftward from a time-filter icon.
 //
-// Uses mountTimeSlider (the reusable library component) in compact mode
-// with a grey accent so it doesn't fight the chart for attention.
+// Two visual parts:
+//  - Icon button (top:6 right:6) — always visible, clickable. Identifies
+//    the time-filter affordance and toggles strip expansion.
+//  - Strip (left of icon) — slider + two scope checkboxes. Max-width
+//    animates 0 ↔ fixed on expansion. Content slides + fades.
+//
+// Auto-collapse rule (INF-3736): when both scope checkboxes are
+// unchecked, the strip collapses into the icon. Reopening either by
+// icon click or programmatically (caller's setExpanded(true)) re-checks
+// at least one scope to make the strip meaningful.
 
 import { mountTimeSlider } from "./inspector/timeSlider";
 import { SliderRange } from "./inspector/timeSliderMath";
 
-// INF-3736 polish — host top:-12 vertically aligns the slider rail center with the toggle row center.
-const STRIP_TOP_PX = -12;
+const ANCHOR_TOP_PX = 6;
+const ANCHOR_RIGHT_PX = 6;
 const STRIP_Z_INDEX = 11;
-const STRIP_MIN_WIDTH = 200;
+const STRIP_MAX_WIDTH_PX = 720;
+const STRIP_TRANSITION_MS = 280;
+const ICON_SIZE_PX = 24;
 const GREY_ACCENT = "#6b7280";
 
 export interface MasterScope {
@@ -33,14 +39,14 @@ export interface MasterTimeSliderEnvelope {
 
 export interface MasterTimeSliderHandle {
     update(envelope: MasterTimeSliderEnvelope, value: SliderRange, scope: MasterScope): void;
-    setBounds(leftPx: number, widthPx: number): void;
+    /** Show or hide the entire anchor (icon + strip). Caller hides when
+     *  the visual is in a state where time filtering makes no sense at
+     *  all (e.g., no data). Auto-collapse to icon (when scope=0,0) is a
+     *  separate concern handled inside the component. */
     setVisible(visible: boolean): void;
     element: HTMLElement;
 }
 
-// INF-3736 — checkbox-style scope toggle. Visually distinct from the
-// Gantt/Table pill SLIDERS in topRightControls (which look like switch toggles).
-// A real checkbox communicates "binary opt-in", different control class.
 function buildScopeCheckbox(label: string, initialActive: boolean, onClick: (next: boolean) => void): HTMLButtonElement {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -69,8 +75,35 @@ function buildScopeCheckbox(label: string, initialActive: boolean, onClick: (nex
         restyle();
         onClick(active);
     });
-    // Expose a "set" so the caller can sync from persisted state without firing onClick.
     (btn as HTMLButtonElement & { setActive: (a: boolean) => void }).setActive = (a) => { active = a; restyle(); };
+    return btn;
+}
+
+function buildIcon(onClick: () => void): HTMLButtonElement {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.title = "Time filter — click to expand/collapse";
+    btn.textContent = "🕒";
+    btn.style.cssText = [
+        `width:${ICON_SIZE_PX}px`,
+        `height:${ICON_SIZE_PX}px`,
+        "padding:0",
+        "border-radius:4px",
+        `border:1px solid ${GREY_ACCENT}`,
+        "background:#ffffff",
+        "cursor:pointer",
+        "font-size:14px",
+        "line-height:1",
+        "display:flex",
+        "align-items:center",
+        "justify-content:center",
+        "flex-shrink:0",
+        "user-select:none",
+        "transition:background 150ms ease",
+    ].join(";");
+    btn.addEventListener("mouseenter", () => { btn.style.background = "#f4f4f6"; });
+    btn.addEventListener("mouseleave", () => { btn.style.background = "#ffffff"; });
+    btn.addEventListener("click", (e) => { e.stopPropagation(); onClick(); });
     return btn;
 }
 
@@ -78,40 +111,88 @@ export function mountMasterTimeSlider(
     root: HTMLElement,
     options: MasterTimeSliderOptions,
 ): MasterTimeSliderHandle {
-    const host = document.createElement("div");
-    host.className = "master-time-slider";
-    host.style.cssText = [
+    // Anchor — flex row reversed so icon sits on the right, strip extends leftward.
+    const anchor = document.createElement("div");
+    anchor.className = "master-time-anchor";
+    anchor.style.cssText = [
         "position:absolute",
-        `top:${STRIP_TOP_PX}px`,
-        "left:200px",
-        "width:300px",
+        `top:${ANCHOR_TOP_PX}px`,
+        `right:${ANCHOR_RIGHT_PX}px`,
         `z-index:${STRIP_Z_INDEX}`,
         "pointer-events:auto",
         "display:flex",
+        "flex-direction:row",
         "align-items:center",
         "gap:6px",
     ].join(";");
-    host.addEventListener("click", (e) => { e.stopPropagation(); });
-    root.appendChild(host);
+    anchor.addEventListener("click", (e) => { e.stopPropagation(); });
+    root.appendChild(anchor);
 
-    // Scope pills — created once, sit to the right of the rail. State sync via setActive.
+    let expanded = true;
     let curScope: MasterScope = { filtersGantt: true, filtersTable: true };
-    const ganttPill = buildScopeCheckbox("Chart", true, (next) => {
+
+    // Strip — holds the slider + checkboxes. Sits to the left of the icon
+    // (DOM order: strip first, then icon, since flex-direction is row).
+    // max-width transition gives the slide-left feel.
+    const strip = document.createElement("div");
+    strip.className = "master-time-strip";
+    strip.style.cssText = [
+        "display:flex",
+        "flex-direction:row",
+        "align-items:center",
+        "gap:6px",
+        "overflow:hidden",
+        "white-space:nowrap",
+        `transition:max-width ${STRIP_TRANSITION_MS}ms ease, opacity ${STRIP_TRANSITION_MS - 30}ms ease`,
+        `max-width:${STRIP_MAX_WIDTH_PX}px`,
+        "opacity:1",
+    ].join(";");
+
+    const ganttCheck = buildScopeCheckbox("Chart", true, (next) => {
         curScope = { ...curScope, filtersGantt: next };
         options.onScopeChange(curScope);
+        applyAutoCollapse();
     });
-    const tablePill = buildScopeCheckbox("Table", true, (next) => {
+    const tableCheck = buildScopeCheckbox("Table", true, (next) => {
         curScope = { ...curScope, filtersTable: next };
         options.onScopeChange(curScope);
+        applyAutoCollapse();
+    });
+
+    function setExpanded(next: boolean): void {
+        if (next === expanded) return;
+        expanded = next;
+        strip.style.maxWidth = expanded ? `${STRIP_MAX_WIDTH_PX}px` : "0px";
+        strip.style.opacity = expanded ? "1" : "0";
+    }
+    function applyAutoCollapse(): void {
+        // Fold into the icon when scope has no useful target.
+        if (!curScope.filtersGantt && !curScope.filtersTable) {
+            setExpanded(false);
+        }
+    }
+
+    const icon = buildIcon(() => {
+        // Icon click — toggle. If expanding from collapsed-by-auto state with
+        // both scopes false, default-on Chart so the slider has SOMETHING to do.
+        if (!expanded) {
+            if (!curScope.filtersGantt && !curScope.filtersTable) {
+                curScope = { ...curScope, filtersGantt: true };
+                (ganttCheck as HTMLButtonElement & { setActive: (a: boolean) => void }).setActive(true);
+                options.onScopeChange(curScope);
+            }
+            setExpanded(true);
+        } else {
+            setExpanded(false);
+        }
     });
 
     let lastEnvelope: { p: number; f: number } | null = null;
     let sliderContainer: HTMLElement | null = null;
 
     function remountSlider(envelope: MasterTimeSliderEnvelope, value: SliderRange): void {
-        // Wipe the host's slider region (keep pills, which sit AFTER the slider).
-        if (sliderContainer && sliderContainer.parentElement === host) {
-            host.removeChild(sliderContainer);
+        if (sliderContainer && sliderContainer.parentElement === strip) {
+            strip.removeChild(sliderContainer);
         }
         const slider = mountTimeSlider({
             pastQuarters: envelope.pastQuarters,
@@ -123,15 +204,16 @@ export function mountMasterTimeSlider(
         });
         sliderContainer = slider.element;
         sliderContainer.style.flex = "1";
-        sliderContainer.style.width = "100%";
+        sliderContainer.style.minWidth = "300px";
         sliderContainer.style.margin = "0";
-        host.insertBefore(sliderContainer, ganttPill);
+        strip.insertBefore(sliderContainer, ganttCheck);
         lastEnvelope = { p: envelope.pastQuarters, f: envelope.futureQuarters };
     }
 
-    // Mount pills first; slider gets inserted before them when update() is called.
-    host.appendChild(ganttPill);
-    host.appendChild(tablePill);
+    strip.appendChild(ganttCheck);
+    strip.appendChild(tableCheck);
+    anchor.appendChild(strip);
+    anchor.appendChild(icon);
 
     return {
         update(envelope, value, scope): void {
@@ -141,20 +223,17 @@ export function mountMasterTimeSlider(
                 remountSlider(envelope, value);
             }
             if (scope.filtersGantt !== curScope.filtersGantt) {
-                (ganttPill as HTMLButtonElement & { setActive: (a: boolean) => void }).setActive(scope.filtersGantt);
+                (ganttCheck as HTMLButtonElement & { setActive: (a: boolean) => void }).setActive(scope.filtersGantt);
             }
             if (scope.filtersTable !== curScope.filtersTable) {
-                (tablePill as HTMLButtonElement & { setActive: (a: boolean) => void }).setActive(scope.filtersTable);
+                (tableCheck as HTMLButtonElement & { setActive: (a: boolean) => void }).setActive(scope.filtersTable);
             }
             curScope = scope;
-        },
-        setBounds(leftPx, widthPx): void {
-            host.style.left = `${leftPx}px`;
-            host.style.width = `${Math.max(STRIP_MIN_WIDTH, widthPx)}px`;
+            applyAutoCollapse();
         },
         setVisible(visible): void {
-            host.style.display = visible ? "flex" : "none";
+            anchor.style.display = visible ? "flex" : "none";
         },
-        element: host,
+        element: anchor,
     };
 }
