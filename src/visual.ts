@@ -258,6 +258,11 @@ export class Visual implements IVisual {
     // Persisted on objects.masterTimeSlider.filtersGantt/filtersTable.
     private masterFiltersGantt: boolean = true;
     private masterFiltersTable: boolean = true;
+    // INF-3736 — transient column-width preview during drag (live reflow without
+    // round-tripping through host.persistProperties on every pointermove). Cleared
+    // on pointerup; the final value persists via persistColumnWidth().
+    private transientActivityLabelPercent: number | null = null;
+    private transientSwimLanePercent: number | null = null;
     // v2.1 W1.5a — selection state store. Single source of truth for what
     // the user has clicked; drives the panel + (future) renderer highlights.
     private selectionStore: SelectionStore;
@@ -975,8 +980,9 @@ export class Visual implements IVisual {
         this.svg.selectAll(".no-data").remove();
 
         // ── Inner-content dimensions ─────────────────────────────────────────
-        const leftRailPct = this.settings.swimlanes.swimLaneWidthPercent.value / 100;
-        const labelAreaPct = this.settings.activityLabels.activityLabelWidthPercent.value / 100;
+        // INF-3736 — transient drag preview overrides settings if active.
+        const leftRailPct = (this.transientSwimLanePercent ?? this.settings.swimlanes.swimLaneWidthPercent.value) / 100;
+        const labelAreaPct = (this.transientActivityLabelPercent ?? this.settings.activityLabels.activityLabelWidthPercent.value) / 100;
 
         const leftRailWidth = clamp(width * leftRailPct, SWIM_LANE_MIN, SWIM_LANE_MAX);
         const activityLabelWidth = clamp(width * labelAreaPct, ACTIVITY_LABEL_MIN, ACTIVITY_LABEL_MAX);
@@ -1111,6 +1117,19 @@ export class Visual implements IVisual {
             onSelectLane: (laneName: string) => {
                 this.selectionStore.set({ kind: "lane", laneName });
             },
+            // INF-3736 — drag-to-resize swim lane column from its right edge.
+            onResizeWidth: (newPercent: number, isCommit: boolean) => {
+                if (isCommit) {
+                    this.transientSwimLanePercent = null;
+                    this.persistColumnWidth("swimlanes", "swimLaneWidthPercent", newPercent);
+                } else {
+                    this.transientSwimLanePercent = newPercent;
+                }
+                this.requestRerender();
+            },
+            viewportWidth: options.viewport.width,
+            columnStartX: leftMarginPx,
+            bodyH: bodyH,
         });
 
         // ── Activity labels + lollipops ───────────────────────────────────────
@@ -1131,6 +1150,17 @@ export class Visual implements IVisual {
             onSelectActivity: (activityName: string) => {
                 this.selectionStore.set({ kind: "activity", activityName });
             },
+            // INF-3736 — drag the lollipop dash to resize the activity label column.
+            onResizeWidth: (newPercent: number, isCommit: boolean) => {
+                if (isCommit) {
+                    this.transientActivityLabelPercent = null;
+                    this.persistColumnWidth("activityLabels", "activityLabelWidthPercent", newPercent);
+                } else {
+                    this.transientActivityLabelPercent = newPercent;
+                }
+                this.requestRerender();
+            },
+            viewportWidth: options.viewport.width,
         }, colors);
 
         // ── Bars + markers + milestone labels ─────────────────────────────────
@@ -1287,6 +1317,24 @@ export class Visual implements IVisual {
                 objectName,
                 selector: undefined as unknown as powerbi.data.Selector,
                 properties: { windowJson: JSON.stringify(range) },
+            }],
+        });
+    }
+
+    // INF-3736 — persist a column-width percent (e.g. swimLaneWidthPercent or
+    // activityLabelWidthPercent) into the matching settings object. Called on
+    // pointerup; PBI fires a fresh update() asynchronously so the persisted
+    // value flows back through populateFormattingSettingsModel.
+    private persistColumnWidth(
+        objectName: "swimlanes" | "activityLabels",
+        propertyName: "swimLaneWidthPercent" | "activityLabelWidthPercent",
+        percent: number,
+    ): void {
+        this.host.persistProperties({
+            merge: [{
+                objectName,
+                selector: undefined as unknown as powerbi.data.Selector,
+                properties: { [propertyName]: percent },
             }],
         });
     }

@@ -4,6 +4,7 @@ import { Selection } from "d3-selection";
 import { AreaGroup } from "../../viewmodel";
 import { areaColor, ColorContext } from "../../utils/colors";
 import { FontStyle, applyFont } from "../../utils/font";
+import { attachWidthDrag } from "./widthDrag";
 
 export const DEFAULT_LEFT_RAIL_WIDTH = 130;
 
@@ -28,6 +29,15 @@ export interface SwimlaneOptions {
      *  approach which was unreliable when SVG text elements' default
      *  pointer-events:visiblePainted didn't catch clicks between glyphs. */
     onSelectLane?: (laneName: string) => void;
+    /** INF-3736 — drag-to-resize the swim lane column from its right edge.
+     *  Caller must also pass viewportWidth + columnStartX (= leftMarginPx)
+     *  + bodyH (total height of all areas, so the hit zone spans them). */
+    onResizeWidth?: (newPercent: number, isCommit: boolean) => void;
+    viewportWidth?: number;
+    columnStartX?: number;
+    bodyH?: number;
+    minWidthPercent?: number;
+    maxWidthPercent?: number;
 }
 
 export function renderSwimlanes(
@@ -144,6 +154,31 @@ export function renderSwimlanes(
                     opts.onSelectLane?.(group.area);
                 });
             }
+        }
+    }
+
+    // INF-3736 — drag-to-resize overlay on the swim lane column's RIGHT edge.
+    // 8px-wide invisible rect spanning all area groups vertically. Cursor:
+    // col-resize on hover. Nothing visible at rest.
+    if (opts.onResizeWidth && opts.viewportWidth != null && opts.columnStartX != null && opts.bodyH != null) {
+        const overlay = g.append("rect")
+            .attr("class", "swimlane-resize")
+            .attr("x", railWidth - 4)
+            .attr("y", 0)
+            .attr("width", 8)
+            .attr("height", opts.bodyH)
+            .attr("fill", "transparent")
+            .style("pointer-events", "all")
+            .node();
+        if (overlay) {
+            attachWidthDrag(
+                overlay,
+                opts.columnStartX,
+                opts.viewportWidth,
+                opts.minWidthPercent ?? 3,
+                opts.maxWidthPercent ?? 30,
+                opts.onResizeWidth,
+            );
         }
     }
 }
