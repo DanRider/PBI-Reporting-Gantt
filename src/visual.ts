@@ -37,6 +37,7 @@ import {
     ACTIVITY_LOLLIPOP_MIN_WIDTH,
     ActivityLabelsLayout,
 } from "./render/gantt/activityLabels";
+import { attachWidthDrag } from "./render/gantt/widthDrag";
 import { renderLegend, LEGEND_HEIGHT } from "./render/gantt/legend";
 import { renderTimeNow, GridlineStyle } from "./render/gantt/timeNow";
 
@@ -232,6 +233,9 @@ export class Visual implements IVisual {
     private bodyG: d3Selection<SVGGElement, unknown, null, undefined>;
     private legendG: d3Selection<SVGGElement, unknown, null, undefined>;
     private chartTitleG: d3Selection<SVGGElement, unknown, null, undefined>;
+    // INF-3736 — rendered last so its invisible drag handles paint on top of
+    // everything else in their X-range. Hosts the column-boundary resize rects.
+    private dragHandlesG: d3Selection<SVGGElement, unknown, null, undefined>;
     private tooltipService: ITooltipServiceWrapper;
     private settingsService: FormattingSettingsService;
     private settings: VisualFormattingSettingsModel;
@@ -538,6 +542,9 @@ export class Visual implements IVisual {
         this.bodyG = this.svg.append("g").attr("class", "body");
         this.legendG = this.svg.append("g").attr("class", "legend");
         this.chartTitleG = this.svg.append("g").attr("class", "chart-title");
+        // INF-3736 — appended LAST so invisible drag handles paint above all
+        // other layers in their narrow X-range, winning the hit-test.
+        this.dragHandlesG = this.svg.append("g").attr("class", "drag-handles");
     }
 
     public update(options: VisualUpdateOptions): void {
@@ -552,6 +559,18 @@ export class Visual implements IVisual {
             VisualFormattingSettingsModel,
             dataView
         );
+
+        // INF-3736 — drag-resize reconcile: once persisted settings catch up
+        // to the transient drag value, retire the transient. Bridges pointerup
+        // → host.persistProperties round-trip without flicker.
+        if (this.transientSwimLanePercent !== null &&
+            Math.abs(this.settings.swimlanes.swimLaneWidthPercent.value - this.transientSwimLanePercent) < 0.01) {
+            this.transientSwimLanePercent = null;
+        }
+        if (this.transientActivityLabelPercent !== null &&
+            Math.abs(this.settings.activityLabels.activityLabelWidthPercent.value - this.transientActivityLabelPercent) < 0.01) {
+            this.transientActivityLabelPercent = null;
+        }
 
         // v2.0 configuration guide — kept hidden by default. The earlier
         // Wave 4 gate (early-return on !ganttRequirementsMet) was wrong:
@@ -965,6 +984,7 @@ export class Visual implements IVisual {
             this.labelBgG.selectAll("*").remove();
             this.bodyG.selectAll("*").remove();
             this.legendG.selectAll("*").remove();
+            this.dragHandlesG.selectAll("*").remove();
             this.svg.selectAll(".no-data").remove();
             this.svg.append("text")
                 .attr("class", "no-data")
@@ -1117,19 +1137,6 @@ export class Visual implements IVisual {
             onSelectLane: (laneName: string) => {
                 this.selectionStore.set({ kind: "lane", laneName });
             },
-            // INF-3736 — drag-to-resize swim lane column from its right edge.
-            onResizeWidth: (newPercent: number, isCommit: boolean) => {
-                if (isCommit) {
-                    this.transientSwimLanePercent = null;
-                    this.persistColumnWidth("swimlanes", "swimLaneWidthPercent", newPercent);
-                } else {
-                    this.transientSwimLanePercent = newPercent;
-                }
-                this.requestRerender();
-            },
-            viewportWidth: options.viewport.width,
-            columnStartX: leftMarginPx,
-            bodyH: bodyH,
         });
 
         // ── Activity labels + lollipops ───────────────────────────────────────
@@ -1150,17 +1157,6 @@ export class Visual implements IVisual {
             onSelectActivity: (activityName: string) => {
                 this.selectionStore.set({ kind: "activity", activityName });
             },
-            // INF-3736 — drag the lollipop dash to resize the activity label column.
-            onResizeWidth: (newPercent: number, isCommit: boolean) => {
-                if (isCommit) {
-                    this.transientActivityLabelPercent = null;
-                    this.persistColumnWidth("activityLabels", "activityLabelWidthPercent", newPercent);
-                } else {
-                    this.transientActivityLabelPercent = newPercent;
-                }
-                this.requestRerender();
-            },
-            viewportWidth: options.viewport.width,
         }, colors);
 
         // ── Bars + markers + milestone labels ─────────────────────────────────
@@ -1186,6 +1182,58 @@ export class Visual implements IVisual {
             font: labelFont,
             overflowBehavior: labelOverflow,
         });
+
+        // INF-3736 — invisible column-boundary drag handles. Two 8px-wide
+        // <rect> overlays spanning the full body height, positioned in the
+        // gap BETWEEN columns where no other content paints. col-resize
+        // cursor on hover; no visible chrome at rest. Optimistic-UI pattern:
+        // pointermove updates transient + rerenders; pointerup persists and
+        // lets the reconcile at top of update() retire the transient.
+        this.dragHandlesG.attr("transform", `translate(0, ${bodyY})`);
+        this.dragHandlesG.selectAll("*").remove();
+
+        const onResizeSwimLane = (newPercent: number, isCommit: boolean): void => {
+            this.transientSwimLanePercent = newPercent;
+            if (isCommit) {
+                this.persistColumnWidth("swimlanes", "swimLaneWidthPercent", newPercent);
+            } else {
+                this.requestRerender();
+            }
+        };
+        const onResizeActivityLabel = (newPercent: number, isCommit: boolean): void => {
+            this.transientActivityLabelPercent = newPercent;
+            if (isCommit) {
+                this.persistColumnWidth("activityLabels", "activityLabelWidthPercent", newPercent);
+            } else {
+                this.requestRerender();
+            }
+        };
+
+        const swimLaneHandle = this.dragHandlesG.append("rect")
+            .attr("class", "swimlane-resize-handle")
+            .attr("x", leftMarginPx + leftRailWidth)
+            .attr("y", 0)
+            .attr("width", 8)
+            .attr("height", bodyH)
+            .attr("fill", "transparent")
+            .style("pointer-events", "all")
+            .node();
+        if (swimLaneHandle) {
+            attachWidthDrag(swimLaneHandle, leftMarginPx, options.viewport.width, 3, 30, onResizeSwimLane);
+        }
+
+        const activityLabelHandle = this.dragHandlesG.append("rect")
+            .attr("class", "activity-label-resize-handle")
+            .attr("x", leftMarginPx + leftRailWidth + 8 + activityLabelWidth - 4)
+            .attr("y", 0)
+            .attr("width", 8)
+            .attr("height", bodyH)
+            .attr("fill", "transparent")
+            .style("pointer-events", "all")
+            .node();
+        if (activityLabelHandle) {
+            attachWidthDrag(activityLabelHandle, leftMarginPx + leftRailWidth + 8, options.viewport.width, 5, 60, onResizeActivityLabel);
+        }
 
         const tooltipCard = this.settings.tooltip;
         const tooltipCfg: TooltipConfig = {

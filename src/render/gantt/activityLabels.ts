@@ -5,7 +5,6 @@ import { ScaleTime } from "d3-scale";
 import { Activity } from "../../viewmodel";
 import { activityColor, ColorContext } from "../../utils/colors";
 import { FontStyle, applyFont, canvasFontString } from "../../utils/font";
-import { attachWidthDrag } from "./widthDrag";
 
 const LOLLIPOP_CIRCLE_R = 4;
 const LOLLIPOP_STROKE_WIDTH = 2;
@@ -36,14 +35,6 @@ export interface ActivityLabelOptions {
      *  label TEXT (left rail) selects the activity, matching the activity-
      *  bar click behavior. */
     onSelectActivity?: (activityName: string) => void;
-    /** INF-3736 — drag-to-resize. Called during pointermove (preview) and
-     *  on pointerup (commit) with the new column width as a percent of
-     *  viewportWidth. viewportWidth must be provided alongside. */
-    onResizeWidth?: (newPercent: number, isCommit: boolean) => void;
-    viewportWidth?: number;
-    /** INF-3736 — clamps for the resize. Defaults to 5% / 60%. */
-    minWidthPercent?: number;
-    maxWidthPercent?: number;
 }
 
 export interface ActivityLabelsLayout {
@@ -272,31 +263,5 @@ export function renderActivityLabels(
             .attr("cx", circleX).attr("cy", cy)
             .attr("r", LOLLIPOP_CIRCLE_R)
             .attr("fill", lollipopColor);
-
-        // INF-3736 — invisible drag overlay on the lollipop dash. Hit zone is
-        // 16px tall (vs the ~2px line), giving forgiving hover-to-resize.
-        // pointer-events:all on transparent rect catches clicks. No visible
-        // chrome at rest — only the cursor changes on hover.
-        if (opts.onResizeWidth && opts.viewportWidth != null) {
-            const overlay = g.append("rect")
-                .attr("class", "activity-lollipop-resize")
-                .attr("x", lineStartX - 4)
-                .attr("y", cy - 8)
-                .attr("width", Math.max(8, (circleX - LOLLIPOP_CIRCLE_R) - lineStartX + 8))
-                .attr("height", 16)
-                .attr("fill", "transparent")
-                .style("pointer-events", "all")
-                .node();
-            if (overlay) {
-                attachWidthDrag(
-                    overlay,
-                    layout.areaStartX,
-                    opts.viewportWidth,
-                    opts.minWidthPercent ?? 5,
-                    opts.maxWidthPercent ?? 60,
-                    opts.onResizeWidth,
-                );
-            }
-        }
     }
 }
