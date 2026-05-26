@@ -8,19 +8,25 @@
         pointer-events: none;
     }
 
-    // INF-3736 — column-boundary drag handles. Pattern: <g class="resize-grip">
-    // wraps an invisible hit <rect> + three <circle class="grip-dot">s. At
-    // rest, dots have opacity 0 (no chrome). On cursor entry to the group
-    // (= cursor inside the wide invisible rect), dots fade in. Standard
-    // column-divider affordance — same pattern as VSCode splitters /
-    // design-system column resizers. pointer-events:none on dots so the
-    // rect remains the sole drag-start target.
-    g.resize-grip circle.grip-dot {
-        opacity: 0;
-        transition: opacity 120ms ease-out;
-        pointer-events: none;
+    // INF-3736 — column-boundary drag handles. Aesthetics match the
+    // horizontal Gantt/Table splitter (see render/splitterBar.ts):
+    //   bar fill    #e8e8ec at rest, #d4d4d8 on hover
+    //   border      #c0c0c0 (1px) — splitter has border-top + border-bottom
+    //               on its long edges; the vertical analog is a full stroke
+    //               which reads as a clean pill at 8px wide.
+    //   grip dots   #888, always visible, stacked vertically in center.
+    g.resize-grip rect.swimlane-resize-handle,
+    g.resize-grip rect.activity-label-resize-handle {
+        fill: #e8e8ec;
+        stroke: #c0c0c0;
+        stroke-width: 1;
+        transition: fill 120ms ease-out;
     }
-    g.resize-grip:hover circle.grip-dot {
-        opacity: 1;
+    g.resize-grip:hover rect.swimlane-resize-handle,
+    g.resize-grip:hover rect.activity-label-resize-handle {
+        fill: #d4d4d8;
+    }
+    g.resize-grip circle.grip-dot {
+        pointer-events: none;
     }
 }

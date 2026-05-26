@@ -1253,7 +1253,7 @@ export class Visual implements IVisual {
                 .attr("cx", leftMarginPx + leftRailWidth + 4)
                 .attr("cy", bodyH / 2 + dy)
                 .attr("r", 1.5)
-                .attr("fill", "#605E5C");
+                .attr("fill", "#888");
         }
         if (swimHandle) {
             attachWidthDrag(swimHandle, leftMarginPx, options.viewport.width, 3, 70, onResizeSwimLane);
@@ -1276,7 +1276,7 @@ export class Visual implements IVisual {
                 .attr("cx", leftMarginPx + leftRailWidth + 8 + activityLabelWidth)
                 .attr("cy", bodyH / 2 + dy)
                 .attr("r", 1.5)
-                .attr("fill", "#605E5C");
+                .attr("fill", "#888");
         }
         if (labelHandle) {
             attachWidthDrag(labelHandle, leftMarginPx + leftRailWidth + 8, options.viewport.width, 5, 70, onResizeActivityLabel);
