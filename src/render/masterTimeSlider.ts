@@ -14,17 +14,23 @@
 import { mountTimeSlider } from "./inspector/timeSlider";
 import { SliderRange } from "./inspector/timeSliderMath";
 
-// INF-3736 — top:-12 aligns the slider rail center (y=25 inside the 44px
-// rail container) with the Gantt/Table toggle row center (y=13). The icon
-// is bottom-aligned in the anchor flex so it doesn't clip above the visual.
-const ANCHOR_TOP_PX = -12;
+// INF-3736 — anchor at top:1 with 24px fixed height + align-items:center.
+// Icon (24x24) is naturally centered at visual y=13 (matches the Gantt/Table
+// toggle row center). The slider container, which is 44px tall internally
+// with its rail center at y=25 (not centered), gets a translateY(-4px) so
+// its rail visually aligns with the same y=13 centerline.
+const ANCHOR_TOP_PX = 1;
+const ANCHOR_HEIGHT_PX = 24;
 const ANCHOR_RIGHT_PX = 6;
+const SLIDER_VERTICAL_NUDGE_PX = -4;
 const STRIP_Z_INDEX = 11;
 const STRIP_MAX_WIDTH_PX = 1440;
 const SLIDER_MIN_WIDTH_PX = 600;
-const STRIP_TRANSITION_MS = 280;
+const STRIP_TRANSITION_MS = 1120;  // INF-3736 — 4x slower fold/fly for a deliberate, polished feel
 const ICON_SIZE_PX = 24;
 const GREY_ACCENT = "#6b7280";
+const HOVER_BLUE = "#3b82f6";
+const INDICATOR_BLUE = "#2563eb";
 
 export interface MasterScope {
     readonly filtersGantt: boolean;
@@ -83,7 +89,7 @@ function buildScopeCheckbox(label: string, initialActive: boolean, onClick: (nex
     return btn;
 }
 
-function buildIcon(onClick: () => void): HTMLButtonElement {
+function buildIcon(onClick: () => void): { btn: HTMLButtonElement; setIndicator: (visible: boolean) => void } {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.title = "Time filter — click to expand/collapse";
@@ -93,22 +99,45 @@ function buildIcon(onClick: () => void): HTMLButtonElement {
         `height:${ICON_SIZE_PX}px`,
         "padding:0",
         "border-radius:4px",
-        `border:1px solid ${GREY_ACCENT}`,
-        "background:#ffffff",
+        "border:none",
+        "background:transparent",
         "cursor:pointer",
-        "font-size:14px",
+        "font-size:16px",
         "line-height:1",
         "display:flex",
         "align-items:center",
         "justify-content:center",
         "flex-shrink:0",
         "user-select:none",
-        "transition:background 150ms ease",
+        "position:relative",
+        `color:#444`,
+        "transition:background 150ms ease, color 150ms ease",
     ].join(";");
-    btn.addEventListener("mouseenter", () => { btn.style.background = "#f4f4f6"; });
-    btn.addEventListener("mouseleave", () => { btn.style.background = "#ffffff"; });
+    btn.addEventListener("mouseenter", () => { btn.style.background = "#e9efff"; btn.style.color = HOVER_BLUE; });
+    btn.addEventListener("mouseleave", () => { btn.style.background = "transparent"; btn.style.color = "#444"; });
     btn.addEventListener("click", (e) => { e.stopPropagation(); onClick(); });
-    return btn;
+
+    // INF-3736 — small dot in the top-right of the icon when slider is collapsed
+    // AND a range filter is active. Tells the user "you have a filter applied
+    // even though the slider isn't visible." Hidden otherwise.
+    const dot = document.createElement("span");
+    dot.style.cssText = [
+        "position:absolute",
+        "top:1px",
+        "right:1px",
+        "width:6px",
+        "height:6px",
+        "border-radius:50%",
+        `background:${INDICATOR_BLUE}`,
+        "pointer-events:none",
+        "display:none",
+    ].join(";");
+    btn.appendChild(dot);
+
+    return {
+        btn,
+        setIndicator: (visible: boolean): void => { dot.style.display = visible ? "block" : "none"; },
+    };
 }
 
 export function mountMasterTimeSlider(
@@ -122,12 +151,13 @@ export function mountMasterTimeSlider(
         "position:absolute",
         `top:${ANCHOR_TOP_PX}px`,
         `right:${ANCHOR_RIGHT_PX}px`,
+        `height:${ANCHOR_HEIGHT_PX}px`,
         `z-index:${STRIP_Z_INDEX}`,
         "pointer-events:auto",
         "display:flex",
         "flex-direction:row",
-        // Icon bottom-aligns so it doesn't clip above the visual when anchor top is negative.
-        "align-items:flex-end",
+        "align-items:center",
+        "overflow:visible",
         "gap:6px",
     ].join(";");
     anchor.addEventListener("click", (e) => { e.stopPropagation(); });
@@ -135,6 +165,13 @@ export function mountMasterTimeSlider(
 
     let expanded = true;
     let curScope: MasterScope = { filtersGantt: true, filtersTable: true };
+    // Track the slider's current value so the icon indicator can light up when
+    // the strip is collapsed AND a range filter is active.
+    let curValue: SliderRange | null = null;
+    function updateIndicator(): void {
+        const hasRange = curValue != null && curValue.kind === "range";
+        iconHandle.setIndicator(!expanded && hasRange);
+    }
 
     // Strip — holds the slider + checkboxes. Sits to the left of the icon
     // (DOM order: strip first, then icon, since flex-direction is row).
@@ -148,7 +185,10 @@ export function mountMasterTimeSlider(
         "gap:6px",
         "overflow:hidden",
         "white-space:nowrap",
-        `transition:max-width ${STRIP_TRANSITION_MS}ms ease, opacity ${STRIP_TRANSITION_MS - 30}ms ease`,
+        // INF-3736 — 4x slower transition for a deliberate, polished fold/fly.
+        // Opacity slightly faster so content fades before width fully collapses
+        // (prevents content overflow during the last moments of collapse).
+        `transition:max-width ${STRIP_TRANSITION_MS}ms ease, opacity ${Math.round(STRIP_TRANSITION_MS * 0.8)}ms ease`,
         `max-width:${STRIP_MAX_WIDTH_PX}px`,
         "opacity:1",
     ].join(";");
@@ -169,6 +209,7 @@ export function mountMasterTimeSlider(
         expanded = next;
         strip.style.maxWidth = expanded ? `${STRIP_MAX_WIDTH_PX}px` : "0px";
         strip.style.opacity = expanded ? "1" : "0";
+        updateIndicator();
     }
     function applyAutoCollapse(): void {
         // Fold into the icon when scope has no useful target.
@@ -177,7 +218,7 @@ export function mountMasterTimeSlider(
         }
     }
 
-    const icon = buildIcon(() => {
+    const iconHandle = buildIcon(() => {
         // Icon click — toggle. If expanding from collapsed-by-auto state with
         // both scopes false, default-on Chart so the slider has SOMETHING to do.
         if (!expanded) {
@@ -203,7 +244,14 @@ export function mountMasterTimeSlider(
             pastQuarters: envelope.pastQuarters,
             futureQuarters: envelope.futureQuarters,
             value,
-            onChange: options.onChange,
+            onChange: (next: SliderRange) => {
+                // INF-3736 — keep curValue in sync so the icon indicator
+                // can react INSTANTLY to drag/all-toggle (no need to wait
+                // for the next update() round-trip).
+                curValue = next;
+                updateIndicator();
+                options.onChange(next);
+            },
             compact: true,
             colorAccent: GREY_ACCENT,
         });
@@ -211,6 +259,9 @@ export function mountMasterTimeSlider(
         sliderContainer.style.flex = "1";
         sliderContainer.style.minWidth = `${SLIDER_MIN_WIDTH_PX}px`;
         sliderContainer.style.margin = "0";
+        // INF-3736 — nudge the slider container up so its rail center
+        // aligns with the icon center (y=13 of the visual).
+        sliderContainer.style.transform = `translateY(${SLIDER_VERTICAL_NUDGE_PX}px)`;
         strip.insertBefore(sliderContainer, ganttCheck);
         lastEnvelope = { p: envelope.pastQuarters, f: envelope.futureQuarters };
     }
@@ -218,7 +269,7 @@ export function mountMasterTimeSlider(
     strip.appendChild(ganttCheck);
     strip.appendChild(tableCheck);
     anchor.appendChild(strip);
-    anchor.appendChild(icon);
+    anchor.appendChild(iconHandle.btn);
 
     return {
         update(envelope, value, scope): void {
@@ -234,7 +285,9 @@ export function mountMasterTimeSlider(
                 (tableCheck as HTMLButtonElement & { setActive: (a: boolean) => void }).setActive(scope.filtersTable);
             }
             curScope = scope;
+            curValue = value;
             applyAutoCollapse();
+            updateIndicator();
         },
         setVisible(visible): void {
             anchor.style.display = visible ? "flex" : "none";
