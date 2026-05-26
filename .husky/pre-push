@@ -1,0 +1,50 @@
+#!/usr/bin/env sh
+# Reporting-Gantt — pre-push policy.
+#
+# Pushes to a GitHub (origin) remote are restricted to:
+#   - refs/heads/main        (public release branch)
+#   - refs/tags/v*.*.*.*     (public release tags)
+#
+# All other refs (master, feature/*, INF-tagged commits, sausage-making
+# history) must stay on internal remotes (nas). Rationale: this repo
+# distributes its packaged .pbiviz via GitHub Releases; the public repo
+# does NOT mirror source-of-truth development history.
+#
+# Bypass: --no-verify. Use ONLY for genuine emergencies, then explain
+# why in the corresponding Plane work item.
+
+remote="$1"
+url="$2"
+
+# Only police pushes to GitHub remotes. NAS / internal remotes pass through.
+case "$url" in
+    *github.com*|*github.*) ;;
+    *) exit 0 ;;
+esac
+
+violations=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+    # Empty stdin (e.g., `git push --delete`) — skip loop body.
+    [ -z "$remote_ref" ] && continue
+
+    case "$remote_ref" in
+        refs/heads/main)
+            ;;
+        refs/tags/v[0-9]*.[0-9]*.[0-9]*.[0-9]*)
+            ;;
+        *)
+            echo "[pre-push] REFUSED: $remote_ref -> $url" >&2
+            echo "[pre-push]   GitHub remote accepts only:" >&2
+            echo "[pre-push]     - refs/heads/main" >&2
+            echo "[pre-push]     - refs/tags/v*.*.*.* (e.g. v2.2.0.0)" >&2
+            echo "[pre-push]   Source development belongs on nas remote, not origin." >&2
+            echo "[pre-push]   If you genuinely need this push: --no-verify (and explain why)." >&2
+            violations=$((violations + 1))
+            ;;
+    esac
+done
+
+if [ "$violations" -gt 0 ]; then
+    exit 1
+fi
+exit 0
