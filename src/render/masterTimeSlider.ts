@@ -14,10 +14,14 @@
 import { mountTimeSlider } from "./inspector/timeSlider";
 import { SliderRange } from "./inspector/timeSliderMath";
 
-const ANCHOR_TOP_PX = 6;
+// INF-3736 — top:-12 aligns the slider rail center (y=25 inside the 44px
+// rail container) with the Gantt/Table toggle row center (y=13). The icon
+// is bottom-aligned in the anchor flex so it doesn't clip above the visual.
+const ANCHOR_TOP_PX = -12;
 const ANCHOR_RIGHT_PX = 6;
 const STRIP_Z_INDEX = 11;
-const STRIP_MAX_WIDTH_PX = 720;
+const STRIP_MAX_WIDTH_PX = 1440;
+const SLIDER_MIN_WIDTH_PX = 600;
 const STRIP_TRANSITION_MS = 280;
 const ICON_SIZE_PX = 24;
 const GREY_ACCENT = "#6b7280";
@@ -122,7 +126,8 @@ export function mountMasterTimeSlider(
         "pointer-events:auto",
         "display:flex",
         "flex-direction:row",
-        "align-items:center",
+        // Icon bottom-aligns so it doesn't clip above the visual when anchor top is negative.
+        "align-items:flex-end",
         "gap:6px",
     ].join(";");
     anchor.addEventListener("click", (e) => { e.stopPropagation(); });
@@ -204,7 +209,7 @@ export function mountMasterTimeSlider(
         });
         sliderContainer = slider.element;
         sliderContainer.style.flex = "1";
-        sliderContainer.style.minWidth = "300px";
+        sliderContainer.style.minWidth = `${SLIDER_MIN_WIDTH_PX}px`;
         sliderContainer.style.margin = "0";
         strip.insertBefore(sliderContainer, ganttCheck);
         lastEnvelope = { p: envelope.pastQuarters, f: envelope.futureQuarters };
