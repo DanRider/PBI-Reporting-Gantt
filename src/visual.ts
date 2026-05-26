@@ -73,7 +73,7 @@ import { mountTopRightControls, TopRightControlsHandle } from "./render/topRight
 // data extent; window filters milestones (24c) and (in 24b) tear-clips
 // activity bars at the window bounds.
 import { mountMasterTimeSlider, MasterTimeSliderHandle, MasterScope } from "./render/masterTimeSlider";
-import { SliderRange, quarterIndex, rangeToWindow, parseSliderRange } from "./render/inspector/timeSliderMath";
+import { SliderRange, monthIndex, rangeToWindow, parseSliderRange } from "./render/inspector/timeSliderMath";
 
 // v2.1 W1.5a — selection state model. Drives the controls panel
 // (open/close + content). Clicks on selectable elements write to the store;
@@ -250,7 +250,9 @@ export class Visual implements IVisual {
     // v2.1 audit-fix #24 — master window state. Default: past 2Q + future
     // 6Q (forward-biased for roadmap use case). Clamped to envelope in
     // update() when data is delivered.
-    private masterRange: SliderRange = { kind: "range", startOffset: -2, endOffset: 6 };
+    // INF-3736 — startOffset/endOffset are MONTHS (was: quarters). Default
+    // -6/+18 ≈ 2 quarters back, 6 quarters forward (same span as the old default).
+    private masterRange: SliderRange = { kind: "range", startOffset: -6, endOffset: 18 };
     // INF-3736 — master slider scope flags. Default: both true (master filters
     // gantt AND table — same effective behavior as v2.1 + the new table path).
     // Persisted on objects.masterTimeSlider.filtersGantt/filtersTable.
@@ -596,20 +598,18 @@ export class Visual implements IVisual {
             this.masterFiltersTable = objs.masterTimeSlider.filtersTable;
         }
 
-        // v2.1 audit-fix #24 — master slider envelope derived from FULL
-        // data extent (before lane focus narrows it). Today is the pivot;
-        // pastQuarters = today.idx − extentStart.idx, futureQuarters =
-        // extentEnd.idx − today.idx. Both clamped to ≥0 so an extent
-        // entirely in the future doesn't create a negative-past slider.
-        // Master range clamped to envelope so a stored range from earlier
-        // data doesn't fall outside the current ticks.
+        // INF-3736 — master slider envelope in MONTHS (was: quarters).
+        // pastMonths = today.idx − extentStart.idx; futureMonths = extentEnd.idx
+        // − today.idx. Both clamped to ≥0 so an extent entirely in the future
+        // doesn't create a negative-past slider. Stored range clamped to
+        // envelope so older persisted ranges don't fall outside current ticks.
         const today = new Date();
-        const todayQI = quarterIndex(today);
-        const pastQuarters = Math.max(0, todayQI - quarterIndex(vm.dateExtent[0]));
-        const futureQuarters = Math.max(0, quarterIndex(vm.dateExtent[1]) - todayQI);
+        const todayMI = monthIndex(today);
+        const pastMonths = Math.max(0, todayMI - monthIndex(vm.dateExtent[0]));
+        const futureMonths = Math.max(0, monthIndex(vm.dateExtent[1]) - todayMI);
         if (this.masterRange.kind === "range") {
-            const lo = -pastQuarters;
-            const hi = futureQuarters;
+            const lo = -pastMonths;
+            const hi = futureMonths;
             const s = Math.max(lo, Math.min(hi, this.masterRange.startOffset));
             const e = Math.max(lo, Math.min(hi, this.masterRange.endOffset));
             if (s !== this.masterRange.startOffset || e !== this.masterRange.endOffset) {
@@ -617,7 +617,7 @@ export class Visual implements IVisual {
             }
         }
         this.masterSlider.update(
-            { pastQuarters, futureQuarters },
+            { pastMonths, futureMonths },
             this.masterRange,
             { filtersGantt: this.masterFiltersGantt, filtersTable: this.masterFiltersTable },
         );

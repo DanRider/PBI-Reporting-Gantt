@@ -1,12 +1,12 @@
-// Quarterly time slider — offset-preserving drag, rAF repaint, snap-on-pointerup, 10px thumb / 30px hit-zone,
-// All toggle, compact mode (suppress floating labels — endpoints become live readouts).
+// Monthly time slider — offset-preserving drag, snap-on-pointerup, All toggle, compact mode.
+// Major ticks at quarter boundaries; minor ticks at non-quarter months.
 
-import { SliderRange, quarterStart, offsetQuarter, quarterLabel, rangeToWindow } from "./timeSliderMath";
-export { SliderRange, quarterLabel, rangeToWindow } from "./timeSliderMath";
+import { SliderRange, offsetMonth, monthLabel, monthStart, rangeToWindow } from "./timeSliderMath";
+export { SliderRange, monthLabel, rangeToWindow } from "./timeSliderMath";
 
 export interface TimeSliderOptions {
-    readonly pastQuarters: number;
-    readonly futureQuarters: number;
+    readonly pastMonths: number;
+    readonly futureMonths: number;
     readonly value: SliderRange;
     readonly onChange: (next: SliderRange) => void;
     /** Compact mode (audit-fix #24b): suppress the floating value labels
@@ -24,7 +24,8 @@ export interface TimeSliderHandle {
 
 const TRACK_HEIGHT = 6;
 const BAND_HEIGHT = 8;
-const TICK_SIZE = 5;
+const TICK_SIZE = 5;          // quarter-boundary major tick
+const TICK_SIZE_MINOR = 2;    // INF-3736 — non-quarter month minor tick
 const TICK_TODAY_SIZE = 8;
 const THUMB_SIZE = 10;           // matches inspector makeColorBubble — page-wide circle convention
 const HIT_ZONE_SIZE = 30;        // transparent grabable area around the visible thumb
@@ -41,11 +42,11 @@ const THUMB_SHADOW = "0 1px 3px rgba(0,0,0,0.2)";
 const THUMB_SHADOW_HOVER = "0 2px 6px rgba(0,0,0,0.25)";
 
 export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
-    const totalTicks = opts.pastQuarters + opts.futureQuarters + 1;
+    const totalTicks = opts.pastMonths + opts.futureMonths + 1;
     const today = new Date();
-    const todayQ = quarterStart(today);
-    const idxToOffset = (idx: number): number => idx - opts.pastQuarters;
-    const offsetToIdx = (offset: number): number => offset + opts.pastQuarters;
+    const todayQ = monthStart(today);  // anchor month for offset math
+    const idxToOffset = (idx: number): number => idx - opts.pastMonths;
+    const offsetToIdx = (offset: number): number => offset + opts.pastMonths;
 
     const accent = opts.colorAccent ?? ACCENT;       // #24c — master overrides w/ grey
     const accentDim = opts.colorAccent ?? ACCENT_DIM;
@@ -89,19 +90,17 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
     restyleAll();
     root.appendChild(allBtn);
 
-    // Endpoint labels — compact mode makes them live readouts (see repaint).
-    // pointer-events:none so right thumb's overflowing hit zone isn't stolen by rightLabel.
+    // Endpoint labels — pointer-events:none + (compact) live readouts via repaint.
     const LABEL_CSS = opts.compact
         ? `font-size:9px;color:${opts.colorAccent ?? ACCENT};font-weight:600;flex-shrink:0;font-variant-numeric:tabular-nums;pointer-events:none;`
         : "font-size:9px;color:#666;flex-shrink:0;font-variant-numeric:tabular-nums;pointer-events:none;";
     const leftLabel = document.createElement("span");
-    leftLabel.textContent = quarterLabel(offsetQuarter(todayQ, -opts.pastQuarters));
+    leftLabel.textContent = monthLabel(offsetMonth(todayQ, -opts.pastMonths));
     leftLabel.style.cssText = LABEL_CSS;
     root.appendChild(leftLabel);
     const rightLabel = document.createElement("span");
-    rightLabel.textContent = quarterLabel(offsetQuarter(todayQ, opts.futureQuarters));
+    rightLabel.textContent = monthLabel(offsetMonth(todayQ, opts.futureMonths));
     rightLabel.style.cssText = LABEL_CSS;
-    // rightLabel appended after rail below → flex order [All] [leftLabel] [rail flex:1] [rightLabel].
 
     // Rail (grows to fill available width)
     const rail = document.createElement("div");
@@ -138,8 +137,10 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
 
     // Ticks
     for (let i = 0; i < totalTicks; i++) {
-        const isToday = i === opts.pastQuarters;
-        const size = isToday ? TICK_TODAY_SIZE : TICK_SIZE;
+        const isToday = i === opts.pastMonths;
+        const tickD = offsetMonth(todayQ, idxToOffset(i));
+        const isQuarterBoundary = tickD.getMonth() % 3 === 0;
+        const size = isToday ? TICK_TODAY_SIZE : (isQuarterBoundary ? TICK_SIZE : TICK_SIZE_MINOR);
         const tick = document.createElement("div");
         tick.style.cssText = [
             "position:absolute",
@@ -153,8 +154,7 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
             "pointer-events:none",
             "z-index:1",
         ].join(";");
-        const tickQ = offsetQuarter(todayQ, idxToOffset(i));
-        tick.title = isToday ? `${quarterLabel(tickQ)} (current)` : quarterLabel(tickQ);
+        tick.title = isToday ? `${monthLabel(tickD)} (current)` : monthLabel(tickD);
         // Hover via a wider invisible hit zone (since the dot is only 5-8px)
         const tickHit = document.createElement("div");
         tickHit.style.cssText = [
@@ -263,13 +263,13 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
             band.style.opacity = "1";
             startT.visible.style.opacity = "1";
             endT.visible.style.opacity = "1";
-            const sLabelQ = offsetQuarter(todayQ, idxToOffset(Math.round(sIdx)));
-            const eLabelQ = offsetQuarter(todayQ, idxToOffset(Math.round(eIdx)));
-            startT.label.textContent = quarterLabel(sLabelQ);
-            endT.label.textContent = quarterLabel(eLabelQ);
+            const sLabelQ = offsetMonth(todayQ, idxToOffset(Math.round(sIdx)));
+            const eLabelQ = offsetMonth(todayQ, idxToOffset(Math.round(eIdx)));
+            startT.label.textContent = monthLabel(sLabelQ);
+            endT.label.textContent = monthLabel(eLabelQ);
             if (opts.compact) {
-                leftLabel.textContent = quarterLabel(sLabelQ);
-                rightLabel.textContent = quarterLabel(eLabelQ);
+                leftLabel.textContent = monthLabel(sLabelQ);
+                rightLabel.textContent = monthLabel(eLabelQ);
             }
         });
     }

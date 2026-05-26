@@ -24,10 +24,32 @@ export function quarterLabel(d: Date): string {
 }
 
 /** Year × 4 + quarter — monotonic, supports subtraction to count whole quarters
- *  between any two dates. Used by the master slider to size its tick range
- *  from the data envelope. */
+ *  between any two dates. */
 export function quarterIndex(d: Date): number {
     return d.getFullYear() * 4 + Math.floor(d.getMonth() / 3);
+}
+
+/** INF-3736 — month-level granularity for the master slider. */
+export function offsetMonth(base: Date, offset: number): Date {
+    const d = new Date(base);
+    d.setMonth(d.getMonth() + offset);
+    return d;
+}
+
+/** Year × 12 + month — monotonic, supports subtraction to count whole months. */
+export function monthIndex(d: Date): number {
+    return d.getFullYear() * 12 + d.getMonth();
+}
+
+/** "Feb '26" style. */
+export function monthLabel(d: Date): string {
+    const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${names[d.getMonth()]} '${yy}`;
+}
+
+export function monthStart(d: Date): Date {
+    return new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
 /** INF-3736 — narrow validator for JSON-stringified SliderRange from PBI
@@ -47,11 +69,13 @@ export function parseSliderRange(s: string): SliderRange | null {
     return null;
 }
 
+/** INF-3736 — SliderRange offsets are now MONTHS (was: quarters). The window
+ *  spans from the start month's first day to the end month's last instant. */
 export function rangeToWindow(range: SliderRange, today: Date): { fromMs: number; toMs: number } | null {
     if (range.kind === "all") return null;
-    const todayQ = quarterStart(today);
-    const startQ = offsetQuarter(todayQ, range.startOffset);
-    const endQStart = offsetQuarter(todayQ, range.endOffset);
-    const endQEnd = offsetQuarter(endQStart, 1);
-    return { fromMs: startQ.getTime(), toMs: endQEnd.getTime() - 1 };
+    const todayM = monthStart(today);
+    const startM = offsetMonth(todayM, range.startOffset);
+    const endMStart = offsetMonth(todayM, range.endOffset);
+    const endMEnd = offsetMonth(endMStart, 1);
+    return { fromMs: startM.getTime(), toMs: endMEnd.getTime() - 1 };
 }

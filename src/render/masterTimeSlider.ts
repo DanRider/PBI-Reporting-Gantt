@@ -43,8 +43,8 @@ export interface MasterTimeSliderOptions {
 }
 
 export interface MasterTimeSliderEnvelope {
-    readonly pastQuarters: number;
-    readonly futureQuarters: number;
+    readonly pastMonths: number;
+    readonly futureMonths: number;
 }
 
 export interface MasterTimeSliderHandle {
@@ -65,17 +65,20 @@ function buildScopeCheckbox(label: string, initialActive: boolean, onClick: (nex
         btn.textContent = `${active ? "☑" : "☐"} ${label}`;
         btn.title = `${active ? "Filter applies to" : "Filter does NOT apply to"} ${label}`;
         btn.style.cssText = [
-            "padding:2px 4px",
-            "font-size:11px",
-            "line-height:1.3",
+            "padding:0",
+            // INF-3736 — exact-match toggle font: 10px Segoe UI 600 #555.
+            "font-family:'Segoe UI',system-ui,sans-serif",
+            "font-size:10px",
+            "font-weight:600",
+            `color:${active ? "#555" : "#aaa"}`,
+            // line-height equals the anchor height so vertical centering is pixel-perfect.
+            `line-height:${ANCHOR_HEIGHT_PX}px`,
             "cursor:pointer",
             "border:none",
             "background:transparent",
-            `color:${active ? "#333" : "#999"}`,
-            `font-weight:${active ? "600" : "400"}`,
             "flex-shrink:0",
             "user-select:none",
-            "font-family:inherit",
+            "white-space:nowrap",
         ].join(";");
     };
     restyle();
@@ -102,19 +105,20 @@ function buildIcon(onClick: () => void): { btn: HTMLButtonElement; setIndicator:
         "border:none",
         "background:transparent",
         "cursor:pointer",
-        "font-size:16px",
-        "line-height:1",
-        "display:flex",
-        "align-items:center",
-        "justify-content:center",
+        "font-family:'Segoe UI',system-ui,sans-serif",
+        "font-size:14px",
+        // line-height equals the box height for pixel-perfect vertical centering.
+        `line-height:${ICON_SIZE_PX}px`,
+        "text-align:center",
+        "display:block",
         "flex-shrink:0",
         "user-select:none",
         "position:relative",
-        `color:#444`,
+        "color:#555",
         "transition:background 150ms ease, color 150ms ease",
     ].join(";");
     btn.addEventListener("mouseenter", () => { btn.style.background = "#e9efff"; btn.style.color = HOVER_BLUE; });
-    btn.addEventListener("mouseleave", () => { btn.style.background = "transparent"; btn.style.color = "#444"; });
+    btn.addEventListener("mouseleave", () => { btn.style.background = "transparent"; btn.style.color = "#555"; });
     btn.addEventListener("click", (e) => { e.stopPropagation(); onClick(); });
 
     // INF-3736 — small dot in the top-right of the icon when slider is collapsed
@@ -241,8 +245,8 @@ export function mountMasterTimeSlider(
             strip.removeChild(sliderContainer);
         }
         const slider = mountTimeSlider({
-            pastQuarters: envelope.pastQuarters,
-            futureQuarters: envelope.futureQuarters,
+            pastMonths: envelope.pastMonths,
+            futureMonths: envelope.futureMonths,
             value,
             onChange: (next: SliderRange) => {
                 // INF-3736 — keep curValue in sync so the icon indicator
@@ -263,7 +267,7 @@ export function mountMasterTimeSlider(
         // aligns with the icon center (y=13 of the visual).
         sliderContainer.style.transform = `translateY(${SLIDER_VERTICAL_NUDGE_PX}px)`;
         strip.insertBefore(sliderContainer, ganttCheck);
-        lastEnvelope = { p: envelope.pastQuarters, f: envelope.futureQuarters };
+        lastEnvelope = { p: envelope.pastMonths, f: envelope.futureMonths };
     }
 
     strip.appendChild(ganttCheck);
@@ -274,8 +278,8 @@ export function mountMasterTimeSlider(
     return {
         update(envelope, value, scope): void {
             if (lastEnvelope == null
-                || lastEnvelope.p !== envelope.pastQuarters
-                || lastEnvelope.f !== envelope.futureQuarters) {
+                || lastEnvelope.p !== envelope.pastMonths
+                || lastEnvelope.f !== envelope.futureMonths) {
                 remountSlider(envelope, value);
             }
             if (scope.filtersGantt !== curScope.filtersGantt) {
