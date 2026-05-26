@@ -1220,16 +1220,26 @@ export class Visual implements IVisual {
         const onResizeSwimLane = (newPercent: number, isCommit: boolean): void => {
             this.transientSwimLanePercent = newPercent;
             if (isCommit) {
+                // INF-3736 — drop the drag-mode CSS override so subsequent
+                // hover/leave fades resume normal 120ms behavior.
+                this.dragHandlesG.classed("dragging", false);
                 this.persistColumnWidth("swimlanes", "swimLaneWidthPercent", newPercent);
             } else {
+                // INF-3736 — first pointermove of a drag. Class persists on
+                // the parent <g> across re-renders, so newly-appended grips
+                // inherit the no-transition / opacity:1 rule and don't
+                // flicker as the cursor sweeps along.
+                this.dragHandlesG.classed("dragging", true);
                 this.requestRerender();
             }
         };
         const onResizeActivityLabel = (newPercent: number, isCommit: boolean): void => {
             this.transientActivityLabelPercent = newPercent;
             if (isCommit) {
+                this.dragHandlesG.classed("dragging", false);
                 this.persistColumnWidth("activityLabels", "activityLabelWidthPercent", newPercent);
             } else {
+                this.dragHandlesG.classed("dragging", true);
                 this.requestRerender();
             }
         };

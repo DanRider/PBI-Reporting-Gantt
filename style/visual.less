@@ -21,6 +21,18 @@
     g.resize-grip:hover {
         opacity: 1;
     }
+    // INF-3736 — while a drag is in progress, force ALL grips visible with
+    // NO transition. Each pointermove triggers requestRerender, which blows
+    // away and re-appends the resize-grip <g>. Without this rule, the new
+    // grip starts at opacity 0, transitions toward 1 over 120ms, gets
+    // interrupted by the next pointermove — opacity oscillates around 0.85
+    // (perceived flicker). The .dragging class persists on .drag-handles
+    // across re-renders (selectAll("*").remove() removes children, not
+    // attrs on the parent), so newly-appended grips inherit this rule.
+    g.drag-handles.dragging g.resize-grip {
+        opacity: 1;
+        transition: none;
+    }
     g.resize-grip rect.swimlane-resize-handle,
     g.resize-grip rect.activity-label-resize-handle {
         fill: #e8e8ec;
