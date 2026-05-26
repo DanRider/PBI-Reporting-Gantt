@@ -94,9 +94,12 @@ export function mountTimeSlider(opts: TimeSliderOptions): TimeSliderHandle {
 
     // Left endpoint label
     // audit-fix #24b — endpoint labels; compact mode makes them live readouts (see repaint).
+    // INF-3736 — pointer-events:none so the right thumb's hit zone, which extends
+    // 15px past the rail's right edge into rightLabel's flex space, isn't stolen
+    // by the label catching clicks. Labels are display-only — never interactive.
     const LABEL_CSS = opts.compact
-        ? `font-size:9px;color:${opts.colorAccent ?? ACCENT};font-weight:600;flex-shrink:0;font-variant-numeric:tabular-nums;`
-        : "font-size:9px;color:#666;flex-shrink:0;font-variant-numeric:tabular-nums;";
+        ? `font-size:9px;color:${opts.colorAccent ?? ACCENT};font-weight:600;flex-shrink:0;font-variant-numeric:tabular-nums;pointer-events:none;`
+        : "font-size:9px;color:#666;flex-shrink:0;font-variant-numeric:tabular-nums;pointer-events:none;";
     const leftLabel = document.createElement("span");
     leftLabel.textContent = quarterLabel(offsetQuarter(todayQ, -opts.pastQuarters));
     leftLabel.style.cssText = LABEL_CSS;
