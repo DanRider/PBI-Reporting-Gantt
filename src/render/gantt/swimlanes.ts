@@ -3,7 +3,7 @@
 import { Selection } from "d3-selection";
 import { AreaGroup } from "../../viewmodel";
 import { areaColor, ColorContext } from "../../utils/colors";
-import { FontStyle, applyFont } from "../../utils/font";
+import { FontStyle, applyFont, canvasFontString } from "../../utils/font";
 
 export const DEFAULT_LEFT_RAIL_WIDTH = 130;
 
@@ -15,6 +15,16 @@ const CIRCLE_RADIUS = 8;
 const LABEL_LINE_HEIGHT_FACTOR = 1.25;
 
 export type RailAlignment = "left" | "center" | "right";
+
+// INF-3736 — used by the width-aware auto-wrap decision below. Matches the
+// canvas-measurement pattern in activityLabels.ts.
+function measureWidth(text: string, font: FontStyle): number {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return text.length * font.fontSize * 0.55;
+    ctx.font = canvasFontString(font);
+    return ctx.measureText(text).width;
+}
 
 export interface SwimlaneOptions {
     show: boolean;
@@ -63,6 +73,19 @@ export function renderSwimlanes(
 
     const lineHeight = Math.max(opts.font.fontSize * LABEL_LINE_HEIGHT_FACTOR, opts.font.fontSize + 3);
 
+    // INF-3736 — available text-band width per alignment. Loop-invariant.
+    // Drives the auto-wrap decision: only split to multiple lines when the
+    // full text exceeds this band. As the user widens the swim-lane column
+    // via drag, multi-line labels collapse back to one line once they fit.
+    let labelBandWidth: number;
+    if (opts.railAlignment === "left") {
+        labelBandWidth = (railWidth - 4) - (railLineX + RAIL_TO_RIGHT_GAP);
+    } else if (opts.railAlignment === "center") {
+        labelBandWidth = railWidth - 16;
+    } else {
+        labelBandWidth = (railLineX - 8) - LABEL_BAND_LEFT_PADDING;
+    }
+
     for (const group of areaGroups) {
         const railColor = areaColor(group.area, colors);
         const labelFill = opts.useAreaColor ? railColor : opts.labelColor;
@@ -70,7 +93,12 @@ export function renderSwimlanes(
         const yBottom = group.endRowIndex * rowHeight + rowHeight / 2;
         const yCenter = (yTop + yBottom) / 2;
 
-        const lines = opts.wrapText
+        // INF-3736 — auto-wrap: split into one-word-per-line ONLY when the
+        // full text exceeds the available band. Previously always split when
+        // wrapText was true, so multi-word labels could never un-wrap as the
+        // column widened. With the new drag-to-resize handle, that broke the
+        // "drag wider to fit" UX. Now width-driven.
+        const lines = opts.wrapText && measureWidth(group.area, opts.font) > labelBandWidth
             ? group.area.split(/\s+/).filter(w => w.length > 0)
             : [group.area];
         const totalH = lines.length * lineHeight;
