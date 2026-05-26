@@ -483,6 +483,9 @@ export class Visual implements IVisual {
                                 this.lastViewmodel,
                                 onSelect,
                                 this.lastActivityColors,
+                                // v2.2 B2 — host.launchUrl is the supported way
+                                // to open external URLs from a PBI custom visual.
+                                (url: string) => this.host.launchUrl(url),
                             ));
                             break;
                     }

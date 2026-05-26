@@ -14,6 +14,10 @@ export function renderMilestoneDetail(
     vm: RoadmapViewModel,
     onSelect?: OnSelect,
     activityColors?: Record<string, string>,
+    // v2.2 B2 — PBI sandboxed iframe blocks <a target="_blank">. Caller
+    // (visual.ts) passes (url) => this.host.launchUrl(url) so the URL
+    // opens via PBI's supported API. Optional for backward compat.
+    launchUrl?: (url: string) => void,
 ): HTMLElement {
     const root = document.createElement("div");
     root.className = "inspector-milestone";
@@ -89,16 +93,30 @@ export function renderMilestoneDetail(
         fields.appendChild(healthDiv);
     }
     if (milestone.externalUrl) {
+        // v2.2 B2 — was an <a target="_blank"> which silently no-ops inside
+        // PBI's sandboxed iframe. Now a button that delegates to host.launchUrl
+        // (the supported PBI API for opening external URLs from custom visuals)
+        // via the launchUrl callback. Falls back to copy-to-console if the
+        // callback wasn't provided (test contexts, backward compat).
         const linkDiv = document.createElement("div");
         linkDiv.style.cssText = "margin:6px 0 4px 0;font-family:inherit;font-size:12px;line-height:1.4;";
-        const link = document.createElement("a");
-        link.href = milestone.externalUrl;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
+        const link = document.createElement("button");
+        link.type = "button";
         link.textContent = "Open external link \u2197";
-        link.style.cssText = "color:#1968c8;text-decoration:none;";
+        link.title = milestone.externalUrl;
+        link.style.cssText = "background:transparent;border:none;cursor:pointer;color:#1968c8;text-decoration:none;font:inherit;padding:0;";
         link.addEventListener("mouseenter", () => { link.style.textDecoration = "underline"; });
         link.addEventListener("mouseleave", () => { link.style.textDecoration = "none"; });
+        link.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const url = milestone.externalUrl;
+            if (!url) return;
+            if (launchUrl) {
+                launchUrl(url);
+            } else if (typeof console !== "undefined") {
+                console.warn(`[Reporting Gantt] launchUrl callback not provided; cannot open ${url}`);
+            }
+        });
         linkDiv.appendChild(link);
         fields.appendChild(linkDiv);
     }
