@@ -7,4 +7,17 @@
         user-select: none;
         pointer-events: none;
     }
+
+    // INF-3736 — column-boundary drag handles. Invisible at rest, tinted
+    // band fades in on cursor entry so the user can FIND the handle without
+    // visual chrome littering the chart at rest. Pairs with the
+    // cursor:col-resize set in widthDrag.ts.
+    rect.swimlane-resize-handle,
+    rect.activity-label-resize-handle {
+        transition: fill 120ms ease-out;
+    }
+    rect.swimlane-resize-handle:hover,
+    rect.activity-label-resize-handle:hover {
+        fill: rgba(0, 120, 215, 0.28);
+    }
 }

@@ -248,7 +248,11 @@ export class SwimlanesCard extends CompositeCard {
         ],
         value: { value: "right", displayName: "Right of label" },
     });
-    wrapText = new formattingSettings.ToggleSwitch({ name: "wrapText", displayName: "Wrap labels (one word per line)", value: true });
+    // INF-3736 — explicit "Wrap labels" toggle removed. Swim-lane labels
+    // always wrap when they don't fit (auto-wrap), since wrap is required
+    // for the new drag-to-resize behavior to produce useful sizing.
+    // (The capabilities.json declaration for `wrapText` is retained as a
+    // harmless stored bit; the visual no longer reads it.)
 
     // Label styling
     useAreaColor = new formattingSettings.ToggleSwitch({ name: "useAreaColor", displayName: "Use swim lane color for label", value: true });
@@ -271,7 +275,7 @@ export class SwimlanesCard extends CompositeCard {
 
     layoutGroup = new Group({
         name: "swLayoutGroup", displayName: "Layout",
-        slices: [this.show, this.swimLaneWidthPercent, this.railAlignment, this.wrapText],
+        slices: [this.show, this.swimLaneWidthPercent, this.railAlignment],
     });
     labelGroup = new Group({
         name: "swLabelGroup", displayName: "Label styling",

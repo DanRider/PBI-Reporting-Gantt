@@ -1148,7 +1148,10 @@ export class Visual implements IVisual {
         this.railG.attr("transform", `translate(${leftMarginPx}, ${bodyY})`);
         renderSwimlanes(this.railG, vm.areaGroups, rowHeight, colors, leftRailWidth, {
             show: this.settings.swimlanes.show.value,
-            wrapText: this.settings.swimlanes.wrapText.value,
+            // INF-3736 — wrap is always on; the format-pane toggle was
+            // removed since wrap is required for drag-to-resize to produce
+            // useful sizing as the column narrows.
+            wrapText: true,
             useAreaColor: this.settings.swimlanes.useAreaColor.value,
             labelColor: this.settings.swimlanes.labelColor.value.value,
             railAlignment: this.settings.swimlanes.railAlignment.value.value as "left" | "center" | "right",
