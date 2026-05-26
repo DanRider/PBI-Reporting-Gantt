@@ -8,16 +8,19 @@
         pointer-events: none;
     }
 
-    // INF-3736 — column-boundary drag handles. Invisible at rest, tinted
-    // band fades in on cursor entry so the user can FIND the handle without
-    // visual chrome littering the chart at rest. Pairs with the
-    // cursor:col-resize set in widthDrag.ts.
-    rect.swimlane-resize-handle,
-    rect.activity-label-resize-handle {
-        transition: fill 120ms ease-out;
+    // INF-3736 — column-boundary drag handles. Pattern: <g class="resize-grip">
+    // wraps an invisible hit <rect> + three <circle class="grip-dot">s. At
+    // rest, dots have opacity 0 (no chrome). On cursor entry to the group
+    // (= cursor inside the wide invisible rect), dots fade in. Standard
+    // column-divider affordance — same pattern as VSCode splitters /
+    // design-system column resizers. pointer-events:none on dots so the
+    // rect remains the sole drag-start target.
+    g.resize-grip circle.grip-dot {
+        opacity: 0;
+        transition: opacity 120ms ease-out;
+        pointer-events: none;
     }
-    rect.swimlane-resize-handle:hover,
-    rect.activity-label-resize-handle:hover {
-        fill: rgba(0, 120, 215, 0.28);
+    g.resize-grip:hover circle.grip-dot {
+        opacity: 1;
     }
 }

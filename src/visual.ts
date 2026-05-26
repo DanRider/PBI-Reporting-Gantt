@@ -1234,7 +1234,11 @@ export class Visual implements IVisual {
             }
         };
 
-        const swimLaneHandle = this.dragHandlesG.append("rect")
+        // INF-3736 — swim-lane right-edge handle. <g class="resize-grip">
+        // wraps the invisible hit-rect + 3 grey grip dots. CSS in visual.less
+        // hides the dots at rest and fades them in on group :hover.
+        const swimGroup = this.dragHandlesG.append("g").attr("class", "resize-grip");
+        const swimHandle = swimGroup.append("rect")
             .attr("class", "swimlane-resize-handle")
             .attr("x", leftMarginPx + leftRailWidth)
             .attr("y", 0)
@@ -1243,11 +1247,21 @@ export class Visual implements IVisual {
             .attr("fill", "transparent")
             .style("pointer-events", "all")
             .node();
-        if (swimLaneHandle) {
-            attachWidthDrag(swimLaneHandle, leftMarginPx, options.viewport.width, 3, 70, onResizeSwimLane);
+        for (const dy of [-7, 0, 7]) {
+            swimGroup.append("circle")
+                .attr("class", "grip-dot")
+                .attr("cx", leftMarginPx + leftRailWidth + 4)
+                .attr("cy", bodyH / 2 + dy)
+                .attr("r", 1.5)
+                .attr("fill", "#605E5C");
+        }
+        if (swimHandle) {
+            attachWidthDrag(swimHandle, leftMarginPx, options.viewport.width, 3, 70, onResizeSwimLane);
         }
 
-        const activityLabelHandle = this.dragHandlesG.append("rect")
+        // INF-3736 — activity-label right-edge handle. Same grip pattern.
+        const labelGroup = this.dragHandlesG.append("g").attr("class", "resize-grip");
+        const labelHandle = labelGroup.append("rect")
             .attr("class", "activity-label-resize-handle")
             .attr("x", leftMarginPx + leftRailWidth + 8 + activityLabelWidth - 4)
             .attr("y", 0)
@@ -1256,8 +1270,16 @@ export class Visual implements IVisual {
             .attr("fill", "transparent")
             .style("pointer-events", "all")
             .node();
-        if (activityLabelHandle) {
-            attachWidthDrag(activityLabelHandle, leftMarginPx + leftRailWidth + 8, options.viewport.width, 5, 70, onResizeActivityLabel);
+        for (const dy of [-7, 0, 7]) {
+            labelGroup.append("circle")
+                .attr("class", "grip-dot")
+                .attr("cx", leftMarginPx + leftRailWidth + 8 + activityLabelWidth)
+                .attr("cy", bodyH / 2 + dy)
+                .attr("r", 1.5)
+                .attr("fill", "#605E5C");
+        }
+        if (labelHandle) {
+            attachWidthDrag(labelHandle, leftMarginPx + leftRailWidth + 8, options.viewport.width, 5, 70, onResizeActivityLabel);
         }
 
         const tooltipCard = this.settings.tooltip;
