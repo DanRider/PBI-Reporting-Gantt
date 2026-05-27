@@ -1,68 +1,50 @@
 // INF-3739 — top slicer strip (always-on, pinned dims).
+// INF-3745 Phase A — refactored to dispatch per-cluster via resolveWidget.
 //
 // Mounts in a DEDICATED container at the very top of the visual (top:0).
-// The existing chrome row (toggles + master time slider) sits BELOW this
-// container, pushed down by the strip's rendered height.
-//
 // Density-aware: pill padding / font-size / row spacing scale per the
-// pinnedDensity formatting setting ("comfortable" / "compact" / "dense").
-// Multi-dim packing: dim clusters (label + pills) flow as inline-flex
-// children of a flex-wrap container — multiple clusters share a physical
-// row until the row fills, then wrap. Saves significant vertical real
-// estate when several short-label dims are pinned simultaneously.
+// pinnedDensity formatting setting. Multi-dim packing via flex-wrap.
 //
-// Pills are multi-select (parity with the sidebar). Filled when active,
-// outlined otherwise. The "All" pill clears the dim's selection.
+// Per-cluster widget choice routes through resolveWidget(slot, binding):
+//   "auto" defers to cardinality + column-type rules; user-set values
+//   pass through (with text-column range-slider falling back to pills).
+// A WeakMap from cluster element → WidgetHandle holds the live renderer
+// so subsequent renders can destroy() + remount only when the widget
+// kind changes, and update() in-place otherwise.
 
-import { FilterDimBinding, FilterSlotSettings, FilterState, dimLabel } from "./state";
+import {
+    FilterDimBinding, FilterSlotSettings, FilterState, PinnedDensity,
+    dimLabel, resolveWidget, ConcreteWidget,
+} from "./state";
+import { DENSITY } from "./widgets/widgetCommon";
+import type { WidgetHandle, WidgetRenderer } from "./widgets/widget";
+import { pillsMultiRenderer } from "./widgets/pillsMulti";
+import { pillsSingleRenderer } from "./widgets/pillsSingle";
+import { dropdownMultiRenderer } from "./widgets/dropdownMulti";
 
-export type PinnedDensity = "comfortable" | "compact" | "dense";
+// INF-3745 — re-export PinnedDensity so existing callers (controller.ts,
+// visual.ts) keep working after the cycle break that moved the canonical
+// definition into state.ts.
+export type { PinnedDensity };
 
-interface DensitySpec {
-    rowMinHeightPx: number;
-    pillPaddingV: number;
-    pillPaddingH: number;
-    pillFontSizePx: number;
-    pillMinWidthPx: number;
-    labelFontSizePx: number;
-    interClusterGapPx: number;
-    interPillGapPx: number;
-    stripPaddingV: number;
-    stripPaddingH: number;
-}
-
-const DENSITY: Record<PinnedDensity, DensitySpec> = {
-    comfortable: {
-        rowMinHeightPx: 42, pillPaddingV: 7, pillPaddingH: 20, pillFontSizePx: 13,
-        pillMinWidthPx: 64, labelFontSizePx: 13, interClusterGapPx: 18, interPillGapPx: 6,
-        stripPaddingV: 6, stripPaddingH: 16,
-    },
-    compact: {
-        rowMinHeightPx: 30, pillPaddingV: 4, pillPaddingH: 12, pillFontSizePx: 12,
-        pillMinWidthPx: 48, labelFontSizePx: 12, interClusterGapPx: 14, interPillGapPx: 5,
-        stripPaddingV: 4, stripPaddingH: 12,
-    },
-    dense: {
-        rowMinHeightPx: 22, pillPaddingV: 1, pillPaddingH: 8, pillFontSizePx: 11,
-        pillMinWidthPx: 0,  labelFontSizePx: 11, interClusterGapPx: 10, interPillGapPx: 4,
-        stripPaddingV: 2, stripPaddingH: 10,
-    },
-};
-
-/** Default row height — controller exposes a dynamic getter that returns
- *  the strip's ACTUAL offsetHeight after render (since packing depends on
- *  viewport width). Kept as a fallback sentinel only. */
+/** Default row height — kept as a fallback sentinel only. */
 export const TOP_SLICER_ROW_HEIGHT_PX = 30;
 
 const STRIP_BG = "#ffffff";
 const STRIP_BORDER = "#c0c0c0";
 const LABEL_FG = "#222";
-const PILL_BG_ACTIVE = "#1F77B4";
-const PILL_FG_ACTIVE = "#ffffff";
-const PILL_BG_INACTIVE = "#ffffff";
-const PILL_FG_INACTIVE = "#333";
-const PILL_BORDER = "#c0c0c0";
-const PILL_BG_HOVER = "#eef3fb";
+
+/** INF-3745 Phase A — dispatch table. search-chips and range-slider are
+ *  stubbed to their closest analog until Phase B/C land. */
+function rendererFor(kind: ConcreteWidget): WidgetRenderer {
+    switch (kind) {
+        case "pills-multi":    return pillsMultiRenderer;
+        case "pills-single":   return pillsSingleRenderer;
+        case "dropdown-multi": return dropdownMultiRenderer;
+        case "search-chips":   return dropdownMultiRenderer;  // Phase B will swap in real renderer
+        case "range-slider":   return pillsMultiRenderer;     // Phase C will swap in real renderer
+    }
+}
 
 export interface TopSlicerStripHandle {
     render(
@@ -71,6 +53,13 @@ export interface TopSlicerStripHandle {
         density: PinnedDensity,
     ): void;
     element: HTMLElement;
+}
+
+interface MountedCluster {
+    element: HTMLElement;
+    handle: WidgetHandle;
+    kind: ConcreteWidget;
+    slotIndex: number;
 }
 
 export function mountTopSlicerStrip(
@@ -91,17 +80,25 @@ export function mountTopSlicerStrip(
     ].join(";");
     container.appendChild(strip);
 
-    let lastBindings: ReadonlyArray<FilterDimBinding> = [];
-    let lastSlots: ReadonlyArray<FilterSlotSettings> = [];
-    let lastDensity: PinnedDensity = "compact";
-    state.subscribe(() => repaint(lastBindings, lastSlots, lastDensity));
+    let mounted: MountedCluster[] = [];
+
+    state.subscribe(() => {
+        // Cheap in-place re-render on state change — no remount.
+        for (const m of mounted) m.handle.update();
+    });
+
+    function teardown(): void {
+        for (const m of mounted) m.handle.destroy();
+        mounted = [];
+        while (strip.firstChild) strip.removeChild(strip.firstChild);
+    }
 
     function repaint(
         bindings: ReadonlyArray<FilterDimBinding>,
         slots: ReadonlyArray<FilterSlotSettings>,
         density: PinnedDensity,
     ): void {
-        while (strip.firstChild) strip.removeChild(strip.firstChild);
+        teardown();
         if (bindings.length === 0) {
             strip.style.display = "none";
             return;
@@ -115,29 +112,38 @@ export function mountTopSlicerStrip(
         for (const b of bindings) {
             const slot = slots[b.slotIndex];
             if (slot === undefined) continue;
-            strip.appendChild(buildDimCluster(b, slot, state, d));
+            const resolved = resolveWidget(slot, b);
+            const cluster = buildClusterShell(b, slot, density);
+            strip.appendChild(cluster.root);
+            const handle = rendererFor(resolved.kind).mount(cluster.body, {
+                binding: b, slot, state, density,
+            });
+            mounted.push({
+                element: cluster.root,
+                handle,
+                kind: resolved.kind,
+                slotIndex: b.slotIndex,
+            });
         }
     }
 
     return {
         render(bindings, slots, density): void {
-            lastBindings = bindings;
-            lastSlots = slots;
-            lastDensity = density;
             repaint(bindings, slots, density);
         },
         element: strip,
     };
 }
 
-function buildDimCluster(
+/** Build the dim cluster's label + body shell. The body is where the
+ *  WidgetRenderer mounts its element. Kept tiny so the renderer is the
+ *  source of truth for value-row rendering. */
+function buildClusterShell(
     binding: FilterDimBinding,
     slot: FilterSlotSettings,
-    state: FilterState,
-    d: DensitySpec,
-): HTMLDivElement {
-    // A "cluster" = one dim's label + its pill row, inline so the browser's
-    // flex-wrap keeps the label glued to its pills when wrapping.
+    density: PinnedDensity,
+): { root: HTMLElement; body: HTMLElement } {
+    const d = DENSITY[density];
     const cluster = document.createElement("div");
     cluster.style.cssText = [
         "display:inline-flex",
@@ -157,60 +163,9 @@ function buildDimCluster(
     ].join(";");
     cluster.appendChild(label);
 
-    const pillsWrap = document.createElement("div");
-    pillsWrap.style.cssText = [
-        "display:flex",
-        "flex-direction:row",
-        `gap:${d.interPillGapPx}px`,
-    ].join(";");
-    cluster.appendChild(pillsWrap);
+    const body = document.createElement("div");
+    body.style.cssText = "display:inline-flex;align-items:center;";
+    cluster.appendChild(body);
 
-    const selected = state.get(binding.dimName);
-    const allActive = selected.size === 0;
-    pillsWrap.appendChild(buildPill("All", allActive, () => state.clear(binding.dimName), d));
-
-    for (const v of binding.distinctValues) {
-        const active = selected.has(v);
-        pillsWrap.appendChild(buildPill(v, active, () => state.toggle(binding.dimName, v), d));
-    }
-    return cluster;
-}
-
-function buildPill(
-    label: string,
-    active: boolean,
-    onClick: () => void,
-    d: DensitySpec,
-): HTMLButtonElement {
-    const pill = document.createElement("button");
-    pill.type = "button";
-    pill.textContent = label;
-    const stylePieces = [
-        `padding:${d.pillPaddingV}px ${d.pillPaddingH}px`,
-        "border-radius:4px",
-        "border:1px solid " + (active ? PILL_BG_ACTIVE : PILL_BORDER),
-        "background:" + (active ? PILL_BG_ACTIVE : PILL_BG_INACTIVE),
-        "color:" + (active ? PILL_FG_ACTIVE : PILL_FG_INACTIVE),
-        "cursor:pointer",
-        "font-size:" + d.pillFontSizePx + "px",
-        "font-weight:" + (active ? "600" : "500"),
-        "white-space:nowrap",
-        "user-select:none",
-        "transition:background 100ms ease, border-color 100ms ease",
-        "flex-shrink:0",
-        "text-align:center",
-    ];
-    if (d.pillMinWidthPx > 0) stylePieces.push("min-width:" + d.pillMinWidthPx + "px");
-    pill.style.cssText = stylePieces.join(";");
-    pill.addEventListener("click", (e) => {
-        e.stopPropagation();
-        onClick();
-    });
-    pill.addEventListener("mouseenter", () => {
-        if (!active) pill.style.background = PILL_BG_HOVER;
-    });
-    pill.addEventListener("mouseleave", () => {
-        if (!active) pill.style.background = PILL_BG_INACTIVE;
-    });
-    return pill;
+    return { root: cluster, body };
 }

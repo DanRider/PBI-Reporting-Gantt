@@ -12,6 +12,31 @@ export const MAX_FILTER_DIMENSIONS = 8;
 export type FilterTier = "featured" | "comprehensive" | "both" | "hidden";
 export type SelectionMode = "single" | "multi" | "search";
 
+/** v2.2 INF-3739 — top slicer strip vertical compactness setting. Lives
+ *  here (not topSlicerStrip.ts) so widget renderers can import without
+ *  circular deps from topSlicerStrip (which itself imports renderers). */
+export type PinnedDensity = "comfortable" | "compact" | "dense";
+
+/** v2.3 INF-3745 Phase A — per-slot widget polymorphism. "auto" defers to
+ *  resolveWidget() which picks by column type and distinct cardinality.
+ *  Concrete widgets are the values that ResolvedWidget.kind can take. */
+export type SlotWidget =
+    | "auto"
+    | "pills-multi"
+    | "pills-single"
+    | "dropdown-multi"
+    | "search-chips"
+    | "range-slider";
+
+export type ConcreteWidget = Exclude<SlotWidget, "auto">;
+
+export interface ResolvedWidget {
+    /** Concrete renderer kind. Never "auto" — auto-resolution happens here. */
+    kind: ConcreteWidget;
+    /** Explains why this kind was picked. Useful for debugging + test assertions. */
+    reason: "user-set" | "auto-cardinality" | "auto-datatype" | "fallback-incompatible";
+}
+
 export interface FilterDimBinding {
     /** User-visible column name. Source of truth for the slot's displayName mutation. */
     dimName: string;
@@ -25,7 +50,9 @@ export interface FilterDimBinding {
 
 export interface FilterSlotSettings {
     tier: FilterTier;
-    selectionMode: SelectionMode;
+    /** v2.3 INF-3745 — per-slot widget choice. Replaces selectionMode as the
+     *  per-slot rendering control. "auto" routes through resolveWidget. */
+    widget: SlotWidget;
     /** "all" | "none" | a literal value present in distinctValues. */
     defaultSelection: string;
     /** Empty string means "use dimName". */
@@ -168,4 +195,66 @@ export function comprehensiveBindings(
 /** User-facing label — slot's labelOverride wins, else dim's columnName. */
 export function dimLabel(binding: FilterDimBinding, slot: FilterSlotSettings): string {
     return slot.labelOverride.trim().length > 0 ? slot.labelOverride : binding.dimName;
+}
+
+/** v2.3 INF-3745 Phase A — cardinality bands for the "auto" widget rule.
+ *  Tunable knobs; chosen to match the spec's table:
+ *      text + ≤AUTO_PILLS_MAX        → pills-multi
+ *      text + ≤AUTO_DROPDOWN_MAX     → dropdown-multi
+ *      text + > AUTO_DROPDOWN_MAX    → search-chips */
+export const AUTO_PILLS_MAX = 8;
+export const AUTO_DROPDOWN_MAX = 100;
+
+/** True if the column's metadata type is numeric. */
+function isNumericType(col: powerbi.DataViewMetadataColumn): boolean {
+    const t = col.type;
+    if (t == null) return false;
+    return !!(t.numeric || t.integer);
+}
+
+/** True if the column's metadata type is dateTime. */
+function isDateTimeType(col: powerbi.DataViewMetadataColumn): boolean {
+    const t = col.type;
+    if (t == null) return false;
+    return !!t.dateTime;
+}
+
+/**
+ * v2.3 INF-3745 Phase A — resolve a slot's widget choice to a concrete
+ * renderer kind. Handles three branches:
+ *   - slot.widget === "auto" → auto-pick by column type + cardinality.
+ *   - slot.widget === a concrete kind that's COMPATIBLE with binding →
+ *     pass through with reason "user-set".
+ *   - slot.widget === a concrete kind INCOMPATIBLE with binding (e.g.,
+ *     "range-slider" on a text column) → fall back to pills-multi with
+ *     reason "fallback-incompatible" and emit a console.warn so the
+ *     mismatch is visible during development.
+ */
+export function resolveWidget(
+    slot: FilterSlotSettings,
+    binding: FilterDimBinding,
+): ResolvedWidget {
+    const isNumeric = isNumericType(binding.columnRef);
+    const isDateTime = isDateTimeType(binding.columnRef);
+    const isOrdinal = isNumeric || isDateTime;
+
+    if (slot.widget === "auto") {
+        if (isOrdinal) {
+            return { kind: "range-slider", reason: "auto-datatype" };
+        }
+        const n = binding.distinctValues.length;
+        if (n <= AUTO_PILLS_MAX) return { kind: "pills-multi", reason: "auto-cardinality" };
+        if (n <= AUTO_DROPDOWN_MAX) return { kind: "dropdown-multi", reason: "auto-cardinality" };
+        return { kind: "search-chips", reason: "auto-cardinality" };
+    }
+
+    // User picked a concrete widget. Range-slider on text → fallback.
+    if (slot.widget === "range-slider" && !isOrdinal) {
+        console.warn(
+            `[filterPanel] range-slider requested for non-ordinal column "${binding.dimName}" — falling back to pills-multi.`,
+        );
+        return { kind: "pills-multi", reason: "fallback-incompatible" };
+    }
+
+    return { kind: slot.widget, reason: "user-set" };
 }

@@ -5,7 +5,7 @@
 // persistProperties round-trips for selections + per-slot pinned state.
 
 import powerbi from "powerbi-visuals-api";
-import { FilterDimBinding, FilterState } from "./state";
+import { FilterDimBinding, FilterState, SlotWidget } from "./state";
 
 type IVisualHost = powerbi.extensibility.visual.IVisualHost;
 
@@ -66,6 +66,20 @@ export function persistPin(host: IVisualHost, slotIndex: number, pinned: boolean
                 objectName: "filterSlots",
                 selector: undefined as unknown as powerbi.data.Selector,
                 properties: { [prop]: pinned },
+            }],
+        });
+    } catch { /* harmless */ }
+}
+
+/** INF-3745 Phase A — persist per-slot widget choice. Mirrors persistPin. */
+export function persistWidget(host: IVisualHost, slotIndex: number, widget: SlotWidget): void {
+    const prop = `slot${slotIndex + 1}Widget`;
+    try {
+        host.persistProperties({
+            merge: [{
+                objectName: "filterSlots",
+                selector: undefined as unknown as powerbi.data.Selector,
+                properties: { [prop]: widget },
             }],
         });
     } catch { /* harmless */ }

@@ -12,10 +12,11 @@
 // controller. Pinned dims also render as always-on pill rows above the chart.
 
 import {
-    FilterDimBinding, FilterSlotSettings, FilterState,
+    FilterDimBinding, FilterSlotSettings, FilterState, SlotWidget,
     HIGH_CARDINALITY_THRESHOLD, dimLabel,
 } from "./state";
 import { buildDropdownWidget, buildSearchInput, buildCheckRow } from "./widgets/searchChips";
+import { buildWidgetPickerButton } from "./widgets/widgetPicker";
 
 const SIDEBAR_BG = "#ffffff";
 const SIDEBAR_BORDER = "#c0c0c0";
@@ -31,6 +32,11 @@ export interface ComprehensivePanelOptions {
     onTogglePin: (slotIndex: number) => void;
     /** True if the slot is currently pinned (drives the icon's filled/outlined state). */
     isPinned: (slotIndex: number) => boolean;
+    /** INF-3745 Phase A — called when the user picks a widget in the gear flyout. */
+    onWidgetChange: (slotIndex: number, widget: SlotWidget) => void;
+    /** INF-3745 Phase A — current widget choice for the slot (drives the
+     *  flyout's check-marker and the gear's filled/outlined state). */
+    currentWidget: (slotIndex: number) => SlotWidget;
 }
 
 export interface ComprehensivePanelHandle {
@@ -165,6 +171,16 @@ function buildDimBlock(
         options.onTogglePin(binding.slotIndex);
     });
     hdr.appendChild(pinBtn);
+
+    // INF-3745 Phase A — gear button next to pin opens the widget picker
+    // flyout. Mirrors the pin pattern's host-persistProperties round-trip
+    // via the controller's setWidget method.
+    const gearBtn = buildWidgetPickerButton({
+        binding,
+        currentWidget: options.currentWidget(binding.slotIndex),
+        onPick: (widget) => options.onWidgetChange(binding.slotIndex, widget),
+    });
+    hdr.appendChild(gearBtn);
 
     const hdrLabel = document.createElement("span");
     hdrLabel.textContent = dimLabel(binding, slot);

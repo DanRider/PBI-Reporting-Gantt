@@ -1,7 +1,29 @@
 // INF-3739 — FilterState unit tests.
+// INF-3745 Phase A — resolveWidget tests appended below.
 
-import { describe, it, expect } from "vitest";
-import { FilterState } from "./state";
+import { describe, it, expect, vi } from "vitest";
+import powerbi from "powerbi-visuals-api";
+import {
+    FilterState, FilterSlotSettings, FilterDimBinding, SlotWidget, resolveWidget,
+} from "./state";
+
+function makeBinding(
+    distinctCount: number,
+    typeFlags: { text?: boolean; numeric?: boolean; integer?: boolean; dateTime?: boolean } = { text: true },
+): FilterDimBinding {
+    const distinctValues = Array.from({ length: distinctCount }, (_, i) => `v${i}`);
+    const type = typeFlags as powerbi.ValueTypeDescriptor;
+    const columnRef = {
+        displayName: "test",
+        queryName: "T.test",
+        type,
+    } as powerbi.DataViewMetadataColumn;
+    return { dimName: "test", slotIndex: 0, columnRef, distinctValues };
+}
+
+function makeSlot(widget: SlotWidget): FilterSlotSettings {
+    return { tier: "comprehensive", widget, defaultSelection: "all", labelOverride: "", pinned: false };
+}
 
 describe("FilterState", () => {
     it("starts empty", () => {
@@ -158,5 +180,90 @@ describe("FilterState", () => {
         expect(restored.activeCount()).toBe(2);
         expect(new Set(restored.get("Segment"))).toEqual(new Set(["Commercial", "Medicare"]));
         expect(new Set(restored.get("Category"))).toEqual(new Set(["Tech"]));
+    });
+});
+
+describe("resolveWidget (INF-3745 Phase A)", () => {
+    it("auto + numeric column → range-slider (auto-datatype)", () => {
+        const r = resolveWidget(makeSlot("auto"), makeBinding(50, { numeric: true }));
+        expect(r.kind).toBe("range-slider");
+        expect(r.reason).toBe("auto-datatype");
+    });
+
+    it("auto + integer column → range-slider (auto-datatype)", () => {
+        const r = resolveWidget(makeSlot("auto"), makeBinding(50, { integer: true }));
+        expect(r.kind).toBe("range-slider");
+        expect(r.reason).toBe("auto-datatype");
+    });
+
+    it("auto + dateTime column → range-slider (auto-datatype)", () => {
+        const r = resolveWidget(makeSlot("auto"), makeBinding(30, { dateTime: true }));
+        expect(r.kind).toBe("range-slider");
+        expect(r.reason).toBe("auto-datatype");
+    });
+
+    it("auto + text + 3 values → pills-multi (auto-cardinality)", () => {
+        const r = resolveWidget(makeSlot("auto"), makeBinding(3, { text: true }));
+        expect(r.kind).toBe("pills-multi");
+        expect(r.reason).toBe("auto-cardinality");
+    });
+
+    it("auto + text + 8 values (boundary) → pills-multi", () => {
+        const r = resolveWidget(makeSlot("auto"), makeBinding(8, { text: true }));
+        expect(r.kind).toBe("pills-multi");
+    });
+
+    it("auto + text + 9 values → dropdown-multi (auto-cardinality)", () => {
+        const r = resolveWidget(makeSlot("auto"), makeBinding(9, { text: true }));
+        expect(r.kind).toBe("dropdown-multi");
+        expect(r.reason).toBe("auto-cardinality");
+    });
+
+    it("auto + text + 24 values (the fixture's Activity case) → dropdown-multi", () => {
+        const r = resolveWidget(makeSlot("auto"), makeBinding(24, { text: true }));
+        expect(r.kind).toBe("dropdown-multi");
+    });
+
+    it("auto + text + 100 values (boundary) → dropdown-multi", () => {
+        const r = resolveWidget(makeSlot("auto"), makeBinding(100, { text: true }));
+        expect(r.kind).toBe("dropdown-multi");
+    });
+
+    it("auto + text + 200 values → search-chips (auto-cardinality)", () => {
+        const r = resolveWidget(makeSlot("auto"), makeBinding(200, { text: true }));
+        expect(r.kind).toBe("search-chips");
+        expect(r.reason).toBe("auto-cardinality");
+    });
+
+    it("user-set pills-single → pass through (user-set)", () => {
+        const r = resolveWidget(makeSlot("pills-single"), makeBinding(5, { text: true }));
+        expect(r.kind).toBe("pills-single");
+        expect(r.reason).toBe("user-set");
+    });
+
+    it("user-set dropdown-multi → pass through (user-set)", () => {
+        const r = resolveWidget(makeSlot("dropdown-multi"), makeBinding(5, { text: true }));
+        expect(r.kind).toBe("dropdown-multi");
+        expect(r.reason).toBe("user-set");
+    });
+
+    it("range-slider + text column → fallback to pills-multi + console.warn", () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => { /* noop */ });
+        const r = resolveWidget(makeSlot("range-slider"), makeBinding(5, { text: true }));
+        expect(r.kind).toBe("pills-multi");
+        expect(r.reason).toBe("fallback-incompatible");
+        expect(warn).toHaveBeenCalledOnce();
+        warn.mockRestore();
+    });
+
+    it("range-slider + numeric column → pass through (user-set)", () => {
+        const r = resolveWidget(makeSlot("range-slider"), makeBinding(50, { numeric: true }));
+        expect(r.kind).toBe("range-slider");
+        expect(r.reason).toBe("user-set");
+    });
+
+    it("auto + text + 0 values (empty) → pills-multi (still cardinality-driven)", () => {
+        const r = resolveWidget(makeSlot("auto"), makeBinding(0, { text: true }));
+        expect(r.kind).toBe("pills-multi");
     });
 });

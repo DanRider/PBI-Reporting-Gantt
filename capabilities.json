@@ -592,10 +592,18 @@
                     { "value": "comprehensive", "displayName": "Visible in sidebar" },
                     { "value": "hidden", "displayName": "Hidden" }
                 ] } },
-                "slot1Mode": { "displayName": "Slot 1 mode", "type": { "enumeration": [
+                "slot1Mode": { "displayName": "Slot 1 mode (deprecated)", "type": { "enumeration": [
                     { "value": "single", "displayName": "Single-select" },
                     { "value": "multi", "displayName": "Multi-select" },
                     { "value": "search", "displayName": "Search" }
+                ] } },
+                "slot1Widget": { "displayName": "Slot 1 widget", "type": { "enumeration": [
+                    { "value": "auto", "displayName": "Auto" },
+                    { "value": "pills-multi", "displayName": "Pills (multi)" },
+                    { "value": "pills-single", "displayName": "Pills (single)" },
+                    { "value": "dropdown-multi", "displayName": "Dropdown" },
+                    { "value": "search-chips", "displayName": "Search" },
+                    { "value": "range-slider", "displayName": "Range slider" }
                 ] } },
                 "slot1Label": { "displayName": "Slot 1 label override", "type": { "text": true } },
 
@@ -604,10 +612,18 @@
                     { "value": "comprehensive", "displayName": "Visible in sidebar" },
                     { "value": "hidden", "displayName": "Hidden" }
                 ] } },
-                "slot2Mode": { "displayName": "Slot 2 mode", "type": { "enumeration": [
+                "slot2Mode": { "displayName": "Slot 2 mode (deprecated)", "type": { "enumeration": [
                     { "value": "single", "displayName": "Single-select" },
                     { "value": "multi", "displayName": "Multi-select" },
                     { "value": "search", "displayName": "Search" }
+                ] } },
+                "slot2Widget": { "displayName": "Slot 2 widget", "type": { "enumeration": [
+                    { "value": "auto", "displayName": "Auto" },
+                    { "value": "pills-multi", "displayName": "Pills (multi)" },
+                    { "value": "pills-single", "displayName": "Pills (single)" },
+                    { "value": "dropdown-multi", "displayName": "Dropdown" },
+                    { "value": "search-chips", "displayName": "Search" },
+                    { "value": "range-slider", "displayName": "Range slider" }
                 ] } },
                 "slot2Label": { "displayName": "Slot 2 label override", "type": { "text": true } },
 
@@ -616,10 +632,18 @@
                     { "value": "comprehensive", "displayName": "Visible in sidebar" },
                     { "value": "hidden", "displayName": "Hidden" }
                 ] } },
-                "slot3Mode": { "displayName": "Slot 3 mode", "type": { "enumeration": [
+                "slot3Mode": { "displayName": "Slot 3 mode (deprecated)", "type": { "enumeration": [
                     { "value": "single", "displayName": "Single-select" },
                     { "value": "multi", "displayName": "Multi-select" },
                     { "value": "search", "displayName": "Search" }
+                ] } },
+                "slot3Widget": { "displayName": "Slot 3 widget", "type": { "enumeration": [
+                    { "value": "auto", "displayName": "Auto" },
+                    { "value": "pills-multi", "displayName": "Pills (multi)" },
+                    { "value": "pills-single", "displayName": "Pills (single)" },
+                    { "value": "dropdown-multi", "displayName": "Dropdown" },
+                    { "value": "search-chips", "displayName": "Search" },
+                    { "value": "range-slider", "displayName": "Range slider" }
                 ] } },
                 "slot3Label": { "displayName": "Slot 3 label override", "type": { "text": true } },
 
@@ -628,10 +652,18 @@
                     { "value": "comprehensive", "displayName": "Visible in sidebar" },
                     { "value": "hidden", "displayName": "Hidden" }
                 ] } },
-                "slot4Mode": { "displayName": "Slot 4 mode", "type": { "enumeration": [
+                "slot4Mode": { "displayName": "Slot 4 mode (deprecated)", "type": { "enumeration": [
                     { "value": "single", "displayName": "Single-select" },
                     { "value": "multi", "displayName": "Multi-select" },
                     { "value": "search", "displayName": "Search" }
+                ] } },
+                "slot4Widget": { "displayName": "Slot 4 widget", "type": { "enumeration": [
+                    { "value": "auto", "displayName": "Auto" },
+                    { "value": "pills-multi", "displayName": "Pills (multi)" },
+                    { "value": "pills-single", "displayName": "Pills (single)" },
+                    { "value": "dropdown-multi", "displayName": "Dropdown" },
+                    { "value": "search-chips", "displayName": "Search" },
+                    { "value": "range-slider", "displayName": "Range slider" }
                 ] } },
                 "slot4Label": { "displayName": "Slot 4 label override", "type": { "text": true } },
 
@@ -640,10 +672,18 @@
                     { "value": "comprehensive", "displayName": "Visible in sidebar" },
                     { "value": "hidden", "displayName": "Hidden" }
                 ] } },
-                "slot5Mode": { "displayName": "Slot 5 mode", "type": { "enumeration": [
+                "slot5Mode": { "displayName": "Slot 5 mode (deprecated)", "type": { "enumeration": [
                     { "value": "single", "displayName": "Single-select" },
                     { "value": "multi", "displayName": "Multi-select" },
                     { "value": "search", "displayName": "Search" }
+                ] } },
+                "slot5Widget": { "displayName": "Slot 5 widget", "type": { "enumeration": [
+                    { "value": "auto", "displayName": "Auto" },
+                    { "value": "pills-multi", "displayName": "Pills (multi)" },
+                    { "value": "pills-single", "displayName": "Pills (single)" },
+                    { "value": "dropdown-multi", "displayName": "Dropdown" },
+                    { "value": "search-chips", "displayName": "Search" },
+                    { "value": "range-slider", "displayName": "Range slider" }
                 ] } },
                 "slot5Label": { "displayName": "Slot 5 label override", "type": { "text": true } },
 
@@ -652,10 +692,18 @@
                     { "value": "comprehensive", "displayName": "Visible in sidebar" },
                     { "value": "hidden", "displayName": "Hidden" }
                 ] } },
-                "slot6Mode": { "displayName": "Slot 6 mode", "type": { "enumeration": [
+                "slot6Mode": { "displayName": "Slot 6 mode (deprecated)", "type": { "enumeration": [
                     { "value": "single", "displayName": "Single-select" },
                     { "value": "multi", "displayName": "Multi-select" },
                     { "value": "search", "displayName": "Search" }
+                ] } },
+                "slot6Widget": { "displayName": "Slot 6 widget", "type": { "enumeration": [
+                    { "value": "auto", "displayName": "Auto" },
+                    { "value": "pills-multi", "displayName": "Pills (multi)" },
+                    { "value": "pills-single", "displayName": "Pills (single)" },
+                    { "value": "dropdown-multi", "displayName": "Dropdown" },
+                    { "value": "search-chips", "displayName": "Search" },
+                    { "value": "range-slider", "displayName": "Range slider" }
                 ] } },
                 "slot6Label": { "displayName": "Slot 6 label override", "type": { "text": true } },
 
@@ -664,10 +712,18 @@
                     { "value": "comprehensive", "displayName": "Visible in sidebar" },
                     { "value": "hidden", "displayName": "Hidden" }
                 ] } },
-                "slot7Mode": { "displayName": "Slot 7 mode", "type": { "enumeration": [
+                "slot7Mode": { "displayName": "Slot 7 mode (deprecated)", "type": { "enumeration": [
                     { "value": "single", "displayName": "Single-select" },
                     { "value": "multi", "displayName": "Multi-select" },
                     { "value": "search", "displayName": "Search" }
+                ] } },
+                "slot7Widget": { "displayName": "Slot 7 widget", "type": { "enumeration": [
+                    { "value": "auto", "displayName": "Auto" },
+                    { "value": "pills-multi", "displayName": "Pills (multi)" },
+                    { "value": "pills-single", "displayName": "Pills (single)" },
+                    { "value": "dropdown-multi", "displayName": "Dropdown" },
+                    { "value": "search-chips", "displayName": "Search" },
+                    { "value": "range-slider", "displayName": "Range slider" }
                 ] } },
                 "slot7Label": { "displayName": "Slot 7 label override", "type": { "text": true } },
 
@@ -676,10 +732,18 @@
                     { "value": "comprehensive", "displayName": "Visible in sidebar" },
                     { "value": "hidden", "displayName": "Hidden" }
                 ] } },
-                "slot8Mode": { "displayName": "Slot 8 mode", "type": { "enumeration": [
+                "slot8Mode": { "displayName": "Slot 8 mode (deprecated)", "type": { "enumeration": [
                     { "value": "single", "displayName": "Single-select" },
                     { "value": "multi", "displayName": "Multi-select" },
                     { "value": "search", "displayName": "Search" }
+                ] } },
+                "slot8Widget": { "displayName": "Slot 8 widget", "type": { "enumeration": [
+                    { "value": "auto", "displayName": "Auto" },
+                    { "value": "pills-multi", "displayName": "Pills (multi)" },
+                    { "value": "pills-single", "displayName": "Pills (single)" },
+                    { "value": "dropdown-multi", "displayName": "Dropdown" },
+                    { "value": "search-chips", "displayName": "Search" },
+                    { "value": "range-slider", "displayName": "Range slider" }
                 ] } },
                 "slot8Label": { "displayName": "Slot 8 label override", "type": { "text": true } }
             }

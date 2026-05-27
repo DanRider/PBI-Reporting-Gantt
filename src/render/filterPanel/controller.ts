@@ -13,13 +13,13 @@
 import powerbi from "powerbi-visuals-api";
 import { mountMountablePanel, MountablePanelHandle } from "../panel/mountablePanel";
 import {
-    FilterDimBinding, FilterSlotSettings, FilterState,
+    FilterDimBinding, FilterSlotSettings, FilterState, SlotWidget,
     MAX_FILTER_DIMENSIONS, MAX_DISTINCT_VALUES,
     comprehensiveBindings, pinnedBindings,
 } from "./state";
 import { mountComprehensivePanel, ComprehensivePanelHandle } from "./comprehensivePanel";
 import { mountTopSlicerStrip, TopSlicerStripHandle, PinnedDensity } from "./topSlicerStrip";
-import { pushFilters, persistSelections, persistPin } from "./persistence";
+import { pushFilters, persistSelections, persistPin, persistWidget } from "./persistence";
 import type { VisualFormattingSettingsModel } from "../../settings";
 
 type IVisualHost = powerbi.extensibility.visual.IVisualHost;
@@ -42,6 +42,8 @@ export interface FilterPanelController {
     toggleOpen(): void;
     /** Toggle a slot's pinned state (called by the in-sidebar pin button). */
     togglePin(slotIndex: number): void;
+    /** Set a slot's widget choice (called by the in-sidebar widget picker). */
+    setWidget(slotIndex: number, widget: SlotWidget): void;
     /** Reposition both panels within root. */
     layout(opts: {
         viewportWidth: number;
@@ -69,6 +71,10 @@ export function mountFilterPanelController(
     // through PBI; this Map holds the most-recent user intent so the next
     // update() sees the toggled state before persisted settings catch up.
     const pinOverride: Map<number, boolean> = new Map();
+    // INF-3745 Phase A — same optimistic-override pattern for widget choice.
+    // Holds the most-recent user widget pick until persistProperties round-
+    // trips it back through settings.
+    const widgetOverride: Map<number, SlotWidget> = new Map();
     let restoredFromPersisted = false;
     let currentBindings: FilterDimBinding[] = [];
     let currentPinnedCount = 0;
@@ -99,6 +105,10 @@ export function mountFilterPanelController(
             togglePinInternal(slotIndex);
         },
         isPinned: (slotIndex: number) => effectivePinned(slotIndex),
+        onWidgetChange: (slotIndex: number, widget: SlotWidget) => {
+            setWidgetInternal(slotIndex, widget);
+        },
+        currentWidget: (slotIndex: number) => effectiveWidget(slotIndex),
     });
 
     // Top slicer strip — mounts as an absolutely-positioned container that
@@ -134,6 +144,17 @@ export function mountFilterPanelController(
         options.onChange();
     }
 
+    function effectiveWidget(slotIndex: number): SlotWidget {
+        if (widgetOverride.has(slotIndex)) return widgetOverride.get(slotIndex)!;
+        return "auto";
+    }
+
+    function setWidgetInternal(slotIndex: number, widget: SlotWidget): void {
+        widgetOverride.set(slotIndex, widget);
+        persistWidget(options.host, slotIndex, widget);
+        options.onChange();
+    }
+
     return {
         widthPx(): number { return sidebarPanel.sizePx(); },
         topSlicerHeightPx(): number {
@@ -154,6 +175,7 @@ export function mountFilterPanelController(
         },
 
         togglePin(slotIndex: number): void { togglePinInternal(slotIndex); },
+        setWidget(slotIndex: number, widget: SlotWidget): void { setWidgetInternal(slotIndex, widget); },
 
         layout(opts): void {
             // Sidebar: full-height on the right edge.
@@ -171,7 +193,7 @@ export function mountFilterPanelController(
 
         update(dataView, settings): { activeFilters: ReadonlyMap<string, ReadonlySet<string>> } {
             currentBindings = extractBindings(dataView);
-            const slots: FilterSlotSettings[] = extractSlotSettings(settings, pinOverride);
+            const slots: FilterSlotSettings[] = extractSlotSettings(settings, pinOverride, widgetOverride);
             mutateSlotLabels(settings, currentBindings);
 
             if (!restoredFromPersisted) {
@@ -298,29 +320,37 @@ function extractBindings(dataView: powerbi.DataView | undefined): FilterDimBindi
     return result;
 }
 
+const VALID_WIDGETS: ReadonlySet<SlotWidget> = new Set<SlotWidget>([
+    "auto", "pills-multi", "pills-single", "dropdown-multi", "search-chips", "range-slider",
+]);
+
 function extractSlotSettings(
     settings: VisualFormattingSettingsModel,
     pinOverride: ReadonlyMap<number, boolean>,
+    widgetOverride: ReadonlyMap<number, SlotWidget>,
 ): FilterSlotSettings[] {
     const fs = settings.filterSlots;
     const slotRefs = [
-        { tier: fs.slot1Tier, mode: fs.slot1Mode, label: fs.slot1Label, pinned: fs.slot1Pinned },
-        { tier: fs.slot2Tier, mode: fs.slot2Mode, label: fs.slot2Label, pinned: fs.slot2Pinned },
-        { tier: fs.slot3Tier, mode: fs.slot3Mode, label: fs.slot3Label, pinned: fs.slot3Pinned },
-        { tier: fs.slot4Tier, mode: fs.slot4Mode, label: fs.slot4Label, pinned: fs.slot4Pinned },
-        { tier: fs.slot5Tier, mode: fs.slot5Mode, label: fs.slot5Label, pinned: fs.slot5Pinned },
-        { tier: fs.slot6Tier, mode: fs.slot6Mode, label: fs.slot6Label, pinned: fs.slot6Pinned },
-        { tier: fs.slot7Tier, mode: fs.slot7Mode, label: fs.slot7Label, pinned: fs.slot7Pinned },
-        { tier: fs.slot8Tier, mode: fs.slot8Mode, label: fs.slot8Label, pinned: fs.slot8Pinned },
+        { tier: fs.slot1Tier, widget: fs.slot1Widget, label: fs.slot1Label, pinned: fs.slot1Pinned },
+        { tier: fs.slot2Tier, widget: fs.slot2Widget, label: fs.slot2Label, pinned: fs.slot2Pinned },
+        { tier: fs.slot3Tier, widget: fs.slot3Widget, label: fs.slot3Label, pinned: fs.slot3Pinned },
+        { tier: fs.slot4Tier, widget: fs.slot4Widget, label: fs.slot4Label, pinned: fs.slot4Pinned },
+        { tier: fs.slot5Tier, widget: fs.slot5Widget, label: fs.slot5Label, pinned: fs.slot5Pinned },
+        { tier: fs.slot6Tier, widget: fs.slot6Widget, label: fs.slot6Label, pinned: fs.slot6Pinned },
+        { tier: fs.slot7Tier, widget: fs.slot7Widget, label: fs.slot7Label, pinned: fs.slot7Pinned },
+        { tier: fs.slot8Tier, widget: fs.slot8Widget, label: fs.slot8Label, pinned: fs.slot8Pinned },
     ];
     return slotRefs.map((s, idx) => {
         const tier = String(s.tier.value.value) as FilterSlotSettings["tier"];
-        const mode = String(s.mode.value.value) as FilterSlotSettings["selectionMode"];
+        const widgetRaw = String(s.widget.value.value);
+        const widgetPersisted: SlotWidget =
+            VALID_WIDGETS.has(widgetRaw as SlotWidget) ? (widgetRaw as SlotWidget) : "auto";
         const persistedPinned = !!s.pinned.value;
         const pinned = pinOverride.has(idx) ? pinOverride.get(idx)! : persistedPinned;
+        const widget = widgetOverride.has(idx) ? widgetOverride.get(idx)! : widgetPersisted;
         return {
             tier: (tier === "comprehensive" || tier === "hidden") ? tier : "comprehensive",
-            selectionMode: (mode === "single" || mode === "multi" || mode === "search") ? mode : "multi",
+            widget,
             defaultSelection: "all",
             labelOverride: s.label.value ?? "",
             pinned,
