@@ -102,7 +102,7 @@ import { mountFilterPanelController, FilterPanelController } from "./render/filt
 // pipeline test today; later dispatches on a templateId once real
 // templates land. Single function, single import — no churn at call site
 // as the export surface grows.
-import { exportToExcel, ExportDiagnostic } from "./excel";
+import { exportToExcel } from "./excel";
 
 // v2.1 audit-fix #24 — slider + toggles share the top:6 chrome row.
 // Just enough push so chart title doesn't render under the chrome.
@@ -580,18 +580,14 @@ export class Visual implements IVisual {
             getFilterActiveCount: () => this.filterPanel.activeCount(),
             isFilterOpen: () => this.filterPanel.isOpen(),
             onExport: () => {
-                // v3.0 hello-world with VISIBLE diagnostics. The PBI sandbox
-                // blocks alert/console-visible-to-user, so we render a status
-                // banner inside the visual itself. Every state transition
-                // (status-check, blocked, building, submitting, success/error)
-                // surfaces with a clear message — no more silent failures.
-                this.showExportDiagnostic({ kind: "started" });
-                exportToExcel(this.host, (d) => this.showExportDiagnostic(d))
-                    .catch(err => {
-                        const msg = err?.message ?? String(err);
-                        console.error("[cortex-export] threw:", err);
-                        this.showExportDiagnostic({ kind: "error", message: msg });
-                    });
+                // v3.0 Hello-World export. exportToExcel does the dispatch
+                // (optional local helper bypass first, native PBI download
+                // path second). Failures land in the console; PBI surfaces
+                // its own "Download unavailable" dialog when tenant policy
+                // blocks the native path.
+                exportToExcel(this.host).catch(err => {
+                    console.error("[cortex-export] threw:", err);
+                });
             },
         });
 
@@ -1627,108 +1623,6 @@ export class Visual implements IVisual {
     private requestRerender(): void {
         if (this.lastOptions) {
             this.update(this.lastOptions);
-        }
-    }
-
-    /** v3.0 — visible export diagnostic banner. The PBI sandbox blocks
-     *  alert/popup APIs and console output is invisible to non-dev users,
-     *  so every failure mode (privilege denial, sandbox block, ExcelJS
-     *  error) needs to surface inside the visual itself or the user just
-     *  sees a non-responsive button. Banner auto-hides 8s after success,
-     *  stays visible until next click on errors. */
-    private exportBanner: HTMLDivElement | null = null;
-    private exportBannerTimer: ReturnType<typeof setTimeout> | null = null;
-    /** Accumulated diagnostic lines for the current export attempt. Reset
-     *  on each "started" diagnostic. Lets the operator read the full
-     *  sequence (helper-attempt → helper-failed → native-fallback → …)
-     *  instead of seeing only the last message after others overwrote. */
-    private exportBannerLines: string[] = [];
-
-    private showExportDiagnostic(d: ExportDiagnostic): void {
-        if (!this.exportBanner) {
-            this.exportBanner = document.createElement("div");
-            this.exportBanner.style.cssText = [
-                "position:absolute",
-                "top:8px",
-                "left:50%",
-                "transform:translateX(-50%)",
-                "max-width:80%",
-                "padding:8px 14px",
-                "border-radius:6px",
-                "font-family:'Segoe UI',system-ui,sans-serif",
-                "font-size:12px",
-                "line-height:1.5",
-                "white-space:pre-line",
-                "z-index:50",
-                "box-shadow:0 2px 8px rgba(0,0,0,0.15)",
-                "display:none",
-            ].join(";");
-            this.root.appendChild(this.exportBanner);
-        }
-        const banner = this.exportBanner;
-        if (this.exportBannerTimer) {
-            clearTimeout(this.exportBannerTimer);
-            this.exportBannerTimer = null;
-        }
-        // Reset the accumulated log at the start of each export attempt.
-        if (d.kind === "started") {
-            this.exportBannerLines = [];
-        }
-
-        let text = "";
-        let bg = "#1F77B4";
-        let fg = "#ffffff";
-        switch (d.kind) {
-            case "started":
-                text = "[export] Starting…"; break;
-            case "status-checked":
-                text = `[export] Privilege status: ${d.statusName} (${d.status})`;
-                if (d.status !== 0) { bg = "#d62728"; }
-                break;
-            case "blocked":
-                text = `[export] BLOCKED: ${d.message}`;
-                bg = "#d62728";
-                break;
-            case "workbook-built":
-                text = `[export] Workbook built (${(d.bytes / 1024).toFixed(1)} KB)`;
-                break;
-            case "helper-attempt":
-                text = `[export] Trying local helper → ${d.url}`;
-                break;
-            case "helper-success":
-                text = `[export] ✓ Saved via helper → ${d.path} (${(d.bytes / 1024).toFixed(1)} KB)`;
-                bg = "#2ca02c";
-                break;
-            case "helper-failed":
-                text = `[export] Helper unreachable: ${d.message} — falling back to PBI native`;
-                bg = "#ff8c00";
-                break;
-            case "native-fallback":
-                text = "[export] Falling back to PBI native download path…"; break;
-            case "submitted-to-host":
-                text = "[export] Submitted to PBI host — awaiting download…"; break;
-            case "success":
-                text = "[export] ✓ SUCCESS — file should be downloading";
-                bg = "#2ca02c";
-                break;
-            case "error":
-                text = `[export] ERROR: ${d.message}`;
-                bg = "#d62728";
-                break;
-        }
-        this.exportBannerLines.push(text);
-        banner.textContent = this.exportBannerLines.join("\n");
-        banner.style.background = bg;
-        banner.style.color = fg;
-        banner.style.display = "block";
-
-        // Auto-hide on success after 8s; keep visible on errors so user
-        // can read + screenshot the message.
-        const autoHide = d.kind === "success" || d.kind === "helper-success";
-        if (autoHide) {
-            this.exportBannerTimer = setTimeout(() => {
-                if (this.exportBanner) this.exportBanner.style.display = "none";
-            }, 8000);
         }
     }
 
