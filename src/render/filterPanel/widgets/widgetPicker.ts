@@ -66,21 +66,22 @@ export function buildWidgetPickerButton(opts: WidgetPickerOptions): HTMLElement 
     btn.addEventListener("mouseleave", () => { btn.style.background = "transparent"; });
     root.appendChild(btn);
 
+    // Flyout is portaled to document.body on open (not kept inside `root`)
+    // so it escapes the sidebar's local stacking context — otherwise the
+    // gantt SVG chart layer occludes it. position:fixed + computed
+    // viewport coords on each open. Cleanup: removed from body on close.
     const flyout = document.createElement("div");
     flyout.style.cssText = [
-        "position:absolute",
-        "top:100%",
-        "right:0",
+        "position:fixed",
         "min-width:160px",
         "background:#ffffff",
         "border:1px solid #c0c0c0",
         "border-radius:4px",
         "box-shadow:0 4px 12px rgba(0,0,0,0.15)",
-        "z-index:1100",
+        "z-index:2147483640",
         "display:none",
         "padding:4px 0",
     ].join(";");
-    root.appendChild(flyout);
 
     const ordinal = isOrdinalColumn(opts.binding);
 
@@ -92,16 +93,28 @@ export function buildWidgetPickerButton(opts: WidgetPickerOptions): HTMLElement 
     function setOpen(next: boolean): void {
         if (open === next) return;
         open = next;
-        flyout.style.display = open ? "block" : "none";
         if (open) {
+            const rect = btn.getBoundingClientRect();
+            flyout.style.top = (rect.bottom + 2) + "px";
+            flyout.style.left = "auto";
+            flyout.style.right = Math.max(4, window.innerWidth - rect.right) + "px";
+            flyout.style.display = "block";
+            if (flyout.parentElement !== document.body) {
+                document.body.appendChild(flyout);
+            }
             setTimeout(() => document.addEventListener("click", onDocClick, true), 0);
         } else {
+            flyout.style.display = "none";
+            if (flyout.parentElement === document.body) {
+                document.body.removeChild(flyout);
+            }
             document.removeEventListener("click", onDocClick, true);
         }
     }
     function onDocClick(e: Event): void {
         if (!(e.target instanceof Node)) return;
         if (root.contains(e.target)) return;
+        if (flyout.contains(e.target)) return;
         setOpen(false);
     }
     btn.addEventListener("click", (e) => {
