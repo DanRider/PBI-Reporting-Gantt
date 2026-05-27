@@ -52,6 +52,14 @@ export interface MasterTimeSliderHandle {
      *  all (e.g., no data). Auto-collapse to icon (when scope=0,0) is a
      *  separate concern handled inside the component. */
     setVisible(visible: boolean): void;
+    /** v2.2 INF-3739 — compress the slider's right anchor by N px so the
+     *  comprehensive filter sidebar can occupy the right edge full-height
+     *  without overlap. 0 = original right:6 anchor. */
+    setRightReserve(px: number): void;
+    /** v2.2 INF-3739 — push the slider's top anchor down by N px so the
+     *  dedicated slicer container above it occupies row 0. 0 = original
+     *  top:1 anchor. */
+    setTopOffset(px: number): void;
     element: HTMLElement;
 }
 
@@ -293,6 +301,12 @@ export function mountMasterTimeSlider(
         },
         setVisible(visible): void {
             anchor.style.display = visible ? "flex" : "none";
+        },
+        setRightReserve(px: number): void {
+            anchor.style.right = (ANCHOR_RIGHT_PX + Math.max(0, px)) + "px";
+        },
+        setTopOffset(px: number): void {
+            anchor.style.top = (ANCHOR_TOP_PX + Math.max(0, px)) + "px";
         },
         element: anchor,
     };

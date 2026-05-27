@@ -1,4 +1,5 @@
 // v2.1 audit-fix #5 — top-LEFT toggle sliders for region hide/show.
+// v2.2 INF-3739 — filter icon mounts LEFT of the Roadmap/Table toggles.
 //
 // Orchestrator: "then move the hide / show and make them grey sliders in
 // the upper left skider that remain visible ... i like the idea of the
@@ -10,6 +11,11 @@
 // replaced with two physical-looking toggle switches (grey pill + sliding
 // thumb) — always visible (no hover transitions). z-index 12 places them
 // above the panel (z-index 10) so they never get occluded.
+//
+// INF-3739: a filter icon now leads the chrome cluster. Click toggles the
+// comprehensive filter sidebar; an active-count badge surfaces whenever
+// any filter is engaged so the user always knows filters are on even when
+// the sidebar is closed.
 
 export type RegionKey = "gantt" | "table";
 
@@ -20,28 +26,43 @@ export interface TopRightControlsOptions {
     /** Current hidden state — caller passes it in on every refresh so the
      *  toggle position reflects the inverse action. */
     isHidden: (region: RegionKey) => boolean;
+    /** INF-3739 — called when the filter icon is clicked. Caller toggles
+     *  the comprehensive filter sidebar's open state. */
+    onToggleFilter: () => void;
+    /** INF-3739 — number of dims with active selections; drives the badge.
+     *  Caller reads from FilterState.activeCount(). */
+    getFilterActiveCount: () => number;
+    /** INF-3739 — true if the comprehensive sidebar is currently open.
+     *  Drives the filter icon's active-press visual (highlighted background). */
+    isFilterOpen: () => boolean;
 }
 
 export interface TopRightControlsHandle {
-    /** Re-render the toggles (call after setHidden so thumbs slide). */
+    /** Re-render the toggles + filter badge (call after setHidden, on filter
+     *  state change, or after sidebar open/close so visuals stay in sync). */
     refresh(): void;
+    /** v2.2 INF-3739 — push the cluster's top anchor down by N px so the
+     *  dedicated slicer container above can occupy row 0. */
+    setTopOffset(px: number): void;
     element: HTMLElement;
 }
 
-const TRACK_BG_ON = "#9ca3af";      // mid-grey — region visible
-const TRACK_BG_OFF = "#d4d4d8";     // light-grey — region hidden
+const TRACK_BG_ON = "#9ca3af";
+const TRACK_BG_OFF = "#d4d4d8";
 const THUMB_BG = "#ffffff";
 const THUMB_BORDER = "#6b7280";
 const LABEL_COLOR = "#555";
+const FILTER_ICON_FG = "#555";
+const FILTER_ICON_FG_OPEN = "#1F77B4";
+const FILTER_BTN_BG_OPEN = "#dbe7f5";
+const BADGE_BG = "#d62728";
+const BADGE_FG = "#ffffff";
 
 function buildContainer(): HTMLDivElement {
     const div = document.createElement("div");
     div.className = "top-left-toggles";
     div.style.cssText = [
         "position:absolute",
-        // v2.1 audit-fix #24 — toggles + master slider share top:6 row.
-        // Slider mounts to the right of these toggles via masterTimeSlider
-        // (host's left = panelWidthPx + TOGGLE_AREA_RESERVE_PX in visual.ts).
         "top:6px",
         "left:6px",
         "z-index:12",
@@ -85,7 +106,7 @@ function buildToggle(label: string, title: string): Toggle {
     thumb.style.cssText = [
         "position:absolute",
         "top:1px",
-        "left:15px",           // ON state default — thumb on the right
+        "left:15px",
         "width:12px",
         "height:12px",
         "border-radius:50%",
@@ -100,30 +121,114 @@ function buildToggle(label: string, title: string): Toggle {
     return { element: wrap, track, thumb };
 }
 
+interface FilterButton {
+    element: HTMLDivElement;
+    iconPath: SVGPathElement;
+    badge: HTMLSpanElement;
+}
+
+function buildFilterButton(): FilterButton {
+    const wrap = document.createElement("div");
+    wrap.style.cssText = [
+        "position:relative",
+        "display:flex",
+        "align-items:center",
+        "justify-content:center",
+        "width:22px",
+        "height:22px",
+        "border-radius:4px",
+        "cursor:pointer",
+        "user-select:none",
+        "background:transparent",
+        "transition:background 120ms ease",
+    ].join(";");
+    wrap.title = "Show/hide filter panel";
+
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("width", "14");
+    svg.setAttribute("height", "14");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.style.pointerEvents = "none";
+    const path = document.createElementNS(SVG_NS, "path");
+    // Funnel: top edge full-width, sides slope inward, stem at bottom.
+    path.setAttribute("d", "M3 5 L21 5 L14 13 L14 21 L10 19 L10 13 Z");
+    path.setAttribute("fill", FILTER_ICON_FG);
+    path.setAttribute("stroke", "none");
+    svg.appendChild(path);
+    wrap.appendChild(svg);
+
+    const badge = document.createElement("span");
+    badge.style.cssText = [
+        "position:absolute",
+        "top:-3px",
+        "right:-4px",
+        "min-width:14px",
+        "height:14px",
+        "padding:0 3px",
+        "border-radius:7px",
+        `background:${BADGE_BG}`,
+        `color:${BADGE_FG}`,
+        "font-size:9px",
+        "font-weight:700",
+        "font-family:'Segoe UI',system-ui,sans-serif",
+        "line-height:14px",
+        "text-align:center",
+        "display:none",
+        "box-sizing:border-box",
+        "pointer-events:none",
+    ].join(";");
+    wrap.appendChild(badge);
+
+    return { element: wrap, iconPath: path, badge };
+}
+
 export function mountTopRightControls(
     root: HTMLElement,
     options: TopRightControlsOptions,
 ): TopRightControlsHandle {
     const container = buildContainer();
-    // Prevent the toggle clicks from bubbling to the root whitespace
-    // handler (which would clear selection and close the panel).
     container.addEventListener("click", (e) => { e.stopPropagation(); });
     container.addEventListener("pointerdown", (e) => { e.stopPropagation(); });
 
+    const filterBtn = buildFilterButton();
     const ganttToggle = buildToggle("Roadmap", "Toggle Roadmap visibility");
     const tableToggle = buildToggle("Table", "Toggle Table visibility");
 
-    function applyState(toggle: Toggle, hidden: boolean): void {
-        // Hidden = thumb on left + lighter track (OFF state).
-        // Visible = thumb on right + mid-grey track (ON state).
+    function applyToggleState(toggle: Toggle, hidden: boolean): void {
         toggle.track.style.background = hidden ? TRACK_BG_OFF : TRACK_BG_ON;
         toggle.thumb.style.left = hidden ? "1px" : "15px";
     }
 
-    function refresh(): void {
-        applyState(ganttToggle, options.isHidden("gantt"));
-        applyState(tableToggle, options.isHidden("table"));
+    function applyFilterState(): void {
+        const open = options.isFilterOpen();
+        const count = options.getFilterActiveCount();
+        filterBtn.element.style.background = open ? FILTER_BTN_BG_OPEN : "transparent";
+        filterBtn.iconPath.setAttribute("fill", open ? FILTER_ICON_FG_OPEN : FILTER_ICON_FG);
+        if (count > 0) {
+            filterBtn.badge.textContent = String(count);
+            filterBtn.badge.style.display = "block";
+        } else {
+            filterBtn.badge.style.display = "none";
+        }
     }
+
+    function refresh(): void {
+        applyToggleState(ganttToggle, options.isHidden("gantt"));
+        applyToggleState(tableToggle, options.isHidden("table"));
+        applyFilterState();
+    }
+
+    filterBtn.element.addEventListener("click", (e) => {
+        e.stopPropagation();
+        options.onToggleFilter();
+    });
+    filterBtn.element.addEventListener("mouseenter", () => {
+        if (!options.isFilterOpen()) filterBtn.element.style.background = "#f0f0f3";
+    });
+    filterBtn.element.addEventListener("mouseleave", () => {
+        if (!options.isFilterOpen()) filterBtn.element.style.background = "transparent";
+    });
 
     ganttToggle.element.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -134,6 +239,9 @@ export function mountTopRightControls(
         options.onToggleHidden("table");
     });
 
+    // Filter icon mounts FIRST (leftmost) so the chrome reads:
+    // [funnel] [Roadmap toggle] [Table toggle]
+    container.appendChild(filterBtn.element);
     container.appendChild(ganttToggle.element);
     container.appendChild(tableToggle.element);
     root.appendChild(container);
@@ -142,6 +250,9 @@ export function mountTopRightControls(
 
     return {
         refresh,
+        setTopOffset(px: number): void {
+            container.style.top = (6 + Math.max(0, px)) + "px";
+        },
         element: container,
     };
 }

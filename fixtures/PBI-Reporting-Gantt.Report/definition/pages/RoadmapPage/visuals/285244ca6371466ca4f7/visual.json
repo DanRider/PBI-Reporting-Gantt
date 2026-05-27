@@ -3,9 +3,9 @@
   "name": "285244ca6371466ca4f7",
   "position": {
     "x": 0,
-    "y": 88.79189399844114,
+    "y": 0,
     "z": 0,
-    "height": 611.56664068589237,
+    "height": 720,
     "width": 1280
   },
   "visual": {
@@ -220,11 +220,11 @@
                       "Entity": "Activities"
                     }
                   },
-                  "Property": "Area"
+                  "Property": "Activity Health"
                 }
               },
-              "queryRef": "Activities.Area",
-              "nativeQueryRef": "Area"
+              "queryRef": "Activities.Activity Health",
+              "nativeQueryRef": "Activity Health"
             }
           ]
         },
@@ -238,25 +238,25 @@
                       "Entity": "Activities"
                     }
                   },
-                  "Property": "Area"
+                  "Property": "Phase"
                 }
               },
-              "queryRef": "Activities.Area",
-              "nativeQueryRef": "Area"
+              "queryRef": "Activities.Phase",
+              "nativeQueryRef": "Phase"
             },
             {
               "field": {
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Milestones"
+                      "Entity": "Activities"
                     }
                   },
-                  "Property": "Milestone Type"
+                  "Property": "Priority"
                 }
               },
-              "queryRef": "Milestones.Milestone Type",
-              "nativeQueryRef": "Milestone Type"
+              "queryRef": "Activities.Priority",
+              "nativeQueryRef": "Priority"
             }
           ]
         }
@@ -426,24 +426,10 @@
       "filterSlots": [
         {
           "properties": {
-            "slot1Tier": {
+            "slot1Pinned": {
               "expr": {
                 "Literal": {
-                  "Value": "'both'"
-                }
-              }
-            },
-            "slot1Mode": {
-              "expr": {
-                "Literal": {
-                  "Value": "'single'"
-                }
-              }
-            },
-            "slot2Tier": {
-              "expr": {
-                "Literal": {
-                  "Value": "'comprehensive'"
+                  "Value": "true"
                 }
               }
             }

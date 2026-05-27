@@ -587,10 +587,9 @@
             "displayName": "Filter Slots",
             "description": "Per-slot controls for each column bound to Filter Dimensions. Slot N tracks the Nth binding in role-order. Set tier (Featured tab strip / Comprehensive sidebar / Both / Hidden), selection mode (Single / Multi / Search), and optional label override per slot. Slot displayNames are overridden at runtime from the bound column's name.",
             "properties": {
+                "slot1Pinned": { "displayName": "Slot 1 pinned as top slicer", "type": { "bool": true } },
                 "slot1Tier": { "displayName": "Slot 1 tier", "type": { "enumeration": [
-                    { "value": "featured", "displayName": "Featured tab strip" },
-                    { "value": "comprehensive", "displayName": "Comprehensive sidebar" },
-                    { "value": "both", "displayName": "Both" },
+                    { "value": "comprehensive", "displayName": "Visible in sidebar" },
                     { "value": "hidden", "displayName": "Hidden" }
                 ] } },
                 "slot1Mode": { "displayName": "Slot 1 mode", "type": { "enumeration": [
@@ -600,10 +599,9 @@
                 ] } },
                 "slot1Label": { "displayName": "Slot 1 label override", "type": { "text": true } },
 
+                "slot2Pinned": { "displayName": "Slot 2 pinned as top slicer", "type": { "bool": true } },
                 "slot2Tier": { "displayName": "Slot 2 tier", "type": { "enumeration": [
-                    { "value": "featured", "displayName": "Featured tab strip" },
-                    { "value": "comprehensive", "displayName": "Comprehensive sidebar" },
-                    { "value": "both", "displayName": "Both" },
+                    { "value": "comprehensive", "displayName": "Visible in sidebar" },
                     { "value": "hidden", "displayName": "Hidden" }
                 ] } },
                 "slot2Mode": { "displayName": "Slot 2 mode", "type": { "enumeration": [
@@ -613,10 +611,9 @@
                 ] } },
                 "slot2Label": { "displayName": "Slot 2 label override", "type": { "text": true } },
 
+                "slot3Pinned": { "displayName": "Slot 3 pinned as top slicer", "type": { "bool": true } },
                 "slot3Tier": { "displayName": "Slot 3 tier", "type": { "enumeration": [
-                    { "value": "featured", "displayName": "Featured tab strip" },
-                    { "value": "comprehensive", "displayName": "Comprehensive sidebar" },
-                    { "value": "both", "displayName": "Both" },
+                    { "value": "comprehensive", "displayName": "Visible in sidebar" },
                     { "value": "hidden", "displayName": "Hidden" }
                 ] } },
                 "slot3Mode": { "displayName": "Slot 3 mode", "type": { "enumeration": [
@@ -626,10 +623,9 @@
                 ] } },
                 "slot3Label": { "displayName": "Slot 3 label override", "type": { "text": true } },
 
+                "slot4Pinned": { "displayName": "Slot 4 pinned as top slicer", "type": { "bool": true } },
                 "slot4Tier": { "displayName": "Slot 4 tier", "type": { "enumeration": [
-                    { "value": "featured", "displayName": "Featured tab strip" },
-                    { "value": "comprehensive", "displayName": "Comprehensive sidebar" },
-                    { "value": "both", "displayName": "Both" },
+                    { "value": "comprehensive", "displayName": "Visible in sidebar" },
                     { "value": "hidden", "displayName": "Hidden" }
                 ] } },
                 "slot4Mode": { "displayName": "Slot 4 mode", "type": { "enumeration": [
@@ -639,10 +635,9 @@
                 ] } },
                 "slot4Label": { "displayName": "Slot 4 label override", "type": { "text": true } },
 
+                "slot5Pinned": { "displayName": "Slot 5 pinned as top slicer", "type": { "bool": true } },
                 "slot5Tier": { "displayName": "Slot 5 tier", "type": { "enumeration": [
-                    { "value": "featured", "displayName": "Featured tab strip" },
-                    { "value": "comprehensive", "displayName": "Comprehensive sidebar" },
-                    { "value": "both", "displayName": "Both" },
+                    { "value": "comprehensive", "displayName": "Visible in sidebar" },
                     { "value": "hidden", "displayName": "Hidden" }
                 ] } },
                 "slot5Mode": { "displayName": "Slot 5 mode", "type": { "enumeration": [
@@ -652,10 +647,9 @@
                 ] } },
                 "slot5Label": { "displayName": "Slot 5 label override", "type": { "text": true } },
 
+                "slot6Pinned": { "displayName": "Slot 6 pinned as top slicer", "type": { "bool": true } },
                 "slot6Tier": { "displayName": "Slot 6 tier", "type": { "enumeration": [
-                    { "value": "featured", "displayName": "Featured tab strip" },
-                    { "value": "comprehensive", "displayName": "Comprehensive sidebar" },
-                    { "value": "both", "displayName": "Both" },
+                    { "value": "comprehensive", "displayName": "Visible in sidebar" },
                     { "value": "hidden", "displayName": "Hidden" }
                 ] } },
                 "slot6Mode": { "displayName": "Slot 6 mode", "type": { "enumeration": [
@@ -665,10 +659,9 @@
                 ] } },
                 "slot6Label": { "displayName": "Slot 6 label override", "type": { "text": true } },
 
+                "slot7Pinned": { "displayName": "Slot 7 pinned as top slicer", "type": { "bool": true } },
                 "slot7Tier": { "displayName": "Slot 7 tier", "type": { "enumeration": [
-                    { "value": "featured", "displayName": "Featured tab strip" },
-                    { "value": "comprehensive", "displayName": "Comprehensive sidebar" },
-                    { "value": "both", "displayName": "Both" },
+                    { "value": "comprehensive", "displayName": "Visible in sidebar" },
                     { "value": "hidden", "displayName": "Hidden" }
                 ] } },
                 "slot7Mode": { "displayName": "Slot 7 mode", "type": { "enumeration": [
@@ -678,10 +671,9 @@
                 ] } },
                 "slot7Label": { "displayName": "Slot 7 label override", "type": { "text": true } },
 
+                "slot8Pinned": { "displayName": "Slot 8 pinned as top slicer", "type": { "bool": true } },
                 "slot8Tier": { "displayName": "Slot 8 tier", "type": { "enumeration": [
-                    { "value": "featured", "displayName": "Featured tab strip" },
-                    { "value": "comprehensive", "displayName": "Comprehensive sidebar" },
-                    { "value": "both", "displayName": "Both" },
+                    { "value": "comprehensive", "displayName": "Visible in sidebar" },
                     { "value": "hidden", "displayName": "Hidden" }
                 ] } },
                 "slot8Mode": { "displayName": "Slot 8 mode", "type": { "enumeration": [
@@ -694,12 +686,23 @@
         },
         "filterPanelLayout": {
             "displayName": "Filter Panel Layout",
-            "description": "Panel-level layout for the in-visual filter chrome. Featured strip mounts at top; Comprehensive sidebar mounts at right. selectionsJson persists user-selected values across .pbix save/reopen.",
+            "description": "Panel-level layout for the in-visual filter chrome. Pinned dims render at the top of the visual; the comprehensive sidebar mounts on the right. selectionsJson persists user-selected values across .pbix save/reopen.",
             "properties": {
                 "showFeatured": { "displayName": "Show Featured strip", "type": { "bool": true } },
                 "showComprehensive": { "displayName": "Show Comprehensive sidebar", "type": { "bool": true } },
                 "comprehensiveSizePx": { "displayName": "Comprehensive sidebar width (px)", "type": { "numeric": true } },
-                "selectionsJson": { "displayName": "Persisted selections (JSON)", "type": { "text": true } }
+                "selectionsJson": { "displayName": "Persisted selections (JSON)", "type": { "text": true } },
+                "pinnedDensity": {
+                    "displayName": "Pinned slicer density",
+                    "description": "Vertical compactness of the pinned slicer strip at the top of the visual. Comfortable = larger pills + more padding; Compact = balanced default; Dense = minimal vertical footprint for many pinned dims.",
+                    "type": {
+                        "enumeration": [
+                            { "value": "comfortable", "displayName": "Comfortable" },
+                            { "value": "compact", "displayName": "Compact" },
+                            { "value": "dense", "displayName": "Dense" }
+                        ]
+                    }
+                }
             }
         },
         "milestoneHealthColors": {

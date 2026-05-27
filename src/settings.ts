@@ -502,9 +502,7 @@ class MilestoneHealthColorsCard extends SimpleCard {
 // slots, displayNames overridden at runtime from bound column names (swim-lane
 // idiom) so each slot's controls show "Segment", "Investment Category", etc.
 const FILTER_TIER_ITEMS = [
-    { value: "featured",      displayName: "Featured tab strip" },
-    { value: "comprehensive", displayName: "Comprehensive sidebar" },
-    { value: "both",          displayName: "Both" },
+    { value: "comprehensive", displayName: "Visible in sidebar" },
     { value: "hidden",        displayName: "Hidden" },
 ];
 const FILTER_MODE_ITEMS = [
@@ -517,12 +515,13 @@ function makeFilterSlot(n: 1|2|3|4|5|6|7|8): {
     tier: formattingSettings.ItemDropdown;
     mode: formattingSettings.ItemDropdown;
     label: formattingSettings.TextInput;
+    pinned: formattingSettings.ToggleSwitch;
     group: Group;
 } {
     const tier = new formattingSettings.ItemDropdown({
         name: `slot${n}Tier`, displayName: `Slot ${n} tier`,
         items: FILTER_TIER_ITEMS,
-        value: { value: "comprehensive", displayName: "Comprehensive sidebar" },
+        value: { value: "comprehensive", displayName: "Visible in sidebar" },
     });
     const mode = new formattingSettings.ItemDropdown({
         name: `slot${n}Mode`, displayName: `Slot ${n} mode`,
@@ -533,11 +532,15 @@ function makeFilterSlot(n: 1|2|3|4|5|6|7|8): {
         name: `slot${n}Label`, displayName: `Slot ${n} label override`,
         placeholder: "", value: "",
     });
+    const pinned = new formattingSettings.ToggleSwitch({
+        name: `slot${n}Pinned`, displayName: `Slot ${n} pinned as top slicer`,
+        value: false,
+    });
     const group = new Group({
         name: `filterSlot${n}Group`, displayName: `Slot ${n}`,
-        slices: [tier, mode, label],
+        slices: [pinned, tier, mode, label],
     });
-    return { tier, mode, label, group };
+    return { tier, mode, label, pinned, group };
 }
 
 export class FilterSlotsCard extends CompositeCard {
@@ -549,17 +552,23 @@ export class FilterSlotsCard extends CompositeCard {
         makeFilterSlot(5), makeFilterSlot(6), makeFilterSlot(7), makeFilterSlot(8),
     ];
 
-    slot1Tier = this._slots[0].tier; slot1Mode = this._slots[0].mode; slot1Label = this._slots[0].label;
-    slot2Tier = this._slots[1].tier; slot2Mode = this._slots[1].mode; slot2Label = this._slots[1].label;
-    slot3Tier = this._slots[2].tier; slot3Mode = this._slots[2].mode; slot3Label = this._slots[2].label;
-    slot4Tier = this._slots[3].tier; slot4Mode = this._slots[3].mode; slot4Label = this._slots[3].label;
-    slot5Tier = this._slots[4].tier; slot5Mode = this._slots[4].mode; slot5Label = this._slots[4].label;
-    slot6Tier = this._slots[5].tier; slot6Mode = this._slots[5].mode; slot6Label = this._slots[5].label;
-    slot7Tier = this._slots[6].tier; slot7Mode = this._slots[6].mode; slot7Label = this._slots[6].label;
-    slot8Tier = this._slots[7].tier; slot8Mode = this._slots[7].mode; slot8Label = this._slots[7].label;
+    slot1Tier = this._slots[0].tier; slot1Mode = this._slots[0].mode; slot1Label = this._slots[0].label; slot1Pinned = this._slots[0].pinned;
+    slot2Tier = this._slots[1].tier; slot2Mode = this._slots[1].mode; slot2Label = this._slots[1].label; slot2Pinned = this._slots[1].pinned;
+    slot3Tier = this._slots[2].tier; slot3Mode = this._slots[2].mode; slot3Label = this._slots[2].label; slot3Pinned = this._slots[2].pinned;
+    slot4Tier = this._slots[3].tier; slot4Mode = this._slots[3].mode; slot4Label = this._slots[3].label; slot4Pinned = this._slots[3].pinned;
+    slot5Tier = this._slots[4].tier; slot5Mode = this._slots[4].mode; slot5Label = this._slots[4].label; slot5Pinned = this._slots[4].pinned;
+    slot6Tier = this._slots[5].tier; slot6Mode = this._slots[5].mode; slot6Label = this._slots[5].label; slot6Pinned = this._slots[5].pinned;
+    slot7Tier = this._slots[6].tier; slot7Mode = this._slots[6].mode; slot7Label = this._slots[6].label; slot7Pinned = this._slots[6].pinned;
+    slot8Tier = this._slots[7].tier; slot8Mode = this._slots[7].mode; slot8Label = this._slots[7].label; slot8Pinned = this._slots[7].pinned;
 
     groups: Group[] = this._slots.map(s => s.group);
 }
+
+const PINNED_DENSITY_ITEMS = [
+    { value: "comfortable", displayName: "Comfortable" },
+    { value: "compact",     displayName: "Compact" },
+    { value: "dense",       displayName: "Dense" },
+];
 
 export class FilterPanelLayoutCard extends SimpleCard {
     showFeatured = new formattingSettings.ToggleSwitch({
@@ -575,10 +584,16 @@ export class FilterPanelLayoutCard extends SimpleCard {
         name: "selectionsJson", displayName: "Persisted selections (JSON)",
         placeholder: "{}", value: "",
     });
+    pinnedDensity = new formattingSettings.ItemDropdown({
+        name: "pinnedDensity", displayName: "Pinned slicer density",
+        items: PINNED_DENSITY_ITEMS,
+        value: PINNED_DENSITY_ITEMS[1],  // default: compact
+    });
     name: string = "filterPanelLayout";
     displayName: string = "Filter Panel Layout";
     slices: FormattingSettingsSlice[] = [
-        this.showFeatured, this.showComprehensive, this.comprehensiveSizePx, this.selectionsJson,
+        this.showFeatured, this.showComprehensive, this.comprehensiveSizePx,
+        this.pinnedDensity, this.selectionsJson,
     ];
 }
 

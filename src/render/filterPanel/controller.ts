@@ -1,19 +1,25 @@
 // INF-3739 Phases 3b/3c/3d — filter panel controller.
 //
-// Holds the panel handles, owns the FilterState, drives bindings + slot
-// displayName mutation + applyJsonFilter pushes + persistProperties round-
-// trip. Single entry point so visual.ts only sees: mount once, call
-// update(dataView, settings, viewport) per frame, read sizes for layout.
+// Owns the comprehensive-sidebar handle + the top slicer strip handle +
+// the single FilterState. Sidebar mounts at top:0 full-height (selection-
+// driven, opens via top-chrome filter icon); top slicer strip mounts
+// below the master-slider chrome row and renders ONE pill-row per pinned
+// dim. Cross-tier sync is implicit: both surfaces subscribe to the same
+// FilterState, so a pill click in the strip and a checkbox toggle in the
+// sidebar are over the same data. State mutations fire applyJsonFilter
+// pushback to PBI's filter context + host.persistProperties for selection
+// round-trip across .pbix save/reopen.
 
 import powerbi from "powerbi-visuals-api";
 import { mountMountablePanel, MountablePanelHandle } from "../panel/mountablePanel";
 import {
     FilterDimBinding, FilterSlotSettings, FilterState,
     MAX_FILTER_DIMENSIONS, MAX_DISTINCT_VALUES,
-    featuredBindings, comprehensiveBindings,
+    comprehensiveBindings, pinnedBindings,
 } from "./state";
-import { mountFeaturedStrip, FeaturedStripHandle } from "./featuredStrip";
 import { mountComprehensivePanel, ComprehensivePanelHandle } from "./comprehensivePanel";
+import { mountTopSlicerStrip, TopSlicerStripHandle, PinnedDensity } from "./topSlicerStrip";
+import { pushFilters, persistSelections, persistPin } from "./persistence";
 import type { VisualFormattingSettingsModel } from "../../settings";
 
 type IVisualHost = powerbi.extensibility.visual.IVisualHost;
@@ -24,54 +30,56 @@ export interface FilterPanelControllerOptions {
 }
 
 export interface FilterPanelController {
-    /** Featured strip height in px (0 when empty/hidden). */
-    featuredHeightPx(): number;
-    /** Comprehensive sidebar width in px (0 when empty/hidden). */
-    comprehensiveWidthPx(): number;
-    /** Reposition the panel containers within root (called by visual.ts layout).
-     *  topOffsetPx pushes the featured strip BELOW any existing top chrome (e.g.
-     *  master-slider strip) so they don't overlap. */
-    layout(opts: { viewportWidth: number; viewportHeight: number; leftReservePx: number; topOffsetPx: number }): void;
-    /** Update bindings, slot settings, FilterState, and re-render both surfaces. */
+    /** Sidebar width in px when open; 0 when closed. */
+    widthPx(): number;
+    /** Total height in px reserved by all pinned top-slicer-strip rows; 0 when nothing pinned. */
+    topSlicerHeightPx(): number;
+    /** Active dim count for the icon badge. */
+    activeCount(): number;
+    /** True if the sidebar is currently open. */
+    isOpen(): boolean;
+    /** Toggle the sidebar (called by the top-chrome filter icon click). */
+    toggleOpen(): void;
+    /** Toggle a slot's pinned state (called by the in-sidebar pin button). */
+    togglePin(slotIndex: number): void;
+    /** Reposition both panels within root. */
+    layout(opts: {
+        viewportWidth: number;
+        viewportHeight: number;
+    }): void;
+    /** Update bindings, slot settings, FilterState, re-render both surfaces.
+     *  Returns the active filter map; visual.ts uses it to narrow vm + table. */
     update(
         dataView: powerbi.DataView | undefined,
         settings: VisualFormattingSettingsModel,
     ): { activeFilters: ReadonlyMap<string, ReadonlySet<string>> };
 }
 
-const FEATURED_ROW_HEIGHT_PX = 36;
-const FEATURED_MAX_ROWS = 3;
-const COMPREHENSIVE_DEFAULT_PX = 260;
-const COMPREHENSIVE_MIN_PX = 200;
-const COMPREHENSIVE_MAX_PX = 480;
+const COMPREHENSIVE_DEFAULT_PX = 300;
+const COMPREHENSIVE_MIN_PX = 240;
+const COMPREHENSIVE_MAX_PX = 520;
 
 export function mountFilterPanelController(
     root: HTMLElement,
     options: FilterPanelControllerOptions,
 ): FilterPanelController {
     const state = new FilterState();
+    let open = false;
+    // Optimistic pin overrides — persistProperties round-trips asynchronously
+    // through PBI; this Map holds the most-recent user intent so the next
+    // update() sees the toggled state before persisted settings catch up.
+    const pinOverride: Map<number, boolean> = new Map();
+    let restoredFromPersisted = false;
+    let currentBindings: FilterDimBinding[] = [];
+    let currentPinnedCount = 0;
+    let lastPinnedBindings: FilterDimBinding[] = [];
+    let lastSlots: FilterSlotSettings[] = [];
+    let lastDensity: PinnedDensity = "compact";
 
-    // Featured strip — top mount, fixed mode, view auto. Size is dynamic
-    // (set per update from #featured-tier dims), so we mount with a
-    // sentinel initial and override via panel.setOpen + content swap.
-    const featuredHost = document.createElement("div");
-    featuredHost.style.cssText = "width:100%;height:100%;";
-    const featuredPanel: MountablePanelHandle = mountMountablePanel(root, {
-        position: "top",
-        mode: "fixed",
-        view: "auto",
-        initialOpen: false,
-        initialSizePx: FEATURED_ROW_HEIGHT_PX,
-        minSizePx: FEATURED_ROW_HEIGHT_PX,
-        maxSizePx: FEATURED_ROW_HEIGHT_PX * FEATURED_MAX_ROWS,
-    });
-    featuredPanel.setContent(featuredHost);
-    const featuredStrip: FeaturedStripHandle = mountFeaturedStrip(featuredHost, state);
-
-    // Comprehensive sidebar — right mount, expandable, view normal.
-    const comprehensiveHost = document.createElement("div");
-    comprehensiveHost.style.cssText = "width:100%;height:100%;";
-    const comprehensivePanel: MountablePanelHandle = mountMountablePanel(root, {
+    // Sidebar — mounts at top:0 right:0 height:100%, full visual height.
+    const sidebarHost = document.createElement("div");
+    sidebarHost.style.cssText = "width:100%;height:100%;";
+    const sidebarPanel: MountablePanelHandle = mountMountablePanel(root, {
         position: "right",
         mode: "expandable",
         view: "normal",
@@ -81,99 +89,183 @@ export function mountFilterPanelController(
         maxSizePx: COMPREHENSIVE_MAX_PX,
         onResize: () => options.onChange(),
     });
-    comprehensivePanel.setContent(comprehensiveHost);
-    const comprehensivePanelRenderer: ComprehensivePanelHandle =
-        mountComprehensivePanel(comprehensiveHost, state);
+    sidebarPanel.setContent(buildSidebarComposition(sidebarHost, () => {
+        open = false;
+        sidebarPanel.setOpen(false);
+        options.onChange();
+    }));
+    const sidebarRenderer: ComprehensivePanelHandle = mountComprehensivePanel(sidebarHost, state, {
+        onTogglePin: (slotIndex: number) => {
+            togglePinInternal(slotIndex);
+        },
+        isPinned: (slotIndex: number) => effectivePinned(slotIndex),
+    });
 
-    let lastDimCount = 0;
-    let restoredFromPersisted = false;
+    // Top slicer strip — mounts as an absolutely-positioned container that
+    // visual.ts repositions on every frame to sit below the top chrome.
+    const slicerContainer = document.createElement("div");
+    slicerContainer.style.cssText = [
+        "position:absolute",
+        "left:0",
+        "top:0",
+        "width:100%",
+        "z-index:9",
+        "pointer-events:auto",
+    ].join(";");
+    root.appendChild(slicerContainer);
+    const topSlicer: TopSlicerStripHandle = mountTopSlicerStrip(slicerContainer, state);
 
-    // Single subscription: every state mutation pushes to PBI + persists +
-    // notifies the host for re-render. The view re-renders are handled by
-    // the strip + sidebar's own state.subscribe.
+    // State subscribe — every mutation fires applyJsonFilter + persist + redraw.
     state.subscribe(() => {
         pushFilters(options.host, state, currentBindings);
         persistSelections(options.host, state);
         options.onChange();
     });
 
-    let currentBindings: FilterDimBinding[] = [];
+    function effectivePinned(slotIndex: number): boolean {
+        if (pinOverride.has(slotIndex)) return pinOverride.get(slotIndex)!;
+        return false;
+    }
+
+    function togglePinInternal(slotIndex: number): void {
+        const next = !effectivePinned(slotIndex);
+        pinOverride.set(slotIndex, next);
+        persistPin(options.host, slotIndex, next);
+        options.onChange();
+    }
 
     return {
-        featuredHeightPx(): number { return featuredPanel.sizePx(); },
-        comprehensiveWidthPx(): number { return comprehensivePanel.sizePx(); },
+        widthPx(): number { return sidebarPanel.sizePx(); },
+        topSlicerHeightPx(): number {
+            // Packed clusters wrap with the browser's flex-wrap algorithm, so
+            // the final rendered height depends on viewport width AND density.
+            // Measure the strip's actual offsetHeight; fall back to 0 when no
+            // pinned dims are present.
+            if (currentPinnedCount === 0) return 0;
+            return slicerContainer.offsetHeight || 0;
+        },
+        activeCount(): number { return state.activeCount(); },
+        isOpen(): boolean { return open; },
+
+        toggleOpen(): void {
+            open = !open;
+            sidebarPanel.setOpen(open);
+            options.onChange();
+        },
+
+        togglePin(slotIndex: number): void { togglePinInternal(slotIndex); },
 
         layout(opts): void {
-            const fp = featuredPanel.element;
-            fp.style.left = `${opts.leftReservePx}px`;
-            fp.style.top = `${opts.topOffsetPx}px`;
-            fp.style.width = `${Math.max(0, opts.viewportWidth - opts.leftReservePx - comprehensivePanel.sizePx())}px`;
-            const cp = comprehensivePanel.element;
-            cp.style.top = "0";
-            cp.style.height = `${opts.viewportHeight}px`;
+            // Sidebar: full-height on the right edge.
+            const sp = sidebarPanel.element;
+            sp.style.top = "0px";
+            sp.style.height = opts.viewportHeight + "px";
+            // Top slicer strip mounts in its OWN dedicated container at top:0,
+            // full-width (minus sidebar). The existing chrome (toggles +
+            // master slider) is pushed down by visual.ts to sit BELOW this
+            // container.
+            slicerContainer.style.top = "0px";
+            slicerContainer.style.width = Math.max(0, opts.viewportWidth - sidebarPanel.sizePx()) + "px";
+            topSlicer.render(lastPinnedBindings, lastSlots, lastDensity);
         },
 
         update(dataView, settings): { activeFilters: ReadonlyMap<string, ReadonlySet<string>> } {
             currentBindings = extractBindings(dataView);
-            const slots: FilterSlotSettings[] = extractSlotSettings(settings);
-            // Swim-lane idiom: mutate the live slot displayName so the Format
-            // pane shows the bound column name instead of "Slot N".
+            const slots: FilterSlotSettings[] = extractSlotSettings(settings, pinOverride);
             mutateSlotLabels(settings, currentBindings);
 
-            // Restore persisted selections ONCE per session — the first
-            // update where the formatting settings have populated.
             if (!restoredFromPersisted) {
                 const raw = settings.filterPanelLayout.selectionsJson.value ?? "";
                 if (raw.trim().length > 0) {
                     try {
                         const parsed = JSON.parse(raw);
                         const restored = FilterState.fromJSON(parsed);
-                        for (const [k, vs] of restored.entries()) {
-                            state.set(k, vs);
-                        }
-                    } catch {
-                        // Ignore — fall back to empty state.
-                    }
+                        for (const [k, vs] of restored.entries()) state.set(k, vs);
+                    } catch { /* ignore */ }
                 }
                 restoredFromPersisted = true;
             }
 
-            // Honor showFeatured / showComprehensive toggles + empty-state
-            // collapse: when no Featured-tier dims exist, hide the strip;
-            // when no bindings at all, hide the comprehensive sidebar too.
-            const showFeaturedToggle = settings.filterPanelLayout.showFeatured.value;
-            const showComprehensiveToggle = settings.filterPanelLayout.showComprehensive.value;
-
-            const featured = featuredBindings(currentBindings, slots);
             const comprehensive = comprehensiveBindings(currentBindings, slots);
+            sidebarRenderer.render(comprehensive, slots);
 
-            const featuredOpen = showFeaturedToggle && featured.length > 0;
-            const comprehensiveOpen = showComprehensiveToggle && currentBindings.length > 0;
+            const pinned = pinnedBindings(currentBindings, slots);
+            const density = extractPinnedDensity(settings);
+            lastDensity = density;
+            topSlicer.render(pinned, slots, density);
+            currentPinnedCount = pinned.length;
+            lastPinnedBindings = pinned;
+            lastSlots = slots.slice();
+            // Strip auto-sizes via browser flex-wrap; clear the explicit
+            // height so the measured offsetHeight reflects actual content.
+            slicerContainer.style.height = "auto";
 
-            featuredPanel.setOpen(featuredOpen);
-            comprehensivePanel.setOpen(comprehensiveOpen);
-
-            // Featured strip height scales with row count (1 row per dim, cap 3).
-            // sizePx is constrained by primitive's min/max but is overridden
-            // here on each update so the strip shrinks/grows with bindings.
-            const rows = Math.min(FEATURED_MAX_ROWS, Math.max(1, featured.length));
-            featuredPanel.element.style.height = featuredOpen ? `${FEATURED_ROW_HEIGHT_PX * rows}px` : "0px";
-
-            featuredStrip.render(featured, slots);
-            comprehensivePanelRenderer.render(comprehensive, slots);
-
-            lastDimCount = currentBindings.length;
-
-            // Build local filter map for vm filtering (visual.ts owns the
-            // viewmodel; we just expose what's active).
             const activeFilters: Map<string, ReadonlySet<string>> = new Map();
             for (const [k, v] of state.entries()) activeFilters.set(k, v);
             return { activeFilters };
         },
     };
+}
 
-    function _suppressUnused(): void { void lastDimCount; }
-    _suppressUnused();
+function buildSidebarComposition(host: HTMLElement, onClose: () => void): HTMLDivElement {
+    const composition = document.createElement("div");
+    composition.style.cssText = [
+        "display:flex",
+        "flex-direction:column",
+        "height:100%",
+        "width:100%",
+        "box-sizing:border-box",
+    ].join(";");
+
+    const header = document.createElement("div");
+    header.style.cssText = [
+        "display:flex",
+        "align-items:center",
+        "justify-content:space-between",
+        "padding:6px 10px",
+        "border-bottom:1px solid #c0c0c0",
+        "min-height:32px",
+        "box-sizing:border-box",
+        "flex-shrink:0",
+        "background:#e8e8ec",
+        "font-family:'Segoe UI',system-ui,sans-serif",
+        "font-size:13px",
+        "font-weight:600",
+        "color:#222",
+    ].join(";");
+    const title = document.createElement("span");
+    title.textContent = "Filters";
+    header.appendChild(title);
+
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.textContent = "\u2715";
+    closeBtn.setAttribute("aria-label", "Close filter sidebar");
+    closeBtn.style.cssText = [
+        "background:transparent",
+        "border:none",
+        "cursor:pointer",
+        "font-size:16px",
+        "color:#555",
+        "padding:2px 8px",
+        "line-height:1",
+        "border-radius:3px",
+    ].join(";");
+    closeBtn.addEventListener("mouseenter", () => { closeBtn.style.background = "#f0f0f3"; });
+    closeBtn.addEventListener("mouseleave", () => { closeBtn.style.background = "transparent"; });
+    closeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onClose();
+    });
+    header.appendChild(closeBtn);
+
+    composition.appendChild(header);
+
+    host.style.flex = "1";
+    host.style.overflow = "hidden";
+    composition.appendChild(host);
+
+    return composition;
 }
 
 function extractBindings(dataView: powerbi.DataView | undefined): FilterDimBinding[] {
@@ -206,30 +298,34 @@ function extractBindings(dataView: powerbi.DataView | undefined): FilterDimBindi
     return result;
 }
 
-function extractSlotSettings(settings: VisualFormattingSettingsModel): FilterSlotSettings[] {
+function extractSlotSettings(
+    settings: VisualFormattingSettingsModel,
+    pinOverride: ReadonlyMap<number, boolean>,
+): FilterSlotSettings[] {
     const fs = settings.filterSlots;
-    const result: FilterSlotSettings[] = [];
     const slotRefs = [
-        { tier: fs.slot1Tier, mode: fs.slot1Mode, label: fs.slot1Label },
-        { tier: fs.slot2Tier, mode: fs.slot2Mode, label: fs.slot2Label },
-        { tier: fs.slot3Tier, mode: fs.slot3Mode, label: fs.slot3Label },
-        { tier: fs.slot4Tier, mode: fs.slot4Mode, label: fs.slot4Label },
-        { tier: fs.slot5Tier, mode: fs.slot5Mode, label: fs.slot5Label },
-        { tier: fs.slot6Tier, mode: fs.slot6Mode, label: fs.slot6Label },
-        { tier: fs.slot7Tier, mode: fs.slot7Mode, label: fs.slot7Label },
-        { tier: fs.slot8Tier, mode: fs.slot8Mode, label: fs.slot8Label },
+        { tier: fs.slot1Tier, mode: fs.slot1Mode, label: fs.slot1Label, pinned: fs.slot1Pinned },
+        { tier: fs.slot2Tier, mode: fs.slot2Mode, label: fs.slot2Label, pinned: fs.slot2Pinned },
+        { tier: fs.slot3Tier, mode: fs.slot3Mode, label: fs.slot3Label, pinned: fs.slot3Pinned },
+        { tier: fs.slot4Tier, mode: fs.slot4Mode, label: fs.slot4Label, pinned: fs.slot4Pinned },
+        { tier: fs.slot5Tier, mode: fs.slot5Mode, label: fs.slot5Label, pinned: fs.slot5Pinned },
+        { tier: fs.slot6Tier, mode: fs.slot6Mode, label: fs.slot6Label, pinned: fs.slot6Pinned },
+        { tier: fs.slot7Tier, mode: fs.slot7Mode, label: fs.slot7Label, pinned: fs.slot7Pinned },
+        { tier: fs.slot8Tier, mode: fs.slot8Mode, label: fs.slot8Label, pinned: fs.slot8Pinned },
     ];
-    for (const s of slotRefs) {
+    return slotRefs.map((s, idx) => {
         const tier = String(s.tier.value.value) as FilterSlotSettings["tier"];
         const mode = String(s.mode.value.value) as FilterSlotSettings["selectionMode"];
-        result.push({
-            tier: (tier === "featured" || tier === "comprehensive" || tier === "both" || tier === "hidden") ? tier : "comprehensive",
+        const persistedPinned = !!s.pinned.value;
+        const pinned = pinOverride.has(idx) ? pinOverride.get(idx)! : persistedPinned;
+        return {
+            tier: (tier === "comprehensive" || tier === "hidden") ? tier : "comprehensive",
             selectionMode: (mode === "single" || mode === "multi" || mode === "search") ? mode : "multi",
             defaultSelection: "all",
             labelOverride: s.label.value ?? "",
-        });
-    }
-    return result;
+            pinned,
+        };
+    });
 }
 
 function mutateSlotLabels(
@@ -246,62 +342,8 @@ function mutateSlotLabels(
     }
 }
 
-function pushFilters(
-    host: IVisualHost,
-    state: FilterState,
-    bindings: ReadonlyArray<FilterDimBinding>,
-): void {
-    // Build IBasicFilter per active dim. Schema per PBI's filter API:
-    //   { $schema, target:{ table, column }, operator, values: [...] }
-    const byName = new Map(bindings.map(b => [b.dimName, b]));
-    const filters: powerbi.IFilter[] = [];
-    for (const [dimName, values] of state.entries()) {
-        const b = byName.get(dimName);
-        if (b === undefined) continue;
-        const target = columnTarget(b.columnRef);
-        if (target === null) continue;
-        const filter = {
-            // eslint-disable-next-line powerbi-visuals/no-http-string
-            $schema: "http://powerbi.com/product/schema#basic",
-            target,
-            operator: "In",
-            values: Array.from(values),
-            filterType: 1,  // FilterType.Basic
-        } as unknown as powerbi.IFilter;
-        filters.push(filter);
-    }
-    // FilterAction.merge = 0. Push as ReplaceAll so cleared dims drop their filters.
-    // Use number literal (1 = replace) for typing flexibility across SDK versions.
-    try {
-        host.applyJsonFilter(filters as unknown as powerbi.IFilter, "general", "filter", 1);
-    } catch {
-        // Some host shapes reject empty arrays; harmless.
-    }
-}
-
-function persistSelections(host: IVisualHost, state: FilterState): void {
-    try {
-        host.persistProperties({
-            merge: [{
-                objectName: "filterPanelLayout",
-                selector: undefined as unknown as powerbi.data.Selector,
-                properties: { selectionsJson: JSON.stringify(state.toJSON()) },
-            }],
-        });
-    } catch {
-        // Harmless — persistence is best-effort; in-memory state still works.
-    }
-}
-
-interface QualifiedColumn {
-    table: string;
-    column: string;
-}
-
-function columnTarget(col: powerbi.DataViewMetadataColumn): QualifiedColumn | null {
-    const qn = col.queryName;
-    if (!qn) return null;
-    const dot = qn.indexOf(".");
-    if (dot < 0) return null;
-    return { table: qn.slice(0, dot), column: qn.slice(dot + 1) };
+function extractPinnedDensity(settings: VisualFormattingSettingsModel): PinnedDensity {
+    const v = String(settings.filterPanelLayout.pinnedDensity.value.value);
+    if (v === "comfortable" || v === "compact" || v === "dense") return v;
+    return "compact";
 }

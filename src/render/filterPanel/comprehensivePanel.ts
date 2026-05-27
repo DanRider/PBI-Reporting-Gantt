@@ -1,24 +1,37 @@
-// INF-3739 Phase 3c — Comprehensive-tier sidebar render.
+// INF-3739 — Comprehensive-tier sidebar render.
 //
 // Renders every bound filter dim (except those tier-marked "hidden") as a
-// vertical stack of multi-select listboxes inside the MountablePanel content
-// slot. Each dim block has: header (dim label + active count badge + clear),
-// search box, scrollable value list with checkboxes. Footer has a global
-// "Clear all" button. Subscribes to the same FilterState as FeaturedStrip;
-// cross-tier sync is implicit (single source of truth).
+// vertical stack inside the sidebar. Each dim block has: header (dim label +
+// active count badge + pin button), search box, scrollable value widget.
+// Widget shape auto-switches by cardinality: ≤ HIGH_CARDINALITY_THRESHOLD
+// distinct values → inline checkbox list; > threshold → searchable dropdown.
+// Footer has a global "Clear all" button. Subscribes to the same FilterState
+// as the top slicer strip; cross-tier sync is implicit.
 //
-// Pure DOM, strict-TS clean.
+// Pin button on each dim: click toggles that slot's pinned state via the
+// controller. Pinned dims also render as always-on pill rows above the chart.
 
-import { FilterDimBinding, FilterSlotSettings, FilterState, dimLabel } from "./state";
+import {
+    FilterDimBinding, FilterSlotSettings, FilterState,
+    HIGH_CARDINALITY_THRESHOLD, dimLabel,
+} from "./state";
+import { buildDropdownWidget, buildSearchInput, buildCheckRow } from "./widgets/searchChips";
 
 const SIDEBAR_BG = "#ffffff";
 const SIDEBAR_BORDER = "#c0c0c0";
-const HEADER_BG = "#e8e8ec";
 const BADGE_BG = "#1F77B4";
 const BADGE_FG = "#ffffff";
-const ROW_HOVER_BG = "#f0f0f3";
 const FOOTER_BG = "#f6f6f8";
 const MAX_LIST_HEIGHT_PX = 180;
+const PIN_ACTIVE_FG = "#1F77B4";
+const PIN_INACTIVE_FG = "#999";
+
+export interface ComprehensivePanelOptions {
+    /** Called when the user clicks the pin icon on a dim header. */
+    onTogglePin: (slotIndex: number) => void;
+    /** True if the slot is currently pinned (drives the icon's filled/outlined state). */
+    isPinned: (slotIndex: number) => boolean;
+}
 
 export interface ComprehensivePanelHandle {
     render(
@@ -31,6 +44,7 @@ export interface ComprehensivePanelHandle {
 export function mountComprehensivePanel(
     container: HTMLElement,
     state: FilterState,
+    options: ComprehensivePanelOptions,
 ): ComprehensivePanelHandle {
     const root = document.createElement("div");
     root.className = "filter-comprehensive-panel";
@@ -46,18 +60,8 @@ export function mountComprehensivePanel(
     ].join(";");
     container.appendChild(root);
 
-    const header = document.createElement("div");
-    header.style.cssText = [
-        "padding:8px 12px",
-        `background:${HEADER_BG}`,
-        `border-bottom:1px solid ${SIDEBAR_BORDER}`,
-        "font-weight:600",
-        "font-size:13px",
-        "color:#333",
-        "flex-shrink:0",
-    ].join(";");
-    header.textContent = "Filters";
-    root.appendChild(header);
+    // NOTE: header (title + × close button) is provided by the controller's
+    // buildSidebarComposition wrapper at the MountablePanel content slot.
 
     const body = document.createElement("div");
     body.style.cssText = [
@@ -103,6 +107,7 @@ export function mountComprehensivePanel(
     let lastBindings: ReadonlyArray<FilterDimBinding> = [];
     let lastSlots: ReadonlyArray<FilterSlotSettings> = [];
     const searchQueries: Map<string, string> = new Map();
+    const dropdownOpen: Map<string, boolean> = new Map();
 
     state.subscribe(() => repaint());
 
@@ -117,7 +122,7 @@ export function mountComprehensivePanel(
             for (const b of lastBindings) {
                 const slot = lastSlots[b.slotIndex];
                 if (slot === undefined) continue;
-                body.appendChild(buildDimBlock(b, slot, state, searchQueries));
+                body.appendChild(buildDimBlock(b, slot, state, searchQueries, dropdownOpen, options));
             }
         }
         const count = state.activeCount();
@@ -140,6 +145,8 @@ function buildDimBlock(
     slot: FilterSlotSettings,
     state: FilterState,
     searchQueries: Map<string, string>,
+    dropdownOpen: Map<string, boolean>,
+    options: ComprehensivePanelOptions,
 ): HTMLDivElement {
     const block = document.createElement("div");
     block.style.cssText = "margin-bottom:14px;";
@@ -148,14 +155,20 @@ function buildDimBlock(
     hdr.style.cssText = [
         "display:flex",
         "align-items:center",
-        "justify-content:space-between",
+        "gap:6px",
         "padding:4px 0",
         "border-bottom:1px solid #e0e0e0",
         "margin-bottom:4px",
     ].join(";");
+
+    const pinBtn = buildPinButton(options.isPinned(binding.slotIndex), () => {
+        options.onTogglePin(binding.slotIndex);
+    });
+    hdr.appendChild(pinBtn);
+
     const hdrLabel = document.createElement("span");
     hdrLabel.textContent = dimLabel(binding, slot);
-    hdrLabel.style.cssText = "font-weight:600;color:#222;";
+    hdrLabel.style.cssText = "font-weight:600;color:#222;flex:1;";
     hdr.appendChild(hdrLabel);
 
     const selected = state.get(binding.dimName);
@@ -176,26 +189,71 @@ function buildDimBlock(
     }
     block.appendChild(hdr);
 
-    // Per-dim search box (debounce-free; type, the listbox re-renders).
-    const search = document.createElement("input");
-    search.type = "text";
-    search.placeholder = "Search…";
-    search.value = searchQueries.get(binding.dimName) ?? "";
-    search.style.cssText = [
-        "width:100%",
-        "padding:4px 6px",
-        "border:1px solid #c0c0c0",
+    const isHighCardinality = binding.distinctValues.length > HIGH_CARDINALITY_THRESHOLD;
+    if (isHighCardinality) {
+        block.appendChild(buildDropdownWidget(binding, state, searchQueries, dropdownOpen));
+    } else {
+        block.appendChild(buildCheckboxWidget(binding, state, searchQueries));
+    }
+
+    return block;
+}
+
+function buildPinButton(active: boolean, onClick: () => void): HTMLButtonElement {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.title = active ? "Unpin from top slicer strip" : "Pin as top slicer strip";
+    btn.style.cssText = [
+        "background:transparent",
+        "border:none",
+        "cursor:pointer",
+        "padding:2px 4px",
+        "line-height:0",
         "border-radius:3px",
-        "font-size:11px",
-        "box-sizing:border-box",
-        "margin-bottom:4px",
+        "display:inline-flex",
+        "align-items:center",
+        "justify-content:center",
+        "transition:background 100ms ease",
     ].join(";");
-    search.addEventListener("click", (e) => e.stopPropagation());
-    search.addEventListener("input", () => {
-        searchQueries.set(binding.dimName, search.value);
-        renderList();
+    // Clean inline SVG push-pin — outlined when inactive, filled when active.
+    // Crisp 16px viewBox; no platform-emoji rendering inconsistency.
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("width", "14");
+    svg.setAttribute("height", "14");
+    svg.setAttribute("viewBox", "0 0 16 16");
+    svg.style.pointerEvents = "none";
+    const path = document.createElementNS(SVG_NS, "path");
+    // Push-pin shape: cap at top, body tapering, stem at bottom.
+    path.setAttribute("d", "M6 1 L10 1 L11 4 L11 7 L13 9 L13 10 L9 10 L9 14 L8 15 L7 14 L7 10 L3 10 L3 9 L5 7 L5 4 Z");
+    if (active) {
+        path.setAttribute("fill", PIN_ACTIVE_FG);
+        path.setAttribute("stroke", PIN_ACTIVE_FG);
+    } else {
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", PIN_INACTIVE_FG);
+        path.setAttribute("stroke-width", "1.2");
+        path.setAttribute("stroke-linejoin", "round");
+    }
+    svg.appendChild(path);
+    btn.appendChild(svg);
+    btn.addEventListener("mouseenter", () => { btn.style.background = "#f0f0f3"; });
+    btn.addEventListener("mouseleave", () => { btn.style.background = "transparent"; });
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onClick();
     });
-    block.appendChild(search);
+    return btn;
+}
+
+function buildCheckboxWidget(
+    binding: FilterDimBinding,
+    state: FilterState,
+    searchQueries: Map<string, string>,
+): HTMLDivElement {
+    const wrap = document.createElement("div");
+    const search = buildSearchInput(binding.dimName, searchQueries, () => renderList());
+    wrap.appendChild(search);
 
     const list = document.createElement("div");
     list.style.cssText = [
@@ -204,7 +262,7 @@ function buildDimBlock(
         "border:1px solid #e0e0e0",
         "border-radius:3px",
     ].join(";");
-    block.appendChild(list);
+    wrap.appendChild(list);
 
     function renderList(): void {
         const q = (searchQueries.get(binding.dimName) ?? "").toLowerCase();
@@ -218,45 +276,12 @@ function buildDimBlock(
             return;
         }
         for (const v of matches) {
-            list.appendChild(buildRow(binding, v, state.get(binding.dimName).has(v), state));
+            list.appendChild(buildCheckRow(binding, v, state.get(binding.dimName).has(v), state));
         }
     }
     renderList();
-
-    return block;
+    return wrap;
 }
 
-function buildRow(
-    binding: FilterDimBinding,
-    value: string,
-    active: boolean,
-    state: FilterState,
-): HTMLLabelElement {
-    const row = document.createElement("label");
-    row.style.cssText = [
-        "display:flex",
-        "align-items:center",
-        "gap:6px",
-        "padding:3px 6px",
-        "cursor:pointer",
-        "font-size:11px",
-        "color:#333",
-    ].join(";");
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = active;
-    checkbox.style.cssText = "margin:0;cursor:pointer;";
-    checkbox.addEventListener("click", (e) => {
-        e.stopPropagation();
-        state.toggle(binding.dimName, value);
-    });
-    row.appendChild(checkbox);
-    const span = document.createElement("span");
-    span.textContent = value;
-    span.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;";
-    row.appendChild(span);
-    row.addEventListener("mouseenter", () => { row.style.background = ROW_HOVER_BG; });
-    row.addEventListener("mouseleave", () => { row.style.background = "transparent"; });
-    row.addEventListener("click", (e) => e.stopPropagation());
-    return row;
-}
+// buildDropdownWidget + buildChip + buildSearchInput + buildCheckRow
+// extracted to widgets/searchChips.ts (file-size cap; pre-stages INF-3744 Phase B).

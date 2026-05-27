@@ -30,6 +30,9 @@ export interface FilterSlotSettings {
     defaultSelection: string;
     /** Empty string means "use dimName". */
     labelOverride: string;
+    /** v2.2 INF-3739 — when true, the dim renders as an always-on top slicer
+     *  strip ABOVE the chart in addition to appearing in the sidebar. */
+    pinned: boolean;
 }
 
 /** Maximum distinct values pulled into a filter dim's dropdown. */
@@ -134,14 +137,20 @@ function setsEqual<T>(a: Set<T>, b: Set<T>): boolean {
     return true;
 }
 
-/** Filter bindings for the dims marked Featured tier (or Both). Used by FeaturedStrip. */
-export function featuredBindings(
+/** v2.2 INF-3739 — distinct-value cardinality above which the sidebar widget
+ *  auto-switches from a checkbox list to a multi-select dropdown. Keeps short
+ *  lists readable while long lists stay scannable via a search box + chips. */
+export const HIGH_CARDINALITY_THRESHOLD = 12;
+
+/** v2.2 INF-3739 — dims whose slot is pinned render as always-on top slicer
+ *  strips. Per-slot toggle persists via host.persistProperties. */
+export function pinnedBindings(
     bindings: ReadonlyArray<FilterDimBinding>,
     slotSettings: ReadonlyArray<FilterSlotSettings>,
 ): FilterDimBinding[] {
     return bindings.filter((_, i) => {
         const s = slotSettings[i];
-        return s != null && (s.tier === "featured" || s.tier === "both");
+        return s != null && s.pinned && s.tier !== "hidden";
     });
 }
 
