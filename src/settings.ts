@@ -497,6 +497,91 @@ class MilestoneHealthColorsCard extends SimpleCard {
     slices: FormattingSettingsSlice[] = [this.green, this.yellow, this.red];
 }
 
+// v2.2 INF-3739 — per-slot tier/mode/label for the 8 filter dimension slots.
+// Mirrors swimlanes / activityHealthIcons cap-N pattern: static declared
+// slots, displayNames overridden at runtime from bound column names (swim-lane
+// idiom) so each slot's controls show "Segment", "Investment Category", etc.
+const FILTER_TIER_ITEMS = [
+    { value: "featured",      displayName: "Featured tab strip" },
+    { value: "comprehensive", displayName: "Comprehensive sidebar" },
+    { value: "both",          displayName: "Both" },
+    { value: "hidden",        displayName: "Hidden" },
+];
+const FILTER_MODE_ITEMS = [
+    { value: "single", displayName: "Single-select" },
+    { value: "multi",  displayName: "Multi-select" },
+    { value: "search", displayName: "Search" },
+];
+
+function makeFilterSlot(n: 1|2|3|4|5|6|7|8): {
+    tier: formattingSettings.ItemDropdown;
+    mode: formattingSettings.ItemDropdown;
+    label: formattingSettings.TextInput;
+    group: Group;
+} {
+    const tier = new formattingSettings.ItemDropdown({
+        name: `slot${n}Tier`, displayName: `Slot ${n} tier`,
+        items: FILTER_TIER_ITEMS,
+        value: { value: "comprehensive", displayName: "Comprehensive sidebar" },
+    });
+    const mode = new formattingSettings.ItemDropdown({
+        name: `slot${n}Mode`, displayName: `Slot ${n} mode`,
+        items: FILTER_MODE_ITEMS,
+        value: { value: "multi", displayName: "Multi-select" },
+    });
+    const label = new formattingSettings.TextInput({
+        name: `slot${n}Label`, displayName: `Slot ${n} label override`,
+        placeholder: "", value: "",
+    });
+    const group = new Group({
+        name: `filterSlot${n}Group`, displayName: `Slot ${n}`,
+        slices: [tier, mode, label],
+    });
+    return { tier, mode, label, group };
+}
+
+export class FilterSlotsCard extends CompositeCard {
+    name: string = "filterSlots";
+    displayName: string = "Filter Slots";
+
+    private readonly _slots = [
+        makeFilterSlot(1), makeFilterSlot(2), makeFilterSlot(3), makeFilterSlot(4),
+        makeFilterSlot(5), makeFilterSlot(6), makeFilterSlot(7), makeFilterSlot(8),
+    ];
+
+    slot1Tier = this._slots[0].tier; slot1Mode = this._slots[0].mode; slot1Label = this._slots[0].label;
+    slot2Tier = this._slots[1].tier; slot2Mode = this._slots[1].mode; slot2Label = this._slots[1].label;
+    slot3Tier = this._slots[2].tier; slot3Mode = this._slots[2].mode; slot3Label = this._slots[2].label;
+    slot4Tier = this._slots[3].tier; slot4Mode = this._slots[3].mode; slot4Label = this._slots[3].label;
+    slot5Tier = this._slots[4].tier; slot5Mode = this._slots[4].mode; slot5Label = this._slots[4].label;
+    slot6Tier = this._slots[5].tier; slot6Mode = this._slots[5].mode; slot6Label = this._slots[5].label;
+    slot7Tier = this._slots[6].tier; slot7Mode = this._slots[6].mode; slot7Label = this._slots[6].label;
+    slot8Tier = this._slots[7].tier; slot8Mode = this._slots[7].mode; slot8Label = this._slots[7].label;
+
+    groups: Group[] = this._slots.map(s => s.group);
+}
+
+export class FilterPanelLayoutCard extends SimpleCard {
+    showFeatured = new formattingSettings.ToggleSwitch({
+        name: "showFeatured", displayName: "Show Featured strip", value: true,
+    });
+    showComprehensive = new formattingSettings.ToggleSwitch({
+        name: "showComprehensive", displayName: "Show Comprehensive sidebar", value: true,
+    });
+    comprehensiveSizePx = new formattingSettings.NumUpDown({
+        name: "comprehensiveSizePx", displayName: "Comprehensive sidebar width (px)", value: 260,
+    });
+    selectionsJson = new formattingSettings.TextInput({
+        name: "selectionsJson", displayName: "Persisted selections (JSON)",
+        placeholder: "{}", value: "",
+    });
+    name: string = "filterPanelLayout";
+    displayName: string = "Filter Panel Layout";
+    slices: FormattingSettingsSlice[] = [
+        this.showFeatured, this.showComprehensive, this.comprehensiveSizePx, this.selectionsJson,
+    ];
+}
+
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     title = new TitleCard();
     chartTitle = new ChartTitleCard();
@@ -508,6 +593,8 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     swimlanes = new SwimlanesCard();
     timeAxis = new TimeAxisCard();
     tooltip = new TooltipCard();
+    filterSlots = new FilterSlotsCard();
+    filterPanelLayout = new FilterPanelLayoutCard();
 
     cards = [
         this.title,
@@ -520,5 +607,7 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
         this.milestoneHealthColors,
         this.timeAxis,
         this.tooltip,
+        this.filterSlots,
+        this.filterPanelLayout,
     ];
 }

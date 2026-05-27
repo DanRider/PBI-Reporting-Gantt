@@ -93,6 +93,11 @@ import { renderActivityDetail } from "./render/inspector/activityDetail";
 import { renderMilestoneDetail } from "./render/inspector/milestoneDetail";
 import { bindingDisplayName, pluralize } from "./utils/bindingNames";
 
+// v2.2 INF-3739 — two-tier in-visual filter panel (Featured strip + Comprehensive sidebar).
+// Both surfaces mount on root and share one FilterState. Owned by FilterPanelController
+// which also handles applyJsonFilter pushback + host.persistProperties round-trip.
+import { mountFilterPanelController, FilterPanelController } from "./render/filterPanel/controller";
+
 // v2.1 audit-fix #24 — slider + toggles share the top:6 chrome row.
 // Just enough push so chart title doesn't render under the chrome.
 // Tighter than the original 80px attempt (operator: "minimal").
@@ -267,6 +272,10 @@ export class Visual implements IVisual {
     // Gantt/Table toggles). Drives the WHOLE chart's window. Inspector's
     // own slider stays independent — lane drill-down ignores master.
     private masterSlider: MasterTimeSliderHandle;
+    // v2.2 INF-3739 — filter panel controller (top Featured strip + right Comprehensive sidebar).
+    private filterPanel: FilterPanelController;
+    // Last-known active filter map; visual.ts uses this to narrow vm before render.
+    private activeFilters: ReadonlyMap<string, ReadonlySet<string>> = new Map();
     // v2.1 audit-fix #24 — master window state. Default: past 2Q + future
     // 6Q (forward-biased for roadmap use case). Clamped to envelope in
     // update() when data is delivered.
@@ -568,6 +577,15 @@ export class Visual implements IVisual {
             },
         });
 
+        // v2.2 INF-3739 — filter panel controller. Both surfaces (Featured strip
+        // at top, Comprehensive sidebar at right) mount on root via MountablePanel
+        // primitive. State change → applyJsonFilter pushback + persistProperties +
+        // requestRerender so the local viewmodel narrows against the new filter.
+        this.filterPanel = mountFilterPanelController(this.root, {
+            host: this.host,
+            onChange: () => this.requestRerender(),
+        });
+
         this.bgG = this.svg.append("g").attr("class", "background-layer");
         this.axisG = this.svg.append("g").attr("class", "time-axis");
         this.railG = this.svg.append("g").attr("class", "swimlane-rail-group");
@@ -593,6 +611,13 @@ export class Visual implements IVisual {
             VisualFormattingSettingsModel,
             dataView
         );
+
+        // v2.2 INF-3739 — drive both filter panels off the same FilterState.
+        // Returns the active filter map; visual.ts uses it to narrow the vm
+        // BEFORE rendering, in addition to PBI's cross-visual applyJsonFilter
+        // pushback (which the controller fires on every state mutation).
+        const filterResult = this.filterPanel.update(dataView, this.settings);
+        this.activeFilters = filterResult.activeFilters;
 
         // INF-3736 — drag-resize reconcile: once persisted settings catch up
         // to the transient drag value, retire the transient. Bridges pointerup
@@ -628,11 +653,71 @@ export class Visual implements IVisual {
         // INF-3736 — master slider now self-positions (top:6 right:6 anchor,
         // expands leftward from a time-filter icon). No external sizing needed.
 
+        // v2.2 INF-3739 — filter panel chrome reservations.
+        // Featured strip mounts at top BELOW the master-slider chrome row;
+        // comprehensive sidebar mounts at right. Both contribute to the
+        // remaining usable rectangle for Gantt + table regions.
+        const featuredTopPx = this.filterPanel.featuredHeightPx();
+        const comprehensiveWidthPx = this.filterPanel.comprehensiveWidthPx();
+        this.filterPanel.layout({
+            viewportWidth: options.viewport.width,
+            viewportHeight: options.viewport.height,
+            leftReservePx: panelWidthPx,
+            // Featured strip mounts BELOW the master-slider chrome row so
+            // the time slider + Roadmap/Table toggle stays visible at top:6.
+            topOffsetPx: MASTER_SLIDER_CHROME_PX,
+        });
+
         // v2.1 audit-fix #8 — vm + focused-lane + activityColors computed
         // EARLY so the layout coordinator (which calls renderSimpleTable for
         // the table region) can read the tint maps. Originally these lived
         // after the layout coordinator, but the table render needs them.
         let vm: RoadmapViewModel = convertDataView(dataView);
+
+        // v2.2 INF-3739 — local viewmodel narrowing from active filter state.
+        // In real reports, host.applyJsonFilter (fired by FilterPanelController
+        // on state change) re-queries the dataView and update() is called with
+        // a pre-filtered set, so this loop becomes a near-noop. In fixture-only
+        // mode (or when the visual is the only one on the page), this narrows
+        // the chart locally so clicks on filter pills actually filter visibly.
+        if (this.activeFilters.size > 0 && dataView?.table?.rows && dataView.table.columns) {
+            const cols = dataView.table.columns;
+            const filterByColIdx = new Map<number, ReadonlySet<string>>();
+            for (let i = 0; i < cols.length; i++) {
+                const dimName = cols[i].displayName;
+                const sel = this.activeFilters.get(dimName);
+                if (sel !== undefined && sel.size > 0) filterByColIdx.set(i, sel);
+            }
+            if (filterByColIdx.size > 0) {
+                const activityColIdx = cols.findIndex(c => (c.roles ?? {})["activity"]);
+                const milestoneActivityColIdx = cols.findIndex(c => (c.roles ?? {})["milestoneActivity"]);
+                const keepActivityNames = new Set<string>();
+                for (const row of dataView.table.rows) {
+                    let pass = true;
+                    for (const [idx, sel] of filterByColIdx) {
+                        const v = row[idx];
+                        if (v === null || v === undefined || !sel.has(String(v))) { pass = false; break; }
+                    }
+                    if (pass) {
+                        if (activityColIdx >= 0) {
+                            const n = row[activityColIdx];
+                            if (n !== null && n !== undefined) keepActivityNames.add(String(n));
+                        }
+                        if (milestoneActivityColIdx >= 0) {
+                            const n = row[milestoneActivityColIdx];
+                            if (n !== null && n !== undefined) keepActivityNames.add(String(n));
+                        }
+                    }
+                }
+                const keptActivities = vm.activities.filter(a => keepActivityNames.has(a.name));
+                const kept = new Set(keptActivities.map(a => a.name));
+                vm = {
+                    ...vm,
+                    activities: keptActivities,
+                    milestones: vm.milestones.filter(m => kept.has(m.activity)),
+                };
+            }
+        }
 
         // INF-3736 — restore persisted master slider state from PBI objects bag.
         // Null-safe through the whole optional chain; any missing layer OR
@@ -811,11 +896,15 @@ export class Visual implements IVisual {
         // bar itself never overlaps either region's content.
         const tableRowsPresent = !!(dataView?.table?.rows?.length);
         this.splitter.setVisible(tableRowsPresent);
+        // v2.2 INF-3739 — subtract featured-strip height from the splitter's
+        // available viewport so the resulting ganttHeightPx + matrixHeightPx
+        // fit within the remaining vertical space below the featured strip.
+        const splitterViewportHeight = Math.max(0, options.viewport.height - featuredTopPx);
         const ganttHeightPx = tableRowsPresent
-            ? this.splitter.ganttHeightPx(options.viewport.height)
-            : options.viewport.height;
+            ? this.splitter.ganttHeightPx(splitterViewportHeight)
+            : splitterViewportHeight;
         const matrixHeightPx = tableRowsPresent
-            ? this.splitter.matrixHeightPx(options.viewport.height)
+            ? this.splitter.matrixHeightPx(splitterViewportHeight)
             : 0;
         const splitterBarHeightPx = this.splitter.barHeightPx();
 
@@ -834,9 +923,11 @@ export class Visual implements IVisual {
             const displayText = (ct.show.value && ctText.length > 0) ? ctText : "(Gantt hidden)";
             this.ganttHiddenHeader.textContent = displayText;
             this.ganttHiddenHeader.style.display = "flex";
-            this.ganttHiddenHeader.style.top = ganttHiddenChromePush + "px";
+            // v2.2 INF-3739 — push by featured-strip height when present.
+            this.ganttHiddenHeader.style.top = (featuredTopPx + ganttHiddenChromePush) + "px";
             this.ganttHiddenHeader.style.left = panelWidthPx + "px";
-            this.ganttHiddenHeader.style.width = (options.viewport.width - panelWidthPx) + "px";
+            // v2.2 INF-3739 — reserve comprehensive sidebar width on the right.
+            this.ganttHiddenHeader.style.width = Math.max(0, options.viewport.width - panelWidthPx - comprehensiveWidthPx) + "px";
             this.ganttHiddenHeader.style.color = ct.show.value ? ct.fontColor.value.value : "#666";
             this.ganttHiddenHeader.style.fontSize = (ct.fontSize.value ?? 14) + "px";
             this.ganttHiddenHeader.style.fontWeight = ct.bold.value ? "bold" : "600";
@@ -862,10 +953,12 @@ export class Visual implements IVisual {
             this.matrixDiv.style.display = "block";
             // v2.1 audit-fix #12 + #24c — when Gantt is hidden, push matrix
             // down by the header height AND the master-slider chrome reserve.
-            this.matrixDiv.style.top = (ganttHeightPx + splitterBarHeightPx + ganttHiddenHeaderPx + ganttHiddenChromePush) + "px";
+            // v2.2 INF-3739 — additionally push by featured-strip height.
+            this.matrixDiv.style.top = (featuredTopPx + ganttHeightPx + splitterBarHeightPx + ganttHiddenHeaderPx + ganttHiddenChromePush) + "px";
             this.matrixDiv.style.height = (matrixHeightPx - ganttHiddenHeaderPx - ganttHiddenChromePush) + "px";
             this.matrixDiv.style.left = panelWidthPx + "px";
-            this.matrixDiv.style.width = (options.viewport.width - panelWidthPx) + "px";
+            // v2.2 INF-3739 — reserve comprehensive sidebar width on the right.
+            this.matrixDiv.style.width = Math.max(0, options.viewport.width - panelWidthPx - comprehensiveWidthPx) + "px";
             this.matrixDiv.style.background = "#ffffff";
             // The splitter bar's top/bottom borders replace the matrix
             // region's prior border-top — removing the doubled divider.
@@ -913,12 +1006,14 @@ export class Visual implements IVisual {
         }
 
         const viewport = options.viewport;
-        const width = viewport.width - panelWidthPx;
+        // v2.2 INF-3739 — width also reserves comprehensive sidebar on the right.
+        const width = Math.max(0, viewport.width - panelWidthPx - comprehensiveWidthPx);
         // v2.1 audit-fix #24c — wrapper starts BELOW the slider chrome so
         // when the SVG content scrolls vertically it gets clipped at the
         // chrome boundary (was: content scrolled up behind the transparent
         // slider strip). Only push when gantt is visible.
-        const wrapperChromeOffset = ganttHeightPx > 0 ? MASTER_SLIDER_CHROME_PX : 0;
+        // v2.2 INF-3739 — additional push for the featured filter strip.
+        const wrapperChromeOffset = (ganttHeightPx > 0 ? MASTER_SLIDER_CHROME_PX : 0) + featuredTopPx;
         const height = Math.max(0, ganttHeightPx - wrapperChromeOffset);
 
         this.ganttScrollWrapper.style.left = panelWidthPx + "px";

@@ -227,6 +227,38 @@
               "nativeQueryRef": "Area"
             }
           ]
+        },
+        "filterDimensions": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Activities"
+                    }
+                  },
+                  "Property": "Area"
+                }
+              },
+              "queryRef": "Activities.Area",
+              "nativeQueryRef": "Area"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Milestones"
+                    }
+                  },
+                  "Property": "Milestone Type"
+                }
+              },
+              "queryRef": "Milestones.Milestone Type",
+              "nativeQueryRef": "Milestone Type"
+            }
+          ]
         }
       }
     },
@@ -385,6 +417,33 @@
               "expr": {
                 "Literal": {
                   "Value": "15.629198257566438D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "filterSlots": [
+        {
+          "properties": {
+            "slot1Tier": {
+              "expr": {
+                "Literal": {
+                  "Value": "'both'"
+                }
+              }
+            },
+            "slot1Mode": {
+              "expr": {
+                "Literal": {
+                  "Value": "'single'"
+                }
+              }
+            },
+            "slot2Tier": {
+              "expr": {
+                "Literal": {
+                  "Value": "'comprehensive'"
                 }
               }
             }
