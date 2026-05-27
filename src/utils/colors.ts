@@ -1,7 +1,7 @@
 "use strict";
 
 import { SymbolKind, isSymbolKind } from "./symbols";
-import { MilestoneTypeBinding, AreaBinding, HealthBinding } from "../viewmodel";
+import { MilestoneTypeBinding, AreaBinding } from "../viewmodel";
 
 export interface MilestoneTypeConfig {
     color: string;
@@ -118,50 +118,57 @@ export interface ActivityHealthIconConfig {
 }
 
 // Settings shape required to derive per-value health icon config (cap-5).
+// v2.2 INF-3738 V2 — each slot now has a valueMatch ItemDropdown that the
+// USER picks from a list of distinct values from their bound data column.
+// The map key is the user-picked value; the slot's symbol/color/size are
+// the render config.
 export interface ActivityHealthIconsSettingsShape {
-    slot1Symbol: { value: { value: string | number } };
-    slot1Color:  { value: { value: string } };
-    slot1Size:   { value: number };
-    slot2Symbol: { value: { value: string | number } };
-    slot2Color:  { value: { value: string } };
-    slot2Size:   { value: number };
-    slot3Symbol: { value: { value: string | number } };
-    slot3Color:  { value: { value: string } };
-    slot3Size:   { value: number };
-    slot4Symbol: { value: { value: string | number } };
-    slot4Color:  { value: { value: string } };
-    slot4Size:   { value: number };
-    slot5Symbol: { value: { value: string | number } };
-    slot5Color:  { value: { value: string } };
-    slot5Size:   { value: number };
+    slot1ValueMatch: { value: { value: string | number } };
+    slot1Symbol:     { value: { value: string | number } };
+    slot1Color:      { value: { value: string } };
+    slot1Size:       { value: number };
+    slot2ValueMatch: { value: { value: string | number } };
+    slot2Symbol:     { value: { value: string | number } };
+    slot2Color:      { value: { value: string } };
+    slot2Size:       { value: number };
+    slot3ValueMatch: { value: { value: string | number } };
+    slot3Symbol:     { value: { value: string | number } };
+    slot3Color:      { value: { value: string } };
+    slot3Size:       { value: number };
+    slot4ValueMatch: { value: { value: string | number } };
+    slot4Symbol:     { value: { value: string | number } };
+    slot4Color:      { value: { value: string } };
+    slot4Size:       { value: number };
+    slot5ValueMatch: { value: { value: string | number } };
+    slot5Symbol:     { value: { value: string | number } };
+    slot5Color:      { value: { value: string } };
+    slot5Size:       { value: number };
 }
 
-// Build a Record<healthValue, config> map from the first-N healthBindings
-// crossed with the static slot settings. Same shape as buildAreaColorMap +
-// buildMilestoneConfigMap. Called once per render at the top of update().
+// Build a Record<healthValue, config> map from the 5 slots in settings.
+// Each slot contributes ONE entry, keyed by slotN.valueMatch.value.value.
+// Empty matchValues are skipped (slot inactive). Called once per render at
+// the top of update(). Same shape contract as buildAreaColorMap +
+// buildMilestoneConfigMap (loop-invariant; render-side does O(1) lookup).
 export function buildHealthIconMap(
-    healthBindings: HealthBinding[],
     settings: ActivityHealthIconsSettingsShape,
 ): Record<string, ActivityHealthIconConfig> {
     const out: Record<string, ActivityHealthIconConfig> = {};
-    const slotSymbols = [
-        settings.slot1Symbol, settings.slot2Symbol, settings.slot3Symbol,
-        settings.slot4Symbol, settings.slot5Symbol,
+    const slots = [
+        { vm: settings.slot1ValueMatch, sym: settings.slot1Symbol, col: settings.slot1Color, sz: settings.slot1Size },
+        { vm: settings.slot2ValueMatch, sym: settings.slot2Symbol, col: settings.slot2Color, sz: settings.slot2Size },
+        { vm: settings.slot3ValueMatch, sym: settings.slot3Symbol, col: settings.slot3Color, sz: settings.slot3Size },
+        { vm: settings.slot4ValueMatch, sym: settings.slot4Symbol, col: settings.slot4Color, sz: settings.slot4Size },
+        { vm: settings.slot5ValueMatch, sym: settings.slot5Symbol, col: settings.slot5Color, sz: settings.slot5Size },
     ];
-    const slotColors = [
-        settings.slot1Color, settings.slot2Color, settings.slot3Color,
-        settings.slot4Color, settings.slot5Color,
-    ];
-    const slotSizes = [
-        settings.slot1Size, settings.slot2Size, settings.slot3Size,
-        settings.slot4Size, settings.slot5Size,
-    ];
-    for (const b of healthBindings) {
-        const symbolRaw = String(slotSymbols[b.slotIndex].value.value);
-        out[b.healthValue] = {
+    for (const s of slots) {
+        const match = String(s.vm.value.value);
+        if (match.length === 0) continue;  // slot inactive
+        const symbolRaw = String(s.sym.value.value);
+        out[match] = {
             symbol: isSymbolKind(symbolRaw) ? symbolRaw : "circle",
-            color:  slotColors[b.slotIndex].value.value,
-            size:   slotSizes[b.slotIndex].value,
+            color:  s.col.value.value,
+            size:   s.sz.value,
         };
     }
     return out;

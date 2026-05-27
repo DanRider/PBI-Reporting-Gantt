@@ -509,8 +509,9 @@
         },
         "activityHealthIcons": {
             "displayName": "Activity Health Icons",
-            "description": "Per-value icon + color mapping for the activity bullet (left dot). Up to 5 distinct values from your bound Activity Health column. Slot labels show your actual values once data is bound.",
+            "description": "Bind each slot's icon+color to a specific value from your bound Activity Health column. Type the value to match in each slot's 'Value to match' field. Up to 5 slots; rows whose health value doesn't match any slot fall back to the swim-lane color.",
             "properties": {
+                "slot1ValueMatch": { "type": { "enumeration": [{ "value": "", "displayName": "(none)" }] }, "displayName": "Slot 1 value to match" },
                 "slot1Symbol": {
                     "displayName": "Slot 1 symbol",
                     "type": { "enumeration": [
@@ -524,6 +525,7 @@
                 "slot1Color": { "displayName": "Slot 1 color", "type": { "fill": { "solid": { "color": true } } } },
                 "slot1Size":  { "displayName": "Slot 1 size (px)", "type": { "numeric": true } },
 
+                "slot2ValueMatch": { "type": { "enumeration": [{ "value": "", "displayName": "(none)" }] }, "displayName": "Slot 2 value to match" },
                 "slot2Symbol": {
                     "displayName": "Slot 2 symbol",
                     "type": { "enumeration": [
@@ -537,6 +539,7 @@
                 "slot2Color": { "displayName": "Slot 2 color", "type": { "fill": { "solid": { "color": true } } } },
                 "slot2Size":  { "displayName": "Slot 2 size (px)", "type": { "numeric": true } },
 
+                "slot3ValueMatch": { "type": { "enumeration": [{ "value": "", "displayName": "(none)" }] }, "displayName": "Slot 3 value to match" },
                 "slot3Symbol": {
                     "displayName": "Slot 3 symbol",
                     "type": { "enumeration": [
@@ -550,6 +553,7 @@
                 "slot3Color": { "displayName": "Slot 3 color", "type": { "fill": { "solid": { "color": true } } } },
                 "slot3Size":  { "displayName": "Slot 3 size (px)", "type": { "numeric": true } },
 
+                "slot4ValueMatch": { "type": { "enumeration": [{ "value": "", "displayName": "(none)" }] }, "displayName": "Slot 4 value to match" },
                 "slot4Symbol": {
                     "displayName": "Slot 4 symbol",
                     "type": { "enumeration": [
@@ -563,6 +567,7 @@
                 "slot4Color": { "displayName": "Slot 4 color", "type": { "fill": { "solid": { "color": true } } } },
                 "slot4Size":  { "displayName": "Slot 4 size (px)", "type": { "numeric": true } },
 
+                "slot5ValueMatch": { "type": { "enumeration": [{ "value": "", "displayName": "(none)" }] }, "displayName": "Slot 5 value to match" },
                 "slot5Symbol": {
                     "displayName": "Slot 5 symbol",
                     "type": { "enumeration": [
