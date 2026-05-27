@@ -209,6 +209,24 @@
               "nativeQueryRef": "Milestone Note"
             }
           ]
+        },
+        "activityHealth": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Activities"
+                    }
+                  },
+                  "Property": "Area"
+                }
+              },
+              "queryRef": "Activities.Area",
+              "nativeQueryRef": "Area"
+            }
+          ]
         }
       }
     },

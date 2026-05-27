@@ -408,15 +408,6 @@ class ActivityHealthIconsCard extends SimpleCard {
     // explicit binding, not data-first-seen.
 
     // Slot 1 defaults: ⚠ warning + yellow
-    // ItemDropdown.items is populated at runtime in visual.ts from
-    // vm.distinctHealthValues (the distinct values from the bound Activity
-    // Health column). Placeholder (none) item shipped here so the Format
-    // pane has a renderable default before any data binds.
-    slot1ValueMatch = new formattingSettings.ItemDropdown({
-        name: "slot1ValueMatch", displayName: "Slot 1 value to match",
-        items: [{ value: "", displayName: "(none)" }],
-        value: { value: "", displayName: "(none)" },
-    });
     slot1Symbol = new formattingSettings.ItemDropdown({
         name: "slot1Symbol", displayName: "Slot 1 symbol",
         items: HEALTH_SYMBOL_ITEMS,
@@ -429,11 +420,6 @@ class ActivityHealthIconsCard extends SimpleCard {
         name: "slot1Size", displayName: "Slot 1 size (px)", value: 12,
     });
     // Slot 2 defaults: ⛔ block + red
-    slot2ValueMatch = new formattingSettings.ItemDropdown({
-        name: "slot2ValueMatch", displayName: "Slot 2 value to match",
-        items: [{ value: "", displayName: "(none)" }],
-        value: { value: "", displayName: "(none)" },
-    });
     slot2Symbol = new formattingSettings.ItemDropdown({
         name: "slot2Symbol", displayName: "Slot 2 symbol",
         items: HEALTH_SYMBOL_ITEMS,
@@ -446,11 +432,6 @@ class ActivityHealthIconsCard extends SimpleCard {
         name: "slot2Size", displayName: "Slot 2 size (px)", value: 12,
     });
     // Slot 3 defaults: ⏸ pause + grey
-    slot3ValueMatch = new formattingSettings.ItemDropdown({
-        name: "slot3ValueMatch", displayName: "Slot 3 value to match",
-        items: [{ value: "", displayName: "(none)" }],
-        value: { value: "", displayName: "(none)" },
-    });
     slot3Symbol = new formattingSettings.ItemDropdown({
         name: "slot3Symbol", displayName: "Slot 3 symbol",
         items: HEALTH_SYMBOL_ITEMS,
@@ -463,11 +444,6 @@ class ActivityHealthIconsCard extends SimpleCard {
         name: "slot3Size", displayName: "Slot 3 size (px)", value: 12,
     });
     // Slot 4 defaults: ✗ x + red
-    slot4ValueMatch = new formattingSettings.ItemDropdown({
-        name: "slot4ValueMatch", displayName: "Slot 4 value to match",
-        items: [{ value: "", displayName: "(none)" }],
-        value: { value: "", displayName: "(none)" },
-    });
     slot4Symbol = new formattingSettings.ItemDropdown({
         name: "slot4Symbol", displayName: "Slot 4 symbol",
         items: HEALTH_SYMBOL_ITEMS,
@@ -480,11 +456,6 @@ class ActivityHealthIconsCard extends SimpleCard {
         name: "slot4Size", displayName: "Slot 4 size (px)", value: 12,
     });
     // Slot 5 defaults: ● circle + green
-    slot5ValueMatch = new formattingSettings.ItemDropdown({
-        name: "slot5ValueMatch", displayName: "Slot 5 value to match",
-        items: [{ value: "", displayName: "(none)" }],
-        value: { value: "", displayName: "(none)" },
-    });
     slot5Symbol = new formattingSettings.ItemDropdown({
         name: "slot5Symbol", displayName: "Slot 5 symbol",
         items: HEALTH_SYMBOL_ITEMS,
@@ -499,11 +470,11 @@ class ActivityHealthIconsCard extends SimpleCard {
     name: string = "activityHealthIcons";
     displayName: string = "Activity Health Icons";
     slices: FormattingSettingsSlice[] = [
-        this.slot1ValueMatch, this.slot1Symbol, this.slot1Color, this.slot1Size,
-        this.slot2ValueMatch, this.slot2Symbol, this.slot2Color, this.slot2Size,
-        this.slot3ValueMatch, this.slot3Symbol, this.slot3Color, this.slot3Size,
-        this.slot4ValueMatch, this.slot4Symbol, this.slot4Color, this.slot4Size,
-        this.slot5ValueMatch, this.slot5Symbol, this.slot5Color, this.slot5Size,
+        this.slot1Symbol, this.slot1Color, this.slot1Size,
+        this.slot2Symbol, this.slot2Color, this.slot2Size,
+        this.slot3Symbol, this.slot3Color, this.slot3Size,
+        this.slot4Symbol, this.slot4Color, this.slot4Size,
+        this.slot5Symbol, this.slot5Color, this.slot5Size,
     ];
 }
 

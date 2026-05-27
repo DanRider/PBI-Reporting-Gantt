@@ -786,11 +786,10 @@ export class Visual implements IVisual {
 
         const areaColorMap = buildAreaColorMap(vm.areaBindings, this.settings.swimlanes);
         const milestoneConfig = buildMilestoneConfigMap(vm.typeBindings, this.settings.milestones);
-        // v2.2 INF-3738 V2 — per-value health icon map. Loop-invariant; built
-        // once per render from the 5 slot settings (each slot's valueMatch
-        // dropdown is the map key, populated by user from data values).
-        // activityLabels.ts looks up by activity.health.
-        const healthIconMap = buildHealthIconMap(this.settings.activityHealthIcons);
+        // v2.2 INF-3738 V3 — per-value health icon map. Loop-invariant;
+        // built once per render from healthBindings × static slot settings.
+        // Matches swim-lane / milestone-type buildXMap shape.
+        const healthIconMap = buildHealthIconMap(vm.healthBindings, this.settings.activityHealthIcons);
         const colors: ColorContext = buildColorContext(areaColorMap, milestoneConfig, activityColors);
 
         // v2.1 audit-fix #17 — milestone-type color map for the activity
@@ -970,22 +969,34 @@ export class Visual implements IVisual {
         hideIfNoType("type1", slot1Type != null);
         hideIfNoType("type2", slot2Type != null);
 
-        // v2.2 INF-3738 V2 — populate each slot's valueMatch dropdown items
-        // from the distinct values found in the bound Activity Health column.
-        // User picks per-slot which value gets that slot's icon — the
-        // value-to-icon mapping is EXPLICIT, not first-seen-order. Includes
-        // a "(none)" entry so the user can clear a slot.
+        // v2.2 INF-3738 V3 — Override ActivityHealthIconsCard slot
+        // displayNames from bound health values so the Format pane shows
+        // actual data values ("Production symbol" not "Slot 1 symbol").
+        // Hide unused slots so the Format pane stays tidy and only exposes
+        // slots for values present in the user's data. Same pattern as the
+        // swim-lane slot color displayName overrides above.
         const ahi = this.settings.activityHealthIcons;
-        const valueItems: Array<{ value: string; displayName: string }> = [
-            { value: "", displayName: "(none)" },
-            ...vm.distinctHealthValues.map(v => ({ value: v, displayName: v })),
+        const ahiTriples = [
+            [ahi.slot1Symbol, ahi.slot1Color, ahi.slot1Size],
+            [ahi.slot2Symbol, ahi.slot2Color, ahi.slot2Size],
+            [ahi.slot3Symbol, ahi.slot3Color, ahi.slot3Size],
+            [ahi.slot4Symbol, ahi.slot4Color, ahi.slot4Size],
+            [ahi.slot5Symbol, ahi.slot5Color, ahi.slot5Size],
         ];
-        const valueMatchSlots = [
-            ahi.slot1ValueMatch, ahi.slot2ValueMatch, ahi.slot3ValueMatch,
-            ahi.slot4ValueMatch, ahi.slot5ValueMatch,
-        ];
-        for (const slot of valueMatchSlots) {
-            slot.items = valueItems;
+        for (let i = 0; i < ahiTriples.length; i++) {
+            const binding = vm.healthBindings[i];
+            const triple = ahiTriples[i];
+            const sym = triple[0];
+            const col = triple[1];
+            const sz  = triple[2];
+            if (binding) {
+                sym.visible = true; col.visible = true; sz.visible = true;
+                sym.displayName = `${binding.healthValue} symbol`;
+                col.displayName = `${binding.healthValue} color`;
+                sz.displayName  = `${binding.healthValue} size (px)`;
+            } else {
+                sym.visible = false; col.visible = false; sz.visible = false;
+            }
         }
 
         // ── Outer margins ─────────────────────────────────────────────────────

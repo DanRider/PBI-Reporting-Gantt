@@ -41,11 +41,11 @@ table Activities
 		annotation UnderlyingDateTimeDataType = Date
 
 	column SortOrder
-		dataType: int64
+		dataType: double
 		isHidden
 		formatString: 0
 		lineageTag: c896700a-b550-43cf-bb29-3ec19f6d0ffb
-		summarizeBy: none
+		summarizeBy: sum
 		sourceColumn: SortOrder
 
 		annotation SummarizationSetBy = Automatic
