@@ -14,3 +14,6 @@ webpack.statistics.prod.html
 # Sandbox / IDE
 .vscode/
 *.DS_Store
+
+# Build artifacts — regenerable. Never commit (per pbi-custom-visual-hackery primer).
+dist/*.pbiviz

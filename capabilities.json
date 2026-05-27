@@ -1508,5 +1508,10 @@
     "supportsHighlight": true,
     "supportsLandingPage": false,
     "supportsMultiVisualSelection": true,
-    "privileges": []
+    "privileges": [
+        {
+            "name": "ExportContent",
+            "essential": true
+        }
+    ]
 }
