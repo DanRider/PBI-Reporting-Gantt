@@ -327,6 +327,9 @@ export class Visual implements IVisual {
     // Absence from the map = "visible" (Map is sparse, only non-default).
     private milestoneTypeState: Map<string, "transparent" | "hidden"> = new Map();
     private lastOptions: VisualUpdateOptions | null = null;
+    // v3.0 — timestamp the LAST update() that carried a dataView. Used by
+    // the Excel export filename suffix to tag exports with the data vintage.
+    private lastDataRefreshTime: Date | null = null;
 
     constructor(options?: VisualConstructorOptions) {
         // pbiviz 6.2's auto-generated visualPlugin.ts emits
@@ -582,10 +585,15 @@ export class Visual implements IVisual {
             onExport: () => {
                 // v3.0 Hello-World export. exportToExcel does the dispatch
                 // (optional local helper bypass first, native PBI download
-                // path second). Failures land in the console; PBI surfaces
-                // its own "Download unavailable" dialog when tenant policy
-                // blocks the native path.
-                exportToExcel(this.host).catch(err => {
+                // path second). The filename is suffixed with the data
+                // vintage (last dataView arrival) so distinct refreshes get
+                // distinct files; same-day re-exports overwrite cleanly.
+                const stamp = this.lastDataRefreshTime ?? new Date();
+                const yyyy = stamp.getFullYear();
+                const mm = String(stamp.getMonth() + 1).padStart(2, "0");
+                const dd = String(stamp.getDate()).padStart(2, "0");
+                const filename = `cortex-hello-world_${yyyy}-${mm}-${dd}.xlsx`;
+                exportToExcel(this.host, filename).catch(err => {
                     console.error("[cortex-export] threw:", err);
                 });
             },
@@ -631,6 +639,15 @@ export class Visual implements IVisual {
         this.lastOptions = options;
 
         const dataView = options.dataViews && options.dataViews[0];
+
+        // v3.0 — record "data vintage" timestamp whenever a dataView arrives.
+        // Used by the Excel export filename suffix so re-exports against the
+        // same data overwrite cleanly while exports against refreshed data
+        // get distinct filenames. Proxy for the dataset's actual refresh
+        // time (which the custom-visual API doesn't expose directly).
+        if (dataView) {
+            this.lastDataRefreshTime = new Date();
+        }
         this.settings = this.settingsService.populateFormattingSettingsModel(
             VisualFormattingSettingsModel,
             dataView

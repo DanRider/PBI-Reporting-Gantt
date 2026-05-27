@@ -50,6 +50,7 @@ const STATUS_NAMES: Record<number, string> = {
 
 export async function exportToExcel(
     host: IVisualHost,
+    filename: string = "cortex-hello-world.xlsx",
     onDiag: (d: ExportDiagnostic) => void = () => { /* no-op default */ },
 ): Promise<void> {
     onDiag({ kind: "started" });
@@ -97,7 +98,6 @@ export async function exportToExcel(
     const buffer = (await wb.xlsx.writeBuffer()) as ArrayBuffer;
     onDiag({ kind: "workbook-built", bytes: buffer.byteLength });
     const base64 = arrayBufferToBase64(buffer);
-    const filename = "cortex-hello-world.xlsx";
 
     // PATH (a) — optional local export helper. Stub returns false in the
     // published build; developer-machine overrides may bypass PBI's
