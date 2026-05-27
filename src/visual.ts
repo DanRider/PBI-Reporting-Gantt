@@ -98,6 +98,12 @@ import { bindingDisplayName, pluralize } from "./utils/bindingNames";
 // which also handles applyJsonFilter pushback + host.persistProperties round-trip.
 import { mountFilterPanelController, FilterPanelController } from "./render/filterPanel/controller";
 
+// v3.0 Excel export entry point. exportToExcel() ships the Hello-World
+// pipeline test today; later dispatches on a templateId once real
+// templates land. Single function, single import — no churn at call site
+// as the export surface grows.
+import { exportToExcel } from "./excel";
+
 // v2.1 audit-fix #24 — slider + toggles share the top:6 chrome row.
 // Just enough push so chart title doesn't render under the chrome.
 // Tighter than the original 80px attempt (operator: "minimal").
@@ -573,6 +579,13 @@ export class Visual implements IVisual {
             },
             getFilterActiveCount: () => this.filterPanel.activeCount(),
             isFilterOpen: () => this.filterPanel.isOpen(),
+            onExport: () => {
+                // v3.0 hello-world — proves the export pipeline works inside
+                // the PBI iframe sandbox. Real templates ship after this lands.
+                exportToExcel().catch(err => {
+                    console.error("[cortex-export] hello-world failed:", err);
+                });
+            },
         });
 
         // v2.1 audit-fix #24 — master time slider mounts on root above the
