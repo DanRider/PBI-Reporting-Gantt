@@ -1,7 +1,7 @@
 // v2.2 T2 + S2 — resolve the user-bound column displayName for a given
 // capability role. Use at all user-visible label sites so a report whose
-// author binds an "Initiative" column to the activity role sees
-// "Initiative" in tooltips and Inspector text — not the static "Activity"
+// author binds an "Workstream" column to the activity role sees
+// "Workstream" in tooltips and Inspector text — not the static "Activity"
 // from capabilities.json.
 //
 // Resolution order:
@@ -34,7 +34,7 @@ export function bindingDisplayName(
 }
 
 // Naive English pluralization. Sufficient for typical column-name nouns
-// (Activity -> Activities, Initiative -> Initiatives, Process ->
+// (Activity -> Activities, Workstream -> Workstreams, Process ->
 // Processes). Doesn't handle irregular plurals (Person -> People) — if a
 // report uses an irregular column name, the singular form is still
 // correct everywhere else; only the count-suffix line in laneDetail is

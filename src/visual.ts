@@ -140,8 +140,8 @@ interface TooltipConfig {
     hideRowWhenEmpty: boolean;
     emptyPlaceholder: string;
     // v2.2 T2 — bound-field labels. Resolved via bindingDisplayName at
-    // call site so a user binding an "Initiative" column to the activity
-    // role sees "Initiative" (not "Activity") as the tooltip row label.
+    // call site so a user binding an "Workstream" column to the activity
+    // role sees "Workstream" (not "Activity") as the tooltip row label.
     areaLabel: string;
     activityLabel: string;
 }
@@ -1369,7 +1369,7 @@ export class Visual implements IVisual {
 
         const tooltipCard = this.settings.tooltip;
         // v2.2 T2 — resolve bound-field labels so tooltips reflect the
-        // user's column names ("Initiative" / "Department") instead of
+        // user's column names ("Workstream" / "Department") instead of
         // the static "Activity" / "Swim Lane" fallbacks.
         const tooltipCfg: TooltipConfig = {
             showNote: tooltipCard.showNote.value,

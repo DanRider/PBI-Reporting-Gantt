@@ -23,7 +23,7 @@ export function renderLaneDetail(
     // v2.2 T2 + S2 — bound-field nouns for the count summary line. Caller
     // (visual.ts) passes bindingDisplayName("activity", ...) /
     // bindingDisplayName("milestoneActivity", ...) so labels reflect the
-    // user's column names ("Initiative" / "Milestone"). Optional for
+    // user's column names ("Workstream" / "Milestone"). Optional for
     // backward compat — undefined falls back to "activity" / "milestone".
     activityNoun?: string,
     milestoneNoun?: string,

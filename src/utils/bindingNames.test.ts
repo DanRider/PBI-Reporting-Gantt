@@ -18,16 +18,16 @@ function makeDataView(columns: Array<{
 describe("bindingDisplayName — resolution", () => {
     it("returns bound column's displayName for the role", () => {
         const dv = makeDataView([
-            { displayName: "Initiative", roles: { activity: true } },
+            { displayName: "Workstream", roles: { activity: true } },
             { displayName: "Department", roles: { area: true } },
         ]);
-        expect(bindingDisplayName("activity", dv, "Activity")).toBe("Initiative");
+        expect(bindingDisplayName("activity", dv, "Activity")).toBe("Workstream");
         expect(bindingDisplayName("area", dv, "Swim Lane")).toBe("Department");
     });
 
     it("returns fallback when role isn't bound", () => {
         const dv = makeDataView([
-            { displayName: "Initiative", roles: { activity: true } },
+            { displayName: "Workstream", roles: { activity: true } },
         ]);
         expect(bindingDisplayName("area", dv, "Swim Lane")).toBe("Swim Lane");
     });
@@ -59,7 +59,7 @@ describe("bindingDisplayName — resolution", () => {
 
 describe("pluralize — naive English inflection", () => {
     it("regular nouns: appends 's'", () => {
-        expect(pluralize("Initiative")).toBe("Initiatives");
+        expect(pluralize("Workstream")).toBe("Workstreams");
         expect(pluralize("Workstream")).toBe("Workstreams");
         expect(pluralize("Department")).toBe("Departments");
     });

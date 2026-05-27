@@ -196,7 +196,7 @@ export function renderSimpleTable(
     // prior regex (`/^activity$/i`, `/^area$|/swim/i`) only worked when the
     // user's bound column happened to be named "Activity" / "Area" / "Swim
     // Lane". With real data where columns are bound with names like
-    // "Initiative" or "Department", the regex missed, areaCol = -1, rowArea
+    // "Workstream" or "Department", the regex missed, areaCol = -1, rowArea
     // = "", and the rowTintByArea lookup silently fell back to neutral
     // stripes — the table lost its responsive coloring entirely.
     const idx = indexMap(dataView?.table);
