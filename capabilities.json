@@ -89,6 +89,12 @@
             "displayName": "Milestone Health",
             "kind": "Grouping",
             "description": "(Optional) Status indicator — e.g. Green / Yellow / Red. Surfaced in the milestone Inspector when bound."
+        },
+        {
+            "name": "activityHealth",
+            "displayName": "Activity Health",
+            "kind": "Grouping",
+            "description": "(Optional) Per-activity status/alert indicator — e.g. Green / Yellow / Red, or semantic values like 'On Track' / 'At Risk' / 'Off Track' / 'Blocked'. When bound, the activity's left bullet renders in the alert color (via Milestone Health Colors palette); when unbound, the bullet falls back to the swim-lane color."
         }
     ],
     "objects": {
@@ -1212,6 +1218,11 @@
                         {
                             "for": {
                                 "in": "milestoneHealth"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "activityHealth"
                             }
                         }
                     ],

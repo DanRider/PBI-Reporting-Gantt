@@ -39,6 +39,11 @@ export interface Activity {
     end: Date;
     index: number;
     note: string | null;    // optional per-row status note from Activity Note role; null when unbound or empty
+    // v2.2 L2 — optional per-activity health/alert string. When bound, drives
+    // the bullet color via healthColor() (palette = milestoneHealthColors).
+    // Recognizes literal "Green"/"Yellow"/"Red" AND semantic values like
+    // "On Track" / "At Risk" / "Off Track" / "Blocked" / "Complete".
+    health: string | null;
 }
 
 export interface Milestone {
@@ -134,6 +139,10 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
                     end,
                     index: activityMap.size,
                     note: strAt(row, idx.activityNote),
+                    // v2.2 L2 — read per-activity health/alert column when bound.
+                    // First-row wins (subsequent milestone rows for the same
+                    // activity don't overwrite, matching activityNote behavior).
+                    health: strAt(row, idx.activityHealth),
                 });
             }
         }

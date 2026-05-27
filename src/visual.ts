@@ -1206,6 +1206,17 @@ export class Visual implements IVisual {
             onSelectActivity: (activityName: string) => {
                 this.selectionStore.set({ kind: "activity", activityName });
             },
+            // v2.2 L2 + L3 — alert palette for the activity bullet (left dot).
+            // Same palette as B3's milestone Health dot, so the user has ONE
+            // Format-pane card driving both surfaces. When activityHealth role
+            // is bound, bullet renders in this palette; otherwise bullet
+            // falls back to swim-lane identity color.
+            healthPalette: {
+                green:    this.settings.milestoneHealthColors.green.value.value,
+                yellow:   this.settings.milestoneHealthColors.yellow.value.value,
+                red:      this.settings.milestoneHealthColors.red.value.value,
+                fallback: "#888888",
+            },
         }, colors);
 
         // ── Bars + markers + milestone labels ─────────────────────────────────

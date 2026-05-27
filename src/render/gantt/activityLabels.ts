@@ -5,6 +5,7 @@ import { ScaleTime } from "d3-scale";
 import { Activity } from "../../viewmodel";
 import { activityColor, ColorContext } from "../../utils/colors";
 import { FontStyle, applyFont, canvasFontString } from "../../utils/font";
+import { healthColor, HealthColorPalette } from "../../utils/healthColor";
 
 const LOLLIPOP_CIRCLE_R = 4;
 const LOLLIPOP_STROKE_WIDTH = 2;
@@ -35,6 +36,14 @@ export interface ActivityLabelOptions {
      *  label TEXT (left rail) selects the activity, matching the activity-
      *  bar click behavior. */
     onSelectActivity?: (activityName: string) => void;
+    /** v2.2 L2 + L3 — alert palette for the activity bullet (left dot).
+     *  When an activity has a non-null health value AND this palette is
+     *  provided, bullet color = healthColor(activity.health, palette).
+     *  When unbound, bullet falls back to activityColor() (swim-lane
+     *  identity color, today's behavior). Caller (visual.ts) builds the
+     *  palette from settings.milestoneHealthColors so milestone Health +
+     *  activity Health share one palette / one Format-pane card. */
+    healthPalette?: HealthColorPalette;
 }
 
 export interface ActivityLabelsLayout {
@@ -195,12 +204,19 @@ export function renderActivityLabels(
             // shifts right by BULLET_GAP to make room.
             const BULLET_RADIUS = 4;
             const BULLET_GAP = 10;
+            // v2.2 L3 — bullet (left dot) shows ALERT color when activityHealth
+            // is bound, otherwise swim-lane identity color. Caps stay as
+            // lollipopColor below so bullet and caps can carry distinct
+            // signals when an alert is active.
+            const bulletColor = (a.health && opts.healthPalette)
+                ? healthColor(a.health, opts.healthPalette)
+                : lollipopColor;
             g.append("circle")
                 .attr("class", "activity-label-bullet")
                 .attr("cx", layout.areaStartX + BULLET_RADIUS)
                 .attr("cy", cy)
                 .attr("r", BULLET_RADIUS)
-                .attr("fill", lollipopColor)
+                .attr("fill", bulletColor)
                 .style("pointer-events", "none");
             const textX = layout.areaStartX + BULLET_RADIUS * 2 + BULLET_GAP;
 
@@ -266,14 +282,27 @@ export function renderActivityLabels(
             barStartX - LOLLIPOP_TO_BAR_GAP - LOLLIPOP_CIRCLE_R
         );
 
+        // v2.2 L1 — line now starts AT lineStartX + LOLLIPOP_CIRCLE_R so it
+        // doesn't paint behind the new LEFT cap circle. x2 unchanged (still
+        // reserves room for the RIGHT cap circle).
         g.append("line")
             .attr("class", "activity-lollipop-line")
-            .attr("x1", lineStartX)
+            .attr("x1", lineStartX + LOLLIPOP_CIRCLE_R)
             .attr("x2", circleX - LOLLIPOP_CIRCLE_R)
             .attr("y1", cy).attr("y2", cy)
             .attr("stroke", lollipopColor)
             .attr("stroke-width", LOLLIPOP_STROKE_WIDTH)
             .attr("stroke-linecap", "round");
+
+        // v2.2 L1 — LEFT cap (new). Mirrors the existing right-end cap so
+        // the dash reads as *========* instead of ========*. Same color as
+        // the line + right cap (lollipopColor = activity area color or
+        // per-activity palette in lane-focus). Bullet (above) is separate.
+        g.append("circle")
+            .attr("class", "activity-lollipop-cap-left")
+            .attr("cx", lineStartX).attr("cy", cy)
+            .attr("r", LOLLIPOP_CIRCLE_R)
+            .attr("fill", lollipopColor);
 
         g.append("circle")
             .attr("class", "activity-lollipop-cap")

@@ -21,6 +21,10 @@ export const ROLE = {
     milestoneStatus:      "milestoneStatus",
     milestoneExternalUrl: "milestoneExternalUrl",
     milestoneHealth:      "milestoneHealth",
+    // v2.2 L2 — per-activity health/alert column. Drives the bullet color
+    // at the start of the activity label row (left dot). When unbound,
+    // bullet falls back to the swim-lane color.
+    activityHealth:       "activityHealth",
 } as const;
 
 export type RoleName = typeof ROLE[keyof typeof ROLE];
