@@ -20,6 +20,7 @@ import { VisualFormattingSettingsModel } from "./settings";
 import {
     buildAreaColorMap,
     buildMilestoneConfigMap,
+    buildHealthIconMap,
     buildColorContext,
     typeColor,
     ColorContext,
@@ -785,6 +786,9 @@ export class Visual implements IVisual {
 
         const areaColorMap = buildAreaColorMap(vm.areaBindings, this.settings.swimlanes);
         const milestoneConfig = buildMilestoneConfigMap(vm.typeBindings, this.settings.milestones);
+        // v2.2 INF-3738 — per-value health icon map. Loop-invariant; built
+        // once per render. activityLabels.ts looks up by activity.health.
+        const healthIconMap = buildHealthIconMap(vm.healthBindings, this.settings.activityHealthIcons);
         const colors: ColorContext = buildColorContext(areaColorMap, milestoneConfig, activityColors);
 
         // v2.1 audit-fix #17 — milestone-type color map for the activity
@@ -963,6 +967,39 @@ export class Visual implements IVisual {
         };
         hideIfNoType("type1", slot1Type != null);
         hideIfNoType("type2", slot2Type != null);
+
+        // v2.2 INF-3738 — Override ActivityHealthIconsCard slot displayNames
+        // from bound health values so the Format pane shows actual data values
+        // ("At Risk symbol" not "Slot 1 symbol"). Hide unused slots so the
+        // Format pane stays tidy and only exposes slots for values present
+        // in the user's data.
+        const ahi = this.settings.activityHealthIcons;
+        // Tuple type inferred from the property accesses — each slot has
+        // an ItemDropdown + ColorPicker + NumUpDown. All three share
+        // .visible and .displayName fields via the FormattingSettings.Slice
+        // base; no explicit annotation needed.
+        const ahiTriples = [
+            [ahi.slot1Symbol, ahi.slot1Color, ahi.slot1Size],
+            [ahi.slot2Symbol, ahi.slot2Color, ahi.slot2Size],
+            [ahi.slot3Symbol, ahi.slot3Color, ahi.slot3Size],
+            [ahi.slot4Symbol, ahi.slot4Color, ahi.slot4Size],
+            [ahi.slot5Symbol, ahi.slot5Color, ahi.slot5Size],
+        ];
+        for (let i = 0; i < ahiTriples.length; i++) {
+            const binding = vm.healthBindings[i];
+            const triple = ahiTriples[i];
+            const sym = triple[0];
+            const col = triple[1];
+            const sz  = triple[2];
+            if (binding) {
+                sym.visible = true; col.visible = true; sz.visible = true;
+                sym.displayName = `${binding.healthValue} symbol`;
+                col.displayName = `${binding.healthValue} color`;
+                sz.displayName  = `${binding.healthValue} size (px)`;
+            } else {
+                sym.visible = false; col.visible = false; sz.visible = false;
+            }
+        }
 
         // ── Outer margins ─────────────────────────────────────────────────────
         // audit-fix #24c — wrapper top now carries the chrome offset (see
@@ -1207,16 +1244,19 @@ export class Visual implements IVisual {
                 this.selectionStore.set({ kind: "activity", activityName });
             },
             // v2.2 L2 + L3 — alert palette for the activity bullet (left dot).
-            // Same palette as B3's milestone Health dot, so the user has ONE
-            // Format-pane card driving both surfaces. When activityHealth role
-            // is bound, bullet renders in this palette; otherwise bullet
-            // falls back to swim-lane identity color.
+            // Fallback path when no per-value icon is bound. Same palette as
+            // B3's milestone Health dot so the user has ONE Format-pane card
+            // driving both surfaces.
             healthPalette: {
                 green:    this.settings.milestoneHealthColors.green.value.value,
                 yellow:   this.settings.milestoneHealthColors.yellow.value.value,
                 red:      this.settings.milestoneHealthColors.red.value.value,
                 fallback: "#888888",
             },
+            // v2.2 INF-3738 — per-value icon binding (primary path when bound).
+            // Maps activity.health -> { symbol, color, size } per the
+            // Activity Health Icons Format-pane card.
+            healthIconMap,
         }, colors);
 
         // ── Bars + markers + milestone labels ─────────────────────────────────

@@ -21,6 +21,10 @@ export const PHANTOM_TYPE = "__phantom";
 // See design notes for the rationale.
 export const MAX_MILESTONE_TYPES = 2;
 export const MAX_SWIM_LANES = 8;
+// v2.2 INF-3738 — cap for distinct activity-health values rendered with
+// per-value icon+color. Same architectural constraint as MAX_MILESTONE_TYPES
+// (PBI formattingSettings can't round-trip dynamic-N).
+export const MAX_HEALTH_VALUES = 5;
 
 export interface MilestoneTypeBinding {
     typeName: string;
@@ -30,6 +34,14 @@ export interface MilestoneTypeBinding {
 export interface AreaBinding {
     areaName: string;
     slotIndex: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+}
+
+// v2.2 INF-3738 — first 5 distinct activity-health values bind to slots
+// 0..4. Each slot has a Format-pane symbol + color + size (see
+// activityHealthIcons object in capabilities.json).
+export interface HealthBinding {
+    healthValue: string;
+    slotIndex: 0 | 1 | 2 | 3 | 4;
 }
 
 export interface Activity {
@@ -76,8 +88,10 @@ export interface RoadmapViewModel {
     areaGroups: AreaGroup[];
     distinctAreas: string[];
     distinctTypes: string[];
+    distinctHealthValues: string[];        // v2.2 INF-3738 — first-seen activity-health values
     typeBindings: MilestoneTypeBinding[];  // first 2 types bound to slots 0/1 (cap-2)
     areaBindings: AreaBinding[];           // first 8 areas bound to slots 0..7 (cap-8)
+    healthBindings: HealthBinding[];       // v2.2 INF-3738 — first 5 health values bound to slots 0..4
     dateExtent: [Date, Date];
 }
 
@@ -87,8 +101,10 @@ export const EMPTY_VIEWMODEL: RoadmapViewModel = {
     areaGroups: [],
     distinctAreas: [],
     distinctTypes: [],
+    distinctHealthValues: [],
     typeBindings: [],
     areaBindings: [],
+    healthBindings: [],
     dateExtent: [new Date(), new Date()],
 };
 
@@ -118,6 +134,9 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
     const areaSeen = new Set<string>();
     const typeFirstSeen: string[] = [];                  // first-seen-in-data type sort
     const typeSeen = new Set<string>();
+    // v2.2 INF-3738 — collect distinct activity-health values for slot binding.
+    const healthFirstSeen: string[] = [];
+    const healthSeen = new Set<string>();
     const milestonesRaw: Milestone[] = [];
     let milestoneCounter = 0;
 
@@ -132,6 +151,14 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
                     areaSeen.add(area);
                     areaFirstSeen.push(area);
                 }
+                // v2.2 L2 — read per-activity health/alert column when bound.
+                // First-row wins (subsequent milestone rows for the same
+                // activity don't overwrite, matching activityNote behavior).
+                const aHealth = strAt(row, idx.activityHealth);
+                if (aHealth && !healthSeen.has(aHealth)) {
+                    healthSeen.add(aHealth);
+                    healthFirstSeen.push(aHealth);
+                }
                 activityMap.set(aName, {
                     name: aName,
                     area,
@@ -139,10 +166,7 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
                     end,
                     index: activityMap.size,
                     note: strAt(row, idx.activityNote),
-                    // v2.2 L2 — read per-activity health/alert column when bound.
-                    // First-row wins (subsequent milestone rows for the same
-                    // activity don't overwrite, matching activityNote behavior).
-                    health: strAt(row, idx.activityHealth),
+                    health: aHealth,
                 });
             }
         }
@@ -223,14 +247,34 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
         slotIndex: i as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7,
     }));
 
+    // v2.2 INF-3738 — cap activity-health distinct values at MAX_HEALTH_VALUES
+    // with the same first-seen-binds-to-slot pattern as milestone types and
+    // swim lanes. Activities whose health value is bound get a per-value
+    // icon+color in the bullet; activities whose value is NOT bound (overflow,
+    // unbound role, null) fall back to today's swim-lane circle in renderer.
+    const boundHealthValues = healthFirstSeen.slice(0, MAX_HEALTH_VALUES);
+    if (healthFirstSeen.length > MAX_HEALTH_VALUES && typeof console !== "undefined") {
+        console.warn(
+            `[Reporting Gantt] Data has ${healthFirstSeen.length} distinct Activity Health values; ` +
+            `only the first ${MAX_HEALTH_VALUES} render with custom icons. Bound: [${boundHealthValues.join(", ")}]. ` +
+            `Dropped (render as swim-lane circle): [${healthFirstSeen.slice(MAX_HEALTH_VALUES).join(", ")}].`
+        );
+    }
+    const healthBindings: HealthBinding[] = boundHealthValues.map((healthValue, i) => ({
+        healthValue,
+        slotIndex: i as 0 | 1 | 2 | 3 | 4,
+    }));
+
     return {
         activities,
         milestones: filteredDeduped,
         areaGroups,
         distinctAreas: areaFirstSeen,
         distinctTypes: typeFirstSeen,
+        distinctHealthValues: healthFirstSeen,
         typeBindings,
         areaBindings,
+        healthBindings,
         dateExtent,
     };
 }

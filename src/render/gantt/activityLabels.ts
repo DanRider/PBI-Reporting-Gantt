@@ -3,9 +3,10 @@
 import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
 import { Activity } from "../../viewmodel";
-import { activityColor, ColorContext } from "../../utils/colors";
+import { activityColor, ColorContext, ActivityHealthIconConfig } from "../../utils/colors";
 import { FontStyle, applyFont, canvasFontString } from "../../utils/font";
 import { healthColor, HealthColorPalette } from "../../utils/healthColor";
+import { symbolPath, symbolNeedsEvenOddFill } from "../../utils/symbols";
 
 const LOLLIPOP_CIRCLE_R = 4;
 const LOLLIPOP_STROKE_WIDTH = 2;
@@ -37,13 +38,19 @@ export interface ActivityLabelOptions {
      *  bar click behavior. */
     onSelectActivity?: (activityName: string) => void;
     /** v2.2 L2 + L3 — alert palette for the activity bullet (left dot).
-     *  When an activity has a non-null health value AND this palette is
-     *  provided, bullet color = healthColor(activity.health, palette).
-     *  When unbound, bullet falls back to activityColor() (swim-lane
-     *  identity color, today's behavior). Caller (visual.ts) builds the
-     *  palette from settings.milestoneHealthColors so milestone Health +
-     *  activity Health share one palette / one Format-pane card. */
+     *  Fallback when healthIconMap doesn't have an entry for this row's
+     *  health value (e.g., value bound but no slot configured yet). When
+     *  activity has a non-null health value AND this palette is provided,
+     *  bullet color = healthColor(activity.health, palette). Otherwise
+     *  bullet falls back to activityColor() (swim-lane identity color). */
     healthPalette?: HealthColorPalette;
+    /** v2.2 INF-3738 — per-value icon binding for the activity bullet.
+     *  When activity.health is a key in this map, bullet renders as the
+     *  configured symbol/color/size (replaces the default circle entirely).
+     *  When not in map (value not bound to a slot OR no activityHealth
+     *  binding at all), bullet falls back through healthPalette → swim-lane
+     *  circle. Caller (visual.ts) builds via buildHealthIconMap(). */
+    healthIconMap?: Record<string, ActivityHealthIconConfig>;
 }
 
 export interface ActivityLabelsLayout {
@@ -204,20 +211,39 @@ export function renderActivityLabels(
             // shifts right by BULLET_GAP to make room.
             const BULLET_RADIUS = 4;
             const BULLET_GAP = 10;
-            // v2.2 L3 — bullet (left dot) shows ALERT color when activityHealth
-            // is bound, otherwise swim-lane identity color. Caps stay as
-            // lollipopColor below so bullet and caps can carry distinct
-            // signals when an alert is active.
-            const bulletColor = (a.health && opts.healthPalette)
-                ? healthColor(a.health, opts.healthPalette)
-                : lollipopColor;
-            g.append("circle")
-                .attr("class", "activity-label-bullet")
-                .attr("cx", layout.areaStartX + BULLET_RADIUS)
-                .attr("cy", cy)
-                .attr("r", BULLET_RADIUS)
-                .attr("fill", bulletColor)
-                .style("pointer-events", "none");
+            const bulletCx = layout.areaStartX + BULLET_RADIUS;
+            // v2.2 INF-3738 — bullet rendering priority:
+            //   1. healthIconMap[a.health] -> per-value custom symbol
+            //   2. healthPalette fallback   -> circle in healthColor() (B3-style)
+            //   3. swim-lane fallback       -> circle in lollipopColor (today's)
+            // textX uses BULLET_RADIUS regardless of which path runs so the
+            // label text stays left-aligned across the chart (operator's
+            // explicit ask: "all of the text still perfectly left aligns").
+            const iconBinding = (a.health && opts.healthIconMap)
+                ? opts.healthIconMap[a.health]
+                : undefined;
+            if (iconBinding) {
+                const iconR = Math.min(iconBinding.size, rowHeight - 4) / 2;
+                const pathEl = g.append("path")
+                    .attr("class", "activity-label-bullet")
+                    .attr("d", symbolPath(iconBinding.symbol, bulletCx, cy, iconR))
+                    .attr("fill", iconBinding.color)
+                    .style("pointer-events", "none");
+                if (symbolNeedsEvenOddFill(iconBinding.symbol)) {
+                    pathEl.attr("fill-rule", "evenodd");
+                }
+            } else {
+                const bulletColor = (a.health && opts.healthPalette)
+                    ? healthColor(a.health, opts.healthPalette)
+                    : lollipopColor;
+                g.append("circle")
+                    .attr("class", "activity-label-bullet")
+                    .attr("cx", bulletCx)
+                    .attr("cy", cy)
+                    .attr("r", BULLET_RADIUS)
+                    .attr("fill", bulletColor)
+                    .style("pointer-events", "none");
+            }
             const textX = layout.areaStartX + BULLET_RADIUS * 2 + BULLET_GAP;
 
             // v2.1 audit-fix — click any label text to select the activity.

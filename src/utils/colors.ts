@@ -1,7 +1,7 @@
 "use strict";
 
 import { SymbolKind, isSymbolKind } from "./symbols";
-import { MilestoneTypeBinding, AreaBinding } from "../viewmodel";
+import { MilestoneTypeBinding, AreaBinding, HealthBinding } from "../viewmodel";
 
 export interface MilestoneTypeConfig {
     color: string;
@@ -106,4 +106,63 @@ export function activityColor(activityName: string, area: string, ctx: ColorCont
 
 export function typeColor(typeName: string, ctx: ColorContext): string {
     return ctx.milestoneConfig[typeName]?.color ?? FALLBACK_COLOR;
+}
+
+// v2.2 INF-3738 — per-value icon binding for the activity bullet (left dot).
+// Resolved by the same shape as MilestoneTypeConfig: each value gets a
+// symbol kind + fill color + render size in px.
+export interface ActivityHealthIconConfig {
+    symbol: SymbolKind;
+    color: string;
+    size: number;
+}
+
+// Settings shape required to derive per-value health icon config (cap-5).
+export interface ActivityHealthIconsSettingsShape {
+    slot1Symbol: { value: { value: string | number } };
+    slot1Color:  { value: { value: string } };
+    slot1Size:   { value: number };
+    slot2Symbol: { value: { value: string | number } };
+    slot2Color:  { value: { value: string } };
+    slot2Size:   { value: number };
+    slot3Symbol: { value: { value: string | number } };
+    slot3Color:  { value: { value: string } };
+    slot3Size:   { value: number };
+    slot4Symbol: { value: { value: string | number } };
+    slot4Color:  { value: { value: string } };
+    slot4Size:   { value: number };
+    slot5Symbol: { value: { value: string | number } };
+    slot5Color:  { value: { value: string } };
+    slot5Size:   { value: number };
+}
+
+// Build a Record<healthValue, config> map from the first-N healthBindings
+// crossed with the static slot settings. Same shape as buildAreaColorMap +
+// buildMilestoneConfigMap. Called once per render at the top of update().
+export function buildHealthIconMap(
+    healthBindings: HealthBinding[],
+    settings: ActivityHealthIconsSettingsShape,
+): Record<string, ActivityHealthIconConfig> {
+    const out: Record<string, ActivityHealthIconConfig> = {};
+    const slotSymbols = [
+        settings.slot1Symbol, settings.slot2Symbol, settings.slot3Symbol,
+        settings.slot4Symbol, settings.slot5Symbol,
+    ];
+    const slotColors = [
+        settings.slot1Color, settings.slot2Color, settings.slot3Color,
+        settings.slot4Color, settings.slot5Color,
+    ];
+    const slotSizes = [
+        settings.slot1Size, settings.slot2Size, settings.slot3Size,
+        settings.slot4Size, settings.slot5Size,
+    ];
+    for (const b of healthBindings) {
+        const symbolRaw = String(slotSymbols[b.slotIndex].value.value);
+        out[b.healthValue] = {
+            symbol: isSymbolKind(symbolRaw) ? symbolRaw : "circle",
+            color:  slotColors[b.slotIndex].value.value,
+            size:   slotSizes[b.slotIndex].value,
+        };
+    }
+    return out;
 }

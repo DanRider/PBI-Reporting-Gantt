@@ -388,6 +388,91 @@ class TimeAxisCard extends CompositeCard {
     ];
 }
 
+// v2.2 INF-3738 — per-value icon + color + size for the activity bullet
+// (left dot). Mirrors the milestone-type cap-N pattern: 5 fixed slots,
+// first 5 distinct values from data bind to slots, slot displayNames
+// overridden at runtime in visual.ts to show the actual data value.
+const HEALTH_SYMBOL_ITEMS = [
+    { value: "warning", displayName: "Warning" },
+    { value: "block",   displayName: "Blocked" },
+    { value: "pause",   displayName: "Paused" },
+    { value: "x",       displayName: "Off Track" },
+    { value: "circle",  displayName: "Dot" },
+];
+
+class ActivityHealthIconsCard extends SimpleCard {
+    // Slot 1 defaults: ⚠ warning + yellow — typical "At Risk" first-value
+    slot1Symbol = new formattingSettings.ItemDropdown({
+        name: "slot1Symbol", displayName: "Slot 1 symbol",
+        items: HEALTH_SYMBOL_ITEMS,
+        value: { value: "warning", displayName: "Warning" },
+    });
+    slot1Color = new formattingSettings.ColorPicker({
+        name: "slot1Color", displayName: "Slot 1 color", value: { value: "#e6b800" },
+    });
+    slot1Size = new formattingSettings.NumUpDown({
+        name: "slot1Size", displayName: "Slot 1 size (px)", value: 12,
+    });
+    // Slot 2 defaults: ⛔ block + red
+    slot2Symbol = new formattingSettings.ItemDropdown({
+        name: "slot2Symbol", displayName: "Slot 2 symbol",
+        items: HEALTH_SYMBOL_ITEMS,
+        value: { value: "block", displayName: "Blocked" },
+    });
+    slot2Color = new formattingSettings.ColorPicker({
+        name: "slot2Color", displayName: "Slot 2 color", value: { value: "#d62728" },
+    });
+    slot2Size = new formattingSettings.NumUpDown({
+        name: "slot2Size", displayName: "Slot 2 size (px)", value: 12,
+    });
+    // Slot 3 defaults: ⏸ pause + grey
+    slot3Symbol = new formattingSettings.ItemDropdown({
+        name: "slot3Symbol", displayName: "Slot 3 symbol",
+        items: HEALTH_SYMBOL_ITEMS,
+        value: { value: "pause", displayName: "Paused" },
+    });
+    slot3Color = new formattingSettings.ColorPicker({
+        name: "slot3Color", displayName: "Slot 3 color", value: { value: "#888888" },
+    });
+    slot3Size = new formattingSettings.NumUpDown({
+        name: "slot3Size", displayName: "Slot 3 size (px)", value: 12,
+    });
+    // Slot 4 defaults: ✗ x + red
+    slot4Symbol = new formattingSettings.ItemDropdown({
+        name: "slot4Symbol", displayName: "Slot 4 symbol",
+        items: HEALTH_SYMBOL_ITEMS,
+        value: { value: "x", displayName: "Off Track" },
+    });
+    slot4Color = new formattingSettings.ColorPicker({
+        name: "slot4Color", displayName: "Slot 4 color", value: { value: "#d62728" },
+    });
+    slot4Size = new formattingSettings.NumUpDown({
+        name: "slot4Size", displayName: "Slot 4 size (px)", value: 12,
+    });
+    // Slot 5 defaults: ● dot + green (the "on-track" / "good" value if user
+    // bound such a value; visible confirmation rather than absence-of-signal)
+    slot5Symbol = new formattingSettings.ItemDropdown({
+        name: "slot5Symbol", displayName: "Slot 5 symbol",
+        items: HEALTH_SYMBOL_ITEMS,
+        value: { value: "circle", displayName: "Dot" },
+    });
+    slot5Color = new formattingSettings.ColorPicker({
+        name: "slot5Color", displayName: "Slot 5 color", value: { value: "#2ca02c" },
+    });
+    slot5Size = new formattingSettings.NumUpDown({
+        name: "slot5Size", displayName: "Slot 5 size (px)", value: 12,
+    });
+    name: string = "activityHealthIcons";
+    displayName: string = "Activity Health Icons";
+    slices: FormattingSettingsSlice[] = [
+        this.slot1Symbol, this.slot1Color, this.slot1Size,
+        this.slot2Symbol, this.slot2Color, this.slot2Size,
+        this.slot3Symbol, this.slot3Color, this.slot3Size,
+        this.slot4Symbol, this.slot4Color, this.slot4Size,
+        this.slot5Symbol, this.slot5Color, this.slot5Size,
+    ];
+}
+
 // v2.2 B3 — palette for the milestone Inspector's Health dot. Drives the
 // healthColor() utility, which maps both literal color names AND semantic
 // status strings (On Track / At Risk / Off Track / Blocked / etc.) to
@@ -413,6 +498,7 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     layout = new LayoutCard();
     milestones = new MilestonesCard();
     milestoneHealthColors = new MilestoneHealthColorsCard();
+    activityHealthIcons = new ActivityHealthIconsCard();
     activityLabels = new ActivityLabelsCard();
     swimlanes = new SwimlanesCard();
     timeAxis = new TimeAxisCard();
@@ -424,6 +510,7 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
         this.layout,
         this.swimlanes,
         this.activityLabels,
+        this.activityHealthIcons,
         this.milestones,
         this.milestoneHealthColors,
         this.timeAxis,
