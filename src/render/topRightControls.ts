@@ -17,6 +17,8 @@
 // any filter is engaged so the user always knows filters are on even when
 // the sidebar is closed.
 
+import { CHROME_LABEL_CSS } from "./chromeLabelStyle";
+
 export type RegionKey = "gantt" | "table";
 
 export interface TopRightControlsOptions {
@@ -46,6 +48,14 @@ export interface TopRightControlsHandle {
     /** v2.2 INF-3739 — push the cluster's top anchor down by N px so the
      *  dedicated slicer container above can occupy row 0. */
     setTopOffset(px: number): void;
+    /** The funnel/filter button element. Exposed so when a dim is pinned
+     *  the visual can lift it into the slicer strip; restoreFilterButton
+     *  puts it back when nothing is pinned. */
+    filterButtonElement: HTMLElement;
+    /** Re-attach filterButtonElement as the first child of the default
+     *  topRight container (the toggle row). Safe to call repeatedly —
+     *  appendChild moves the node rather than cloning. */
+    restoreFilterButton(): void;
     element: HTMLElement;
 }
 
@@ -66,13 +76,27 @@ function buildContainer(): HTMLDivElement {
     div.style.cssText = [
         "position:absolute",
         "top:6px",
-        "left:6px",
+        // Shifted right to clear the funnel's anchored slot (left:6, width:22)
+        // + an 8px gap = left:36. The toggle row now contains only the
+        // boolean toggles + download button; the funnel is its own thing
+        // appended directly to root (see mountTopRightControls).
+        "left:36px",
         "z-index:12",
         "display:flex",
         "flex-direction:row",
         "gap:8px",
         "align-items:center",
+        // Force container height to 22px (matches the funnel's height/anchor
+        // slot at top:6) so all flex children — Roadmap/Table toggles +
+        // download — center at absolute y=17, sharing a centerline with
+        // the funnel.
+        "height:22px",
         "pointer-events:auto",
+        // INF-3751: CSS transition on `top` — when visual.ts sets the
+        // `.opening`/`.closing` class on documentElement, visual.less
+        // applies `transition: top 1000ms ease` (with directional delay
+        // for sequencing). This element's setTopOffset() write then
+        // animates smoothly instead of snapping.
     ].join(";");
     return div;
 }
@@ -90,7 +114,10 @@ function buildToggle(label: string, title: string): Toggle {
 
     const labelEl = document.createElement("span");
     labelEl.textContent = label;
-    labelEl.style.cssText = `font-size:10px;font-weight:600;color:${LABEL_COLOR};font-family:'Segoe UI',system-ui,sans-serif;`;
+    // CHROME_LABEL_CSS bundles color / weight / size / family — shared with
+    // the strip's dim cluster labels in topSlicerStrip.ts so both surfaces
+    // stay visually identical from a single point of truth.
+    labelEl.style.cssText = CHROME_LABEL_CSS;
     wrap.appendChild(labelEl);
 
     const track = document.createElement("div");
@@ -132,7 +159,16 @@ interface FilterButton {
 function buildFilterButton(): FilterButton {
     const wrap = document.createElement("div");
     wrap.style.cssText = [
-        "position:relative",
+        // Funnel is ABSOLUTE-positioned at top:6 left:6 directly on root
+        // (NOT inside the toggle row's container). It must stay anchored
+        // when the toggle row drops to make space for the slicer strip —
+        // "left behind while the toggle row moves down."
+        // z-index sits above the strip so the strip's content can flow
+        // under it without obscuring the funnel.
+        "position:absolute",
+        "top:6px",
+        "left:6px",
+        "z-index:14",
         "display:flex",
         "align-items:center",
         "justify-content:center",
@@ -143,6 +179,8 @@ function buildFilterButton(): FilterButton {
         "user-select:none",
         "background:transparent",
         "transition:background 120ms ease",
+        // No view-transition-name — the funnel is not in any snapshot and
+        // therefore never animates. It is the still point.
     ].join(";");
     wrap.title = "Show/hide filter panel";
 
@@ -285,7 +323,12 @@ export function mountTopRightControls(
 
     // Chrome reads left → right:
     // [funnel] [Roadmap toggle] [Table toggle] [download]
-    container.appendChild(filterBtn.element);
+    //
+    // BUT the funnel is anchored independently — it goes directly on root
+    // at top:6 left:6, NOT inside the toggle row container. When the toggle
+    // row drops on pin, the funnel stays put ("left behind while the toggle
+    // row moves down"). The container only holds the boolean toggles.
+    root.appendChild(filterBtn.element);
     container.appendChild(ganttToggle.element);
     container.appendChild(tableToggle.element);
     container.appendChild(exportBtn);
@@ -297,6 +340,15 @@ export function mountTopRightControls(
         refresh,
         setTopOffset(px: number): void {
             container.style.top = (6 + Math.max(0, px)) + "px";
+        },
+        filterButtonElement: filterBtn.element,
+        restoreFilterButton(): void {
+            // Move filterBtn back to position 0 in the toggle row.
+            // appendChild/insertBefore move the existing node rather than
+            // cloning — safe to call even when already in place.
+            if (filterBtn.element.parentNode !== container) {
+                container.insertBefore(filterBtn.element, container.firstChild);
+            }
         },
         element: container,
     };

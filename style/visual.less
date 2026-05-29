@@ -43,3 +43,76 @@
         pointer-events: none;
     }
 }
+
+// ==========================================================================
+// INF-3751: Chrome animation — pure CSS transitions on layout properties
+// ==========================================================================
+//
+// Replaces View Transitions API + custom keyframes + ::view-transition-*
+// pseudo rules with plain CSS transitions. Modeled exactly on the master
+// slider's `max-width` fold/fly pattern (masterTimeSlider.ts STRIP_*),
+// just mirrored — the filter strip expands RIGHTWARD from the funnel's
+// right edge, while the master slider expands LEFTWARD from the clock's
+// left edge.
+//
+// Choreography (set + cleared by visual.ts via document.documentElement
+// classList):
+//
+//   .opening (pin first dim, pinnedCount 0 → 1):
+//     0-1000ms:    toggle-row + master-slider drop (transition `top`)
+//     1000-1050ms: buffer
+//     1050-2050ms: filter strip slides out rightward (max-width + opacity)
+//
+//   .closing (unpin last dim, pinnedCount 1 → 0):
+//     0-1000ms:    filter strip retracts into funnel (max-width + opacity)
+//     1000-1050ms: buffer
+//     1050-2050ms: toggle-row + master-slider rise (transition `top`)
+//
+// The class is removed by visual.ts ~200ms after the longest transition
+// completes (setTimeout ~2200ms). Non-boundary updates (intermediate
+// pin/unpin, viewport resize) skip the class entirely so chrome elements
+// snap to their target positions instantly.
+
+@chrome-easing: cubic-bezier(0.45, 0, 0.25, 1);
+@chrome-half-ms: 1000ms;
+@chrome-buffer-ms: 50ms;
+@chrome-opacity-ms: 800ms;
+
+// Baseline transitions live on the chrome elements themselves. Without
+// a directional class on root, these still animate — but in our flow,
+// visual.ts only changes setTopOffset / max-width during a 0↔1 boundary
+// (when the directional class is also set), so the transition effectively
+// only fires during real transitions.
+
+.top-left-toggles {
+    transition: top @chrome-half-ms @chrome-easing;
+}
+
+.master-time-anchor {
+    transition: top @chrome-half-ms @chrome-easing;
+}
+
+// Chart region containers — their `top` is derived from topSlicerHeightPx
+// (set via JS in visual.ts). When the slicer collapses on unpin-last and
+// the toggle row rises, these regions must expand UPWARD at the SAME
+// speed to fill the void. Per operator: "the speed that the toggles
+// move up is matched by the speed that the chart expands upward to fill
+// the void."
+.gantt-hidden-header,
+.matrix-region {
+    transition: top @chrome-half-ms @chrome-easing;
+}
+
+// Filter strip itself does NOT animate. Per-widget wipe animations live
+// on each cluster's inline style — see topSlicerStrip.ts:repaint().
+
+// CLOSING — give the row + slider + chart a small lead-in delay (200ms)
+// so the widget's wipe-out has visibly begun before the chrome starts
+// rising. Without this, all three motions start at t=0 and the row/
+// slider/chart rise can read as "premature" relative to the wipe.
+.closing .top-left-toggles,
+.closing .master-time-anchor,
+.closing .gantt-hidden-header,
+.closing .matrix-region {
+    transition: top @chrome-half-ms @chrome-easing 200ms;
+}

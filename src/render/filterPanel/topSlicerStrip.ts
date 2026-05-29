@@ -21,6 +21,7 @@ import type { WidgetHandle, WidgetRenderer } from "./widgets/widget";
 import { pillsMultiRenderer } from "./widgets/pillsMulti";
 import { pillsSingleRenderer } from "./widgets/pillsSingle";
 import { dropdownMultiRenderer } from "./widgets/dropdownMulti";
+import { CHROME_LABEL_CSS } from "../chromeLabelStyle";
 
 // INF-3745 — re-export PinnedDensity so existing callers (controller.ts,
 // visual.ts) keep working after the cycle break that moved the canonical
@@ -29,6 +30,15 @@ export type { PinnedDensity };
 
 /** Default row height — kept as a fallback sentinel only. */
 export const TOP_SLICER_ROW_HEIGHT_PX = 30;
+
+// INF-3751 animation timing — locked. Single source of truth for the
+// per-widget wipe choreography. Exported so vitest can assert against
+// these values when testing each behavior-map cell.
+export const WIPE_MS_EXPORT = 1000;
+export const WIPE_DELAY_FIRST_PIN_MS_EXPORT = 800;
+export const WIPE_DELAY_DEFAULT_MS_EXPORT = 50;
+export const WIPE_CLEANUP_BUFFER_MS_EXPORT = 50;
+export const WIPE_EASING_EXPORT = "cubic-bezier(0.45, 0, 0.25, 1)";
 
 const STRIP_BG = "#ffffff";
 const STRIP_BORDER = "#c0c0c0";
@@ -60,6 +70,12 @@ interface MountedCluster {
     handle: WidgetHandle;
     kind: ConcreteWidget;
     slotIndex: number;
+    // INF-3751: pending reveal setTimeout. Stored so we can clearTimeout
+    // when the widget is removed mid-reveal (rapid pin → unpin clicks).
+    // Without cancellation, the deferred reveal would fire AFTER the
+    // widget has been marked for destruction, briefly showing the
+    // widget before it disappears.
+    revealTimerId: number | null;
 }
 
 export function mountTopSlicerStrip(
@@ -73,10 +89,19 @@ export function mountTopSlicerStrip(
         "flex-direction:row",
         "flex-wrap:wrap",
         "background:" + STRIP_BG,
-        "border-bottom:1px solid " + STRIP_BORDER,
+        // border-bottom removed — the corner count-badges hang below the
+        // pill row and the original 1px divider drew right through them.
+        // Whitespace separation from the slicerContainer's padding-bottom
+        // gives sufficient visual division from the chrome below.
         "box-sizing:border-box",
         "width:100%",
         "font-family:'Segoe UI',system-ui,sans-serif",
+        // INF-3751: per-widget wipes. Strip itself does NOT clip — each
+        // child cluster has its own clip-path + transition (see repaint).
+        // overflow:hidden is kept to handle horizontal content overflow
+        // during widget add/remove (clusters being animated in/out may
+        // briefly extend past the strip's visible width).
+        "overflow:hidden",
     ].join(";");
     container.appendChild(strip);
 
@@ -93,37 +118,111 @@ export function mountTopSlicerStrip(
         while (strip.firstChild) strip.removeChild(strip.firstChild);
     }
 
+    // INF-3751 timing constants. Locked per the behavior-map sketch.
+    // Exported (below) so vitest can assert against them in cell tests.
+    const WIPE_MS = WIPE_MS_EXPORT;
+    const WIPE_DELAY_FIRST_PIN_MS = WIPE_DELAY_FIRST_PIN_MS_EXPORT;
+    const WIPE_DELAY_DEFAULT_MS = WIPE_DELAY_DEFAULT_MS_EXPORT;
+    const WIPE_CLEANUP_BUFFER_MS = WIPE_CLEANUP_BUFFER_MS_EXPORT;
+    const WIPE_EASING = WIPE_EASING_EXPORT;
+
     function repaint(
         bindings: ReadonlyArray<FilterDimBinding>,
         slots: ReadonlyArray<FilterSlotSettings>,
         density: PinnedDensity,
     ): void {
-        teardown();
+        // INF-3751: per-widget wipe animations. Diff mounted vs new bindings.
+        // Each individual widget cluster animates its OWN clip-path — strip
+        // itself does not wipe. This handles all transitions uniformly:
+        // first pin, intermediate add, intermediate remove, last unpin.
+        const newSlotIndices = new Set(bindings.map(b => b.slotIndex));
+        const toAnimateOut = mounted.filter(m => !newSlotIndices.has(m.slotIndex));
+        const kept = mounted.filter(m => newSlotIndices.has(m.slotIndex));
+
+        // Wipe-out animations for removed widgets. Cancel any pending
+        // reveal timer first (rapid pin→unpin would otherwise show the
+        // widget briefly mid-destruction). Then set clip-path:inset(100%)
+        // — the transition fires — and schedule destroy + DOM removal.
+        for (const m of toAnimateOut) {
+            const el = m.element;
+            const handle = m.handle;
+            if (m.revealTimerId !== null) {
+                window.clearTimeout(m.revealTimerId);
+                m.revealTimerId = null;
+            }
+            el.style.clipPath = "inset(0 100% 0 0)";
+            window.setTimeout(() => {
+                handle.destroy();
+                if (el.parentNode) el.parentNode.removeChild(el);
+            }, WIPE_MS + WIPE_CLEANUP_BUFFER_MS);
+        }
+
+        mounted = kept;
+
         if (bindings.length === 0) {
-            strip.style.display = "none";
+            // Last widget being wiped out. Defer strip's vertical collapse
+            // (min-height → 0) until after the wipe animation completes.
+            window.setTimeout(() => {
+                strip.style.minHeight = "0";
+            }, WIPE_MS + WIPE_CLEANUP_BUFFER_MS);
             return;
         }
+
+        // Non-empty path: setup strip layout styles and add NEW widgets.
         const d = DENSITY[density];
-        strip.style.display = "flex";
         strip.style.gap = `${d.interPillGapPx}px ${d.interClusterGapPx}px`;
-        strip.style.padding = `${d.stripPaddingV}px ${d.stripPaddingH}px`;
-        strip.style.minHeight = d.rowMinHeightPx + "px";
+        // Padding-left forced to 0 so first widget's left edge sits at
+        // strip's left:36 (= funnel-clearance offset). Density's
+        // stripPaddingH is preserved on the RIGHT only.
+        strip.style.padding = `${d.stripPaddingV}px ${d.stripPaddingH}px ${d.stripPaddingV}px 0`;
+        // Strip must be at least 34px tall so flex's align-items:center
+        // places content at absolute y=17 — shares centerline with the
+        // anchored funnel (top:6, height:22, center y=17).
+        strip.style.minHeight = Math.max(d.rowMinHeightPx, 34) + "px";
         strip.style.alignItems = "center";
+
+        // Determine reveal delay: only the FIRST pin (0→1 boundary) waits
+        // 1050ms for the toggle row to drop first. visual.ts adds .opening
+        // to documentElement for exactly this case.
+        const isFirstPin = document.documentElement.classList.contains("opening");
+        const revealDelay = isFirstPin ? WIPE_DELAY_FIRST_PIN_MS : WIPE_DELAY_DEFAULT_MS;
+
+        // Add NEW widgets that aren't already mounted. Each is built in a
+        // CLIPPED state (invisible) then revealed after the appropriate
+        // delay — the clip-path transition fires when style.clipPath
+        // changes from "inset(0 100% 0 0)" to "inset(0 0 0 0)".
+        const existingSlotIndices = new Set(mounted.map(m => m.slotIndex));
         for (const b of bindings) {
+            if (existingSlotIndices.has(b.slotIndex)) continue;
             const slot = slots[b.slotIndex];
             if (slot === undefined) continue;
             const resolved = resolveWidget(slot, b);
             const cluster = buildClusterShell(b, slot, density);
-            strip.appendChild(cluster.root);
+            const root = cluster.root;
+            // Per-widget wipe styles: overflow:hidden so content gets
+            // clipped, transition on clip-path with shared duration/easing.
+            root.style.overflow = "hidden";
+            root.style.transition = `clip-path ${WIPE_MS}ms ${WIPE_EASING}`;
+            root.style.clipPath = "inset(0 100% 0 0)";
+            strip.appendChild(root);
             const handle = rendererFor(resolved.kind).mount(cluster.body, {
                 binding: b, slot, state, density,
             });
-            mounted.push({
-                element: cluster.root,
+            const m: MountedCluster = {
+                element: root,
                 handle,
                 kind: resolved.kind,
                 slotIndex: b.slotIndex,
-            });
+                revealTimerId: null,
+            };
+            mounted.push(m);
+            // Schedule reveal — animates clip-path to fully visible after
+            // the appropriate delay. Capture the timer ID so a subsequent
+            // rapid-unpin can cancel it.
+            m.revealTimerId = window.setTimeout(() => {
+                m.revealTimerId = null;
+                root.style.clipPath = "inset(0 0 0 0)";
+            }, revealDelay);
         }
     }
 
@@ -155,12 +254,10 @@ function buildClusterShell(
 
     const label = document.createElement("span");
     label.textContent = dimLabel(binding, slot) + ":";
-    label.style.cssText = [
-        "color:" + LABEL_FG,
-        "font-weight:600",
-        "font-size:" + d.labelFontSizePx + "px",
-        "white-space:nowrap",
-    ].join(";");
+    // CHROME_LABEL_CSS is the single point of truth for color / weight /
+    // size / family — shared with the toggle row labels in
+    // topRightControls.ts so both surfaces stay visually identical.
+    label.style.cssText = CHROME_LABEL_CSS + ";white-space:nowrap";
     cluster.appendChild(label);
 
     const body = document.createElement("div");

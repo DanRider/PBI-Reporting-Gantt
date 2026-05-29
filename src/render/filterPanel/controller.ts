@@ -1,14 +1,6 @@
-// INF-3739 Phases 3b/3c/3d — filter panel controller.
-//
-// Owns the comprehensive-sidebar handle + the top slicer strip handle +
-// the single FilterState. Sidebar mounts at top:0 full-height (selection-
-// driven, opens via top-chrome filter icon); top slicer strip mounts
-// below the master-slider chrome row and renders ONE pill-row per pinned
-// dim. Cross-tier sync is implicit: both surfaces subscribe to the same
-// FilterState, so a pill click in the strip and a checkbox toggle in the
-// sidebar are over the same data. State mutations fire applyJsonFilter
-// pushback to PBI's filter context + host.persistProperties for selection
-// round-trip across .pbix save/reopen.
+// INF-3739 — filter panel controller. Owns sidebar + top slicer strip
+// handles + the shared FilterState. Cross-tier sync via FilterState
+// subscribers; mutations fire applyJsonFilter pushback + persistProperties.
 
 import powerbi from "powerbi-visuals-api";
 import { mountMountablePanel, MountablePanelHandle } from "../panel/mountablePanel";
@@ -44,13 +36,12 @@ export interface FilterPanelController {
     togglePin(slotIndex: number): void;
     /** Set a slot's widget choice (called by the in-sidebar widget picker). */
     setWidget(slotIndex: number, widget: SlotWidget): void;
-    /** Reposition both panels within root. */
-    layout(opts: {
-        viewportWidth: number;
-        viewportHeight: number;
-    }): void;
-    /** Update bindings, slot settings, FilterState, re-render both surfaces.
-     *  Returns the active filter map; visual.ts uses it to narrow vm + table. */
+    /** Count of currently-pinned dims. */
+    pinnedCount(): number;
+    /** First child of slicerContainer (the strip element). null if not mounted. */
+    slicerStripElement(): HTMLElement | null;
+    layout(opts: { viewportWidth: number; viewportHeight: number }): void;
+    /** Returns active filter map (used by visual.ts to narrow vm + table). */
     update(
         dataView: powerbi.DataView | undefined,
         settings: VisualFormattingSettingsModel,
@@ -67,14 +58,11 @@ export function mountFilterPanelController(
 ): FilterPanelController {
     const state = new FilterState();
     let open = false;
-    // Optimistic pin overrides — persistProperties round-trips asynchronously
-    // through PBI; this Map holds the most-recent user intent so the next
-    // update() sees the toggled state before persisted settings catch up.
+    // Optimistic overrides — hold user intent until PBI persistProperties round-trips.
     const pinOverride: Map<number, boolean> = new Map();
-    // INF-3745 Phase A — same optimistic-override pattern for widget choice.
-    // Holds the most-recent user widget pick until persistProperties round-
-    // trips it back through settings.
     const widgetOverride: Map<number, SlotWidget> = new Map();
+    // In-memory only; "Apply to filter pane" routes sidebar value-row render to slicer widget.
+    const applyToFilterPaneOverride: Map<number, boolean> = new Map();
     let restoredFromPersisted = false;
     let currentBindings: FilterDimBinding[] = [];
     let currentPinnedCount = 0;
@@ -109,18 +97,25 @@ export function mountFilterPanelController(
             setWidgetInternal(slotIndex, widget);
         },
         currentWidget: (slotIndex: number) => effectiveWidget(slotIndex),
+        isApplyToFilterPane: (slotIndex: number) => applyToFilterPaneOverride.get(slotIndex) === true,
+        onToggleApplyToFilterPane: (slotIndex: number) => {
+            const next = applyToFilterPaneOverride.get(slotIndex) !== true;
+            applyToFilterPaneOverride.set(slotIndex, next);
+            options.onChange();
+        },
     });
 
-    // Top slicer strip — mounts as an absolutely-positioned container that
-    // visual.ts repositions on every frame to sit below the top chrome.
+    // INF-3751: slicerContainer at left:36 (clears anchored funnel at top:6 left:6).
+    // z-index:9 (avoid 15+ — widget wipes render over right Filters panel). padding-bottom:2.
     const slicerContainer = document.createElement("div");
     slicerContainer.style.cssText = [
         "position:absolute",
-        "left:0",
+        "left:36px",
         "top:0",
         "width:100%",
         "z-index:9",
         "pointer-events:auto",
+        "padding-bottom:2px",
     ].join(";");
     root.appendChild(slicerContainer);
     const topSlicer: TopSlicerStripHandle = mountTopSlicerStrip(slicerContainer, state);
@@ -133,8 +128,8 @@ export function mountFilterPanelController(
     });
 
     function effectivePinned(slotIndex: number): boolean {
-        if (pinOverride.has(slotIndex)) return pinOverride.get(slotIndex)!;
-        return false;
+        // lastSlots has post-merge state (pinOverride + persisted).
+        return lastSlots[slotIndex]?.pinned ?? false;
     }
 
     function togglePinInternal(slotIndex: number): void {
@@ -145,8 +140,7 @@ export function mountFilterPanelController(
     }
 
     function effectiveWidget(slotIndex: number): SlotWidget {
-        if (widgetOverride.has(slotIndex)) return widgetOverride.get(slotIndex)!;
-        return "auto";
+        return lastSlots[slotIndex]?.widget ?? "auto";
     }
 
     function setWidgetInternal(slotIndex: number, widget: SlotWidget): void {
@@ -158,10 +152,7 @@ export function mountFilterPanelController(
     return {
         widthPx(): number { return sidebarPanel.sizePx(); },
         topSlicerHeightPx(): number {
-            // Packed clusters wrap with the browser's flex-wrap algorithm, so
-            // the final rendered height depends on viewport width AND density.
-            // Measure the strip's actual offsetHeight; fall back to 0 when no
-            // pinned dims are present.
+            // Measure rendered offsetHeight (flex-wrap depends on viewport).
             if (currentPinnedCount === 0) return 0;
             return slicerContainer.offsetHeight || 0;
         },
@@ -176,23 +167,25 @@ export function mountFilterPanelController(
 
         togglePin(slotIndex: number): void { togglePinInternal(slotIndex); },
         setWidget(slotIndex: number, widget: SlotWidget): void { setWidgetInternal(slotIndex, widget); },
+        pinnedCount(): number { return currentPinnedCount; },
+        slicerStripElement(): HTMLElement | null {
+            return slicerContainer.firstElementChild as HTMLElement | null;
+        },
 
         layout(opts): void {
-            // Sidebar: full-height on the right edge.
             const sp = sidebarPanel.element;
             sp.style.top = "0px";
             sp.style.height = opts.viewportHeight + "px";
-            // Top slicer strip mounts in its OWN dedicated container at top:0,
-            // full-width (minus sidebar). The existing chrome (toggles +
-            // master slider) is pushed down by visual.ts to sit BELOW this
-            // container.
             slicerContainer.style.top = "0px";
-            slicerContainer.style.width = Math.max(0, opts.viewportWidth - sidebarPanel.sizePx()) + "px";
+            // Width = viewport - sidebar - 36 funnel-clearance (matches left:36).
+            slicerContainer.style.width = Math.max(0, opts.viewportWidth - sidebarPanel.sizePx() - 36) + "px";
             topSlicer.render(lastPinnedBindings, lastSlots, lastDensity);
         },
 
         update(dataView, settings): { activeFilters: ReadonlyMap<string, ReadonlySet<string>> } {
             currentBindings = extractBindings(dataView);
+            // Feed row tuples for cross-filtered count badges.
+            state.setRows(extractFilterRows(dataView, currentBindings));
             const slots: FilterSlotSettings[] = extractSlotSettings(settings, pinOverride, widgetOverride);
             mutateSlotLabels(settings, currentBindings);
 
@@ -214,13 +207,11 @@ export function mountFilterPanelController(
             const pinned = pinnedBindings(currentBindings, slots);
             const density = extractPinnedDensity(settings);
             lastDensity = density;
-            topSlicer.render(pinned, slots, density);
+            // INF-3751: strip render deferred to layout() (after class set).
             currentPinnedCount = pinned.length;
             lastPinnedBindings = pinned;
             lastSlots = slots.slice();
-            // Strip auto-sizes via browser flex-wrap; clear the explicit
-            // height so the measured offsetHeight reflects actual content.
-            slicerContainer.style.height = "auto";
+            slicerContainer.style.height = "auto"; // flex-wrap measures actual content
 
             const activeFilters: Map<string, ReadonlySet<string>> = new Map();
             for (const [k, v] of state.entries()) activeFilters.set(k, v);
@@ -288,6 +279,35 @@ function buildSidebarComposition(host: HTMLElement, onClose: () => void): HTMLDi
     composition.appendChild(host);
 
     return composition;
+}
+
+/** Row tuples (dimName→value) for faceted-count computation. */
+function extractFilterRows(
+    dataView: powerbi.DataView | undefined,
+    bindings: ReadonlyArray<FilterDimBinding>,
+): ReadonlyArray<ReadonlyMap<string, string>> {
+    const rows = dataView?.table?.rows;
+    const cols = dataView?.table?.columns;
+    if (!rows || !cols || bindings.length === 0) return [];
+    // Map column index → dimName for fast row projection.
+    const colIdxToDim = new Map<number, string>();
+    for (let i = 0; i < cols.length; i++) {
+        const col = cols[i];
+        const roles = col.roles ?? {};
+        if (!roles["filterDimensions"]) continue;
+        colIdxToDim.set(i, col.displayName);
+    }
+    const out: Array<ReadonlyMap<string, string>> = [];
+    for (const r of rows) {
+        const tuple = new Map<string, string>();
+        for (const [idx, dn] of colIdxToDim) {
+            const v = r[idx];
+            if (v === null || v === undefined) continue;
+            tuple.set(dn, String(v));
+        }
+        if (tuple.size > 0) out.push(tuple);
+    }
+    return out;
 }
 
 function extractBindings(dataView: powerbi.DataView | undefined): FilterDimBinding[] {

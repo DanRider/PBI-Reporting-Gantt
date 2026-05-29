@@ -18,8 +18,11 @@ import { SliderRange } from "./inspector/timeSliderMath";
 // (icon, slider rail, text labels, checkboxes) center-aligns to visual y=13 to
 // match the Gantt/Table toggle row centerline. timeSlider's railCenterY was
 // changed to true geometric center so no extra nudge is needed.
-const ANCHOR_TOP_PX = 1;
-const ANCHOR_HEIGHT_PX = 24;
+// Anchored to share the chrome centerline at y=17 with the funnel
+// (top:6, height:22) and the toggle row container (top:6, height:22).
+// Previously top:1, height:24 → center y=13 (4px above funnel center).
+const ANCHOR_TOP_PX = 6;
+const ANCHOR_HEIGHT_PX = 22;
 const ANCHOR_RIGHT_PX = 6;
 const STRIP_Z_INDEX = 11;
 const STRIP_MAX_WIDTH_PX = 1440;
@@ -169,6 +172,9 @@ export function mountMasterTimeSlider(
         "align-items:center",
         "overflow:visible",
         "gap:6px",
+        // INF-3751: CSS transition on `top` — same as topRightControls.
+        // visual.less applies the actual transition rule when the
+        // `.opening`/`.closing` directional class is on documentElement.
     ].join(";");
     anchor.addEventListener("click", (e) => { e.stopPropagation(); });
     root.appendChild(anchor);

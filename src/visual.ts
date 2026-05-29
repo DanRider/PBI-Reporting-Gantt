@@ -330,6 +330,16 @@ export class Visual implements IVisual {
     // v3.0 — timestamp the LAST update() that carried a dataView. Used by
     // the Excel export filename suffix to tag exports with the data vintage.
     private lastDataRefreshTime: Date | null = null;
+    // Chrome transition state — tracks the slicer strip's visibility
+    // (= pinnedCount > 0) across update() ticks so we can detect the 0↔1
+    // boundary and wrap that one DOM mutation in startViewTransition().
+    // Per-tick state changes that don't cross the boundary apply layout
+    // synchronously with no animation.
+    private lastStripVisible: boolean = false;
+    // Skips the View Transition on the very first update() — the fixture
+    // can load with pinned dims, and we don't want an animated "boot"
+    // from a non-existent zero state into the initial pinned state.
+    private firstUpdate: boolean = true;
 
     constructor(options?: VisualConstructorOptions) {
         // pbiviz 6.2's auto-generated visualPlugin.ts emits
@@ -702,13 +712,65 @@ export class Visual implements IVisual {
         // by the slicer's total height so nothing overlaps.
         const comprehensiveWidthPx = this.filterPanel.widthPx();
         this.masterSlider.setRightReserve(comprehensiveWidthPx);
+
+        // === Chrome transition: pure CSS ===
+        //
+        // INF-3751: simplified from View Transitions API to plain CSS
+        // transitions on layout properties. Three motions are choreographed
+        // by CSS in visual.less:
+        //   - toggle row's `top` (6 ↔ 6+stripH)         — CSS transition
+        //   - master slider's `top` (6 ↔ 6+stripH)      — CSS transition
+        //   - slicer strip's `max-width` + `opacity`    — CSS transition
+        //
+        // Direction class (.opening / .closing) is applied to
+        // documentElement BEFORE the DOM mutations so visual.less can
+        // sequence the two phases via `transition-delay`:
+        //   .opening : row drops first → strip slides out 1050ms later
+        //   .closing : strip retracts first → row rises 1050ms later
+        // Class is removed after the longest transition completes (~2100ms).
+        //
+        // Funnel is anchored at top:6 left:6 on root with no transition or
+        // view-transition-name — it never moves.
+        const stripVisible = this.filterPanel.pinnedCount() > 0;
+        const isTransition = !this.firstUpdate && stripVisible !== this.lastStripVisible;
+        this.lastStripVisible = stripVisible;
+        this.firstUpdate = false;
+
+        if (isTransition) {
+            const direction = stripVisible ? "opening" : "closing";
+            const root = document.documentElement;
+            root.classList.add(direction);
+            // Force a style recalc so the .opening / .closing rules match
+            // against the upcoming property changes in filterPanel.layout()
+            // BELOW. Without this, the browser may use the prior style
+            // cache (no class) when the strip's clip-path / row's top
+            // change, and the directional transition-delay rules in
+            // visual.less wouldn't apply — manifests as "the strip
+            // appears before the row moves" because the delay was lost.
+            void root.offsetHeight;
+            // Clear after the longest possible animation completes (phase 1
+            // 1000ms + buffer 50ms + phase 2 1000ms + safety margin).
+            window.setTimeout(() => {
+                root.classList.remove(direction);
+            }, 2200);
+        }
+
         this.filterPanel.layout({
             viewportWidth: options.viewport.width,
             viewportHeight: options.viewport.height,
         });
-        const topSlicerHeightPx = this.filterPanel.topSlicerHeightPx();
-        // Push the existing top chrome (master slider + toggles + filter icon)
-        // DOWN by the slicer's vertical footprint so it lives BELOW the slicer.
+        // INF-3751: on closing direction (unpin-last), the strip keeps its
+        // content + height for 1050ms so the clip-path wipe is visible.
+        // During this window, slicerContainer.offsetHeight is still ~36
+        // (strip min-height + padding-bottom). If we read offsetHeight
+        // here, row/slider/chart would stay at top:42 throughout the wipe.
+        // Force topSlicerHeightPx=0 when stripVisible is false so the row
+        // + slider + chart's `top` transitions immediately to their
+        // post-collapse positions, riding upward in parallel with the
+        // clip-path wipe. Brief content overlap during transit is
+        // accepted — z-index ordering puts toggle-row chrome above the
+        // strip's residual content.
+        const topSlicerHeightPx = stripVisible ? this.filterPanel.topSlicerHeightPx() : 0;
         this.masterSlider.setTopOffset(topSlicerHeightPx);
         this.topRight.setTopOffset(topSlicerHeightPx);
 
@@ -914,6 +976,11 @@ export class Visual implements IVisual {
             ? this.splitter.matrixHeightPx(splitterViewportHeight)
             : 0;
         const splitterBarHeightPx = this.splitter.barHeightPx();
+
+        // Push the inspector / controls popout down below the slicer +
+        // chrome row, and clip its bottom to the chart area only (so it
+        // doesn't span the entire vertical including the table region).
+        this.controls.setVerticalBounds(topSlicerHeightPx, ganttHeightPx);
 
         // v2.1 audit-fix #12 — when Gantt is fully hidden via the top-left
         // toggle, render a thin header strip with the chart title so the
@@ -1649,6 +1716,7 @@ export class Visual implements IVisual {
         // updated in update() from data bindings; no dynamic slice generation here.
         return this.settingsService.buildFormattingModel(this.settings);
     }
+
 }
 
 // v2.2 INF-3739 — narrow a dataView's rows by an active-filters map.
