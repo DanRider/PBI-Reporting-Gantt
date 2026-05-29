@@ -37,8 +37,6 @@ export interface TopRightControlsOptions {
     /** INF-3739 — true if the comprehensive sidebar is currently open.
      *  Drives the filter icon's active-press visual (highlighted background). */
     isFilterOpen: () => boolean;
-    /** v3.0 hello-world — called when the user clicks the export icon. */
-    onExport: () => void;
 }
 
 export interface TopRightControlsHandle {
@@ -63,7 +61,6 @@ const TRACK_BG_ON = "#9ca3af";
 const TRACK_BG_OFF = "#d4d4d8";
 const THUMB_BG = "#ffffff";
 const THUMB_BORDER = "#6b7280";
-const LABEL_COLOR = "#555";
 const FILTER_ICON_FG = "#555";
 const FILTER_ICON_FG_OPEN = "#1F77B4";
 const FILTER_BTN_BG_OPEN = "#dbe7f5";
@@ -223,41 +220,6 @@ function buildFilterButton(): FilterButton {
     return { element: wrap, iconPath: path, badge };
 }
 
-function buildExportButton(): HTMLDivElement {
-    const wrap = document.createElement("div");
-    wrap.style.cssText = [
-        "position:relative",
-        "display:flex",
-        "align-items:center",
-        "justify-content:center",
-        "width:22px",
-        "height:22px",
-        "border-radius:4px",
-        "cursor:pointer",
-        "user-select:none",
-        "background:transparent",
-        "transition:background 120ms ease",
-    ].join(";");
-    wrap.title = "Export to Excel";
-    const SVG_NS = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(SVG_NS, "svg");
-    svg.setAttribute("width", "14");
-    svg.setAttribute("height", "14");
-    svg.setAttribute("viewBox", "0 0 24 24");
-    svg.style.pointerEvents = "none";
-    // Download arrow: tray at bottom, arrow shaft + head pointing down into it.
-    const path = document.createElementNS(SVG_NS, "path");
-    path.setAttribute("d", "M12 3 L12 14 M7 10 L12 15 L17 10 M4 19 L20 19 L20 21 L4 21 Z");
-    path.setAttribute("fill", "none");
-    path.setAttribute("stroke", "#555");
-    path.setAttribute("stroke-width", "2");
-    path.setAttribute("stroke-linecap", "round");
-    path.setAttribute("stroke-linejoin", "round");
-    svg.appendChild(path);
-    wrap.appendChild(svg);
-    return wrap;
-}
-
 export function mountTopRightControls(
     root: HTMLElement,
     options: TopRightControlsOptions,
@@ -269,7 +231,6 @@ export function mountTopRightControls(
     const filterBtn = buildFilterButton();
     const ganttToggle = buildToggle("Roadmap", "Toggle Roadmap visibility");
     const tableToggle = buildToggle("Table", "Toggle Table visibility");
-    const exportBtn = buildExportButton();
 
     function applyToggleState(toggle: Toggle, hidden: boolean): void {
         toggle.track.style.background = hidden ? TRACK_BG_OFF : TRACK_BG_ON;
@@ -314,12 +275,6 @@ export function mountTopRightControls(
         e.stopPropagation();
         options.onToggleHidden("table");
     });
-    exportBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        options.onExport();
-    });
-    exportBtn.addEventListener("mouseenter", () => { exportBtn.style.background = "#f0f0f3"; });
-    exportBtn.addEventListener("mouseleave", () => { exportBtn.style.background = "transparent"; });
 
     // Chrome reads left → right:
     // [funnel] [Roadmap toggle] [Table toggle]
@@ -327,14 +282,9 @@ export function mountTopRightControls(
     // Funnel is anchored independently on root (top:6 left:6). When the
     // toggle row drops on pin, the funnel stays put. Container holds
     // the boolean toggles only.
-    //
-    // exportBtn is hidden for the v2.2 release — the download/export
-    // path is still wired up (event listeners + handler all intact) but
-    // not appended to the chrome. To restore: uncomment the appendChild.
     root.appendChild(filterBtn.element);
     container.appendChild(ganttToggle.element);
     container.appendChild(tableToggle.element);
-    // container.appendChild(exportBtn);  // hidden for v2.2 release
     root.appendChild(container);
 
     refresh();

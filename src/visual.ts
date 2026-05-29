@@ -98,12 +98,6 @@ import { bindingDisplayName, pluralize } from "./utils/bindingNames";
 // which also handles applyJsonFilter pushback + host.persistProperties round-trip.
 import { mountFilterPanelController, FilterPanelController } from "./render/filterPanel/controller";
 
-// v3.0 Excel export entry point. exportToExcel() ships the Hello-World
-// pipeline test today; later dispatches on a templateId once real
-// templates land. Single function, single import — no churn at call site
-// as the export surface grows.
-import { exportToExcel } from "./excel";
-
 // v2.1 audit-fix #24 — slider + toggles share the top:6 chrome row.
 // Just enough push so chart title doesn't render under the chrome.
 // Tighter than the original 80px attempt (operator: "minimal").
@@ -327,9 +321,6 @@ export class Visual implements IVisual {
     // Absence from the map = "visible" (Map is sparse, only non-default).
     private milestoneTypeState: Map<string, "transparent" | "hidden"> = new Map();
     private lastOptions: VisualUpdateOptions | null = null;
-    // v3.0 — timestamp the LAST update() that carried a dataView. Used by
-    // the Excel export filename suffix to tag exports with the data vintage.
-    private lastDataRefreshTime: Date | null = null;
     // Chrome transition state — tracks the slicer strip's visibility
     // (= pinnedCount > 0) across update() ticks so we can detect the 0↔1
     // boundary and wrap that one DOM mutation in startViewTransition().
@@ -592,21 +583,6 @@ export class Visual implements IVisual {
             },
             getFilterActiveCount: () => this.filterPanel.activeCount(),
             isFilterOpen: () => this.filterPanel.isOpen(),
-            onExport: () => {
-                // v3.0 Hello-World export. exportToExcel does the dispatch
-                // (optional local helper bypass first, native PBI download
-                // path second). The filename is suffixed with the data
-                // vintage (last dataView arrival) so distinct refreshes get
-                // distinct files; same-day re-exports overwrite cleanly.
-                const stamp = this.lastDataRefreshTime ?? new Date();
-                const yyyy = stamp.getFullYear();
-                const mm = String(stamp.getMonth() + 1).padStart(2, "0");
-                const dd = String(stamp.getDate()).padStart(2, "0");
-                const filename = `cortex-hello-world_${yyyy}-${mm}-${dd}.xlsx`;
-                exportToExcel(this.host, filename).catch(err => {
-                    console.error("[cortex-export] threw:", err);
-                });
-            },
         });
 
         // v2.1 audit-fix #24 — master time slider mounts on root above the
@@ -650,14 +626,6 @@ export class Visual implements IVisual {
 
         const dataView = options.dataViews && options.dataViews[0];
 
-        // v3.0 — record "data vintage" timestamp whenever a dataView arrives.
-        // Used by the Excel export filename suffix so re-exports against the
-        // same data overwrite cleanly while exports against refreshed data
-        // get distinct filenames. Proxy for the dataset's actual refresh
-        // time (which the custom-visual API doesn't expose directly).
-        if (dataView) {
-            this.lastDataRefreshTime = new Date();
-        }
         this.settings = this.settingsService.populateFormattingSettingsModel(
             VisualFormattingSettingsModel,
             dataView
