@@ -150,7 +150,9 @@ export function mountTopSlicerStrip(
                 window.clearTimeout(m.revealTimerId);
                 m.revealTimerId = null;
             }
-            el.style.clipPath = "inset(0 100% 0 0)";
+            // -10px bottom inset keeps the badge area in the clip rect
+            // (matches the reveal state below).
+            el.style.clipPath = "inset(0 100% -10px 0)";
             window.setTimeout(() => {
                 handle.destroy();
                 if (el.parentNode) el.parentNode.removeChild(el);
@@ -199,11 +201,13 @@ export function mountTopSlicerStrip(
             const resolved = resolveWidget(slot, b);
             const cluster = buildClusterShell(b, slot, density);
             const root = cluster.root;
-            // Per-widget wipe styles: overflow:hidden so content gets
-            // clipped, transition on clip-path with shared duration/easing.
-            root.style.overflow = "hidden";
+            // Per-widget wipe via clip-path with NEGATIVE bottom inset so
+            // the pill count badge (position:absolute, -bottom from pill)
+            // stays within the clip rectangle. No overflow:hidden — that
+            // would clip the badge along with the box. clip-path handles
+            // the wipe AND lets the badge spill below the cluster's box.
             root.style.transition = `clip-path ${WIPE_MS}ms ${WIPE_EASING}`;
-            root.style.clipPath = "inset(0 100% 0 0)";
+            root.style.clipPath = "inset(0 100% -10px 0)";
             strip.appendChild(root);
             const handle = rendererFor(resolved.kind).mount(cluster.body, {
                 binding: b, slot, state, density,
@@ -221,7 +225,7 @@ export function mountTopSlicerStrip(
             // rapid-unpin can cancel it.
             m.revealTimerId = window.setTimeout(() => {
                 m.revealTimerId = null;
-                root.style.clipPath = "inset(0 0 0 0)";
+                root.style.clipPath = "inset(0 0 -10px 0)";
             }, revealDelay);
         }
     }

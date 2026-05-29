@@ -98,8 +98,7 @@ describe("CELL 1: E_PIN_FIRST — boundary open", () => {
 
         expect(strip.children.length).toBe(1);
         const cluster = strip.children[0] as HTMLElement;
-        expect(cluster.style.clipPath).toBe("inset(0 100% 0 0)");
-        expect(cluster.style.overflow).toBe("hidden");
+        expect(cluster.style.clipPath).toBe("inset(0 100% -10px 0)");
         expect(cluster.style.transition).toContain(`${WIPE_MS_EXPORT}ms`);
         cleanup(container);
     });
@@ -112,19 +111,19 @@ describe("CELL 1: E_PIN_FIRST — boundary open", () => {
         const cluster = strip.children[0] as HTMLElement;
 
         // At t=0: still clipped
-        expect(cluster.style.clipPath).toBe("inset(0 100% 0 0)");
+        expect(cluster.style.clipPath).toBe("inset(0 100% -10px 0)");
 
         // Advance just past intermediate-add delay — still NOT revealed
         vi.advanceTimersByTime(WIPE_DELAY_DEFAULT_MS_EXPORT + 10);
-        expect(cluster.style.clipPath).toBe("inset(0 100% 0 0)");
+        expect(cluster.style.clipPath).toBe("inset(0 100% -10px 0)");
 
         // Advance up to (but not past) first-pin delay — still clipped
         vi.advanceTimersByTime(WIPE_DELAY_FIRST_PIN_MS_EXPORT - WIPE_DELAY_DEFAULT_MS_EXPORT - 20);
-        expect(cluster.style.clipPath).toBe("inset(0 100% 0 0)");
+        expect(cluster.style.clipPath).toBe("inset(0 100% -10px 0)");
 
         // Advance past — now revealed
         vi.advanceTimersByTime(20);
-        expect(cluster.style.clipPath).toBe("inset(0 0 0 0)");
+        expect(cluster.style.clipPath).toBe("inset(0 0 -10px 0)");
 
         cleanup(container);
     });
@@ -150,7 +149,7 @@ describe("CELL 2: E_PIN_MORE — intermediate add", () => {
         // delay path. Reveal happens at 50ms.
         vi.advanceTimersByTime(WIPE_DELAY_DEFAULT_MS_EXPORT + 10);
         const existing = strip.children[0] as HTMLElement;
-        expect(existing.style.clipPath).toBe("inset(0 0 0 0)");
+        expect(existing.style.clipPath).toBe("inset(0 0 -10px 0)");
 
         // Now ADD a second binding — no class on root
         handle.render(
@@ -164,13 +163,13 @@ describe("CELL 2: E_PIN_MORE — intermediate add", () => {
         expect(strip.children[0]).toBe(existing);
         // New widget is initially clipped
         const newCluster = strip.children[1] as HTMLElement;
-        expect(newCluster.style.clipPath).toBe("inset(0 100% 0 0)");
+        expect(newCluster.style.clipPath).toBe("inset(0 100% -10px 0)");
 
         // After default delay, it reveals
         vi.advanceTimersByTime(WIPE_DELAY_DEFAULT_MS_EXPORT + 10);
-        expect(newCluster.style.clipPath).toBe("inset(0 0 0 0)");
+        expect(newCluster.style.clipPath).toBe("inset(0 0 -10px 0)");
         // Existing untouched
-        expect(existing.style.clipPath).toBe("inset(0 0 0 0)");
+        expect(existing.style.clipPath).toBe("inset(0 0 -10px 0)");
 
         cleanup(container);
     });
@@ -210,7 +209,7 @@ describe("CELL 3: E_UNPIN_SOME — intermediate remove", () => {
         handle.render([makeBinding("Phase", 0, ["A"])], [makeSlot(0)], "compact");
 
         // Removed widget should immediately be set to clipped
-        expect(removed.style.clipPath).toBe("inset(0 100% 0 0)");
+        expect(removed.style.clipPath).toBe("inset(0 100% -10px 0)");
         // Still in DOM during wipe
         expect(strip.children.length).toBe(2);
 
@@ -242,7 +241,7 @@ describe("CELL 4: E_UNPIN_LAST — boundary close", () => {
         handle.render([], [], "compact");
 
         // Widget enters clipped state immediately
-        expect(widget.style.clipPath).toBe("inset(0 100% 0 0)");
+        expect(widget.style.clipPath).toBe("inset(0 100% -10px 0)");
         // Still 34+ tall during wipe (strip's min-height NOT yet collapsed)
         expect(parseInt(strip.style.minHeight, 10)).toBeGreaterThanOrEqual(34);
 
@@ -267,11 +266,11 @@ describe("CELL 6: E_RAPID_CLICK — cancel reveal timer on mid-flight removal", 
         // Pin first
         handle.render([makeBinding("Phase", 0, ["A"])], [makeSlot(0)], "compact");
         const widget = strip.children[0] as HTMLElement;
-        expect(widget.style.clipPath).toBe("inset(0 100% 0 0)");
+        expect(widget.style.clipPath).toBe("inset(0 100% -10px 0)");
 
         // Mid-reveal (before the 800ms first-pin delay fires), user unpins
         vi.advanceTimersByTime(300);
-        expect(widget.style.clipPath).toBe("inset(0 100% 0 0)");
+        expect(widget.style.clipPath).toBe("inset(0 100% -10px 0)");
 
         document.documentElement.classList.remove("opening");
         document.documentElement.classList.add("closing");
@@ -279,12 +278,12 @@ describe("CELL 6: E_RAPID_CLICK — cancel reveal timer on mid-flight removal", 
 
         // Widget's reveal timer should have been canceled when removal began.
         // The widget should be in clipped state.
-        expect(widget.style.clipPath).toBe("inset(0 100% 0 0)");
+        expect(widget.style.clipPath).toBe("inset(0 100% -10px 0)");
 
         // Advance past where the reveal WOULD have fired (800ms from start).
         // The widget must NOT briefly become revealed.
         vi.advanceTimersByTime(WIPE_DELAY_FIRST_PIN_MS_EXPORT + 100);
-        expect(widget.style.clipPath).toBe("inset(0 100% 0 0)");
+        expect(widget.style.clipPath).toBe("inset(0 100% -10px 0)");
 
         cleanup(container);
     });
