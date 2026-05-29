@@ -322,16 +322,19 @@ export function mountTopRightControls(
     exportBtn.addEventListener("mouseleave", () => { exportBtn.style.background = "transparent"; });
 
     // Chrome reads left → right:
-    // [funnel] [Roadmap toggle] [Table toggle] [download]
+    // [funnel] [Roadmap toggle] [Table toggle]
     //
-    // BUT the funnel is anchored independently — it goes directly on root
-    // at top:6 left:6, NOT inside the toggle row container. When the toggle
-    // row drops on pin, the funnel stays put ("left behind while the toggle
-    // row moves down"). The container only holds the boolean toggles.
+    // Funnel is anchored independently on root (top:6 left:6). When the
+    // toggle row drops on pin, the funnel stays put. Container holds
+    // the boolean toggles only.
+    //
+    // exportBtn is hidden for the v2.2 release — the download/export
+    // path is still wired up (event listeners + handler all intact) but
+    // not appended to the chrome. To restore: uncomment the appendChild.
     root.appendChild(filterBtn.element);
     container.appendChild(ganttToggle.element);
     container.appendChild(tableToggle.element);
-    container.appendChild(exportBtn);
+    // container.appendChild(exportBtn);  // hidden for v2.2 release
     root.appendChild(container);
 
     refresh();
