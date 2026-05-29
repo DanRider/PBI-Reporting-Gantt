@@ -8,7 +8,7 @@
 // Document-click closes the popover unless the click is inside it.
 
 import type { WidgetHandle, WidgetRenderer, WidgetOptions } from "./widget";
-import { DENSITY, PILL_BORDER, positionPopoverBelow } from "./widgetCommon";
+import { DENSITY, PILL_BORDER, buildCountBadge, buildClearButton } from "./widgetCommon";
 import { dimLabel } from "../state";
 
 const POPOVER_BG = "#ffffff";
@@ -23,7 +23,8 @@ export const dropdownMultiRenderer: WidgetRenderer = {
 
         const root = document.createElement("div");
         root.className = "filter-widget-dropdown-multi";
-        root.style.cssText = "position:relative;display:inline-block;";
+        // inline-flex so the trigger and optional clear-✕ align on a row.
+        root.style.cssText = "position:relative;display:inline-flex;align-items:center;";
         host.appendChild(root);
 
         // Trigger button — collapsed summary.
@@ -48,11 +49,23 @@ export const dropdownMultiRenderer: WidgetRenderer = {
         ].join(";");
         root.appendChild(trigger);
 
+        // Clear-✕ — appears on the trigger row whenever the dim has an
+        // active selection. Single click clears without opening the
+        // popover. renderTrigger toggles its visibility.
+        const triggerClearBtn = buildClearButton(() => state.clear(binding.dimName));
+        triggerClearBtn.style.display = "none";
+        root.appendChild(triggerClearBtn);
+
         // Popover (created up-front; visibility toggled via display).
+        // Popover is portaled to document.body (not kept inside root) so
+        // it escapes the slicer-strip's local stacking context. Otherwise
+        // the gantt chart layer bleeds through it — same trap as
+        // widgetPicker.ts (INF-3745 z-index fix). Append once at mount;
+        // open/close just toggle display + reposition. Cleanup on destroy.
         const popover = document.createElement("div");
         popover.className = "filter-widget-dropdown-popover";
         popover.style.cssText = [
-            "position:absolute",
+            "position:fixed",
             "min-width:220px",
             "max-width:320px",
             `max-height:${POPOVER_MAX_HEIGHT_PX}px`,
@@ -60,13 +73,13 @@ export const dropdownMultiRenderer: WidgetRenderer = {
             `border:1px solid ${POPOVER_BORDER}`,
             "border-radius:4px",
             "box-shadow:0 4px 12px rgba(0,0,0,0.15)",
-            "z-index:1000",
+            "z-index:2147483640",
             "display:none",
             "flex-direction:column",
             "padding:6px",
             "box-sizing:border-box",
         ].join(";");
-        root.appendChild(popover);
+        document.body.appendChild(popover);
 
         let open = false;
         let searchQuery = "";
@@ -83,6 +96,8 @@ export const dropdownMultiRenderer: WidgetRenderer = {
 
         function renderTrigger(): void {
             trigger.textContent = summary();
+            // Show clear-✕ only when this dim has an active selection.
+            triggerClearBtn.style.display = state.get(binding.dimName).size > 0 ? "inline-flex" : "none";
         }
 
         // Popover content.
@@ -163,6 +178,10 @@ export const dropdownMultiRenderer: WidgetRenderer = {
             const q = searchQuery.toLowerCase();
             while (list.firstChild) list.removeChild(list.firstChild);
             const matches = binding.distinctValues.filter(v => v.toLowerCase().includes(q));
+            // Faceted counts under current cross-filters (empty map →
+            // counts undefined → no badges rendered, graceful fallback).
+            const counts = state.getValueCounts(binding.dimName);
+            const hasCounts = counts.size > 0;
             if (matches.length === 0) {
                 const empty = document.createElement("div");
                 empty.textContent = "No matches";
@@ -171,7 +190,7 @@ export const dropdownMultiRenderer: WidgetRenderer = {
                 return;
             }
             for (const v of matches.slice(0, 200)) {
-                list.appendChild(buildCheckRow(v));
+                list.appendChild(buildCheckRow(v, hasCounts ? (counts.get(v) ?? 0) : undefined));
             }
             if (matches.length > 200) {
                 const more = document.createElement("div");
@@ -181,7 +200,7 @@ export const dropdownMultiRenderer: WidgetRenderer = {
             }
         }
 
-        function buildCheckRow(value: string): HTMLLabelElement {
+        function buildCheckRow(value: string, count?: number): HTMLLabelElement {
             const row = document.createElement("label");
             row.style.cssText = [
                 "display:flex",
@@ -195,7 +214,7 @@ export const dropdownMultiRenderer: WidgetRenderer = {
             const cb = document.createElement("input");
             cb.type = "checkbox";
             cb.checked = state.get(binding.dimName).has(value);
-            cb.style.cssText = "margin:0;cursor:pointer;";
+            cb.style.cssText = "margin:0;cursor:pointer;accent-color:#2ca02c;";
             cb.addEventListener("click", (e) => {
                 e.stopPropagation();
                 state.toggle(binding.dimName, value);
@@ -205,6 +224,9 @@ export const dropdownMultiRenderer: WidgetRenderer = {
             span.textContent = value;
             span.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;";
             row.appendChild(span);
+            if (count !== undefined) {
+                row.appendChild(buildCountBadge(count, false, "inline"));
+            }
             row.addEventListener("mouseenter", () => { row.style.background = "#f0f0f3"; });
             row.addEventListener("mouseleave", () => { row.style.background = "transparent"; });
             row.addEventListener("click", (e) => e.stopPropagation());
@@ -215,7 +237,12 @@ export const dropdownMultiRenderer: WidgetRenderer = {
             if (open === next) return;
             open = next;
             if (open) {
-                positionPopoverBelow(trigger, popover);
+                // Compute fixed coords from the trigger's viewport rect.
+                // The popover lives in document.body (appended at mount);
+                // we just toggle display + reposition here.
+                const rect = trigger.getBoundingClientRect();
+                popover.style.top = (rect.bottom + 4) + "px";
+                popover.style.left = rect.left + "px";
                 popover.style.display = "flex";
                 renderList();
                 // Defer document-click attach to AFTER this click bubble.
@@ -229,6 +256,7 @@ export const dropdownMultiRenderer: WidgetRenderer = {
         function onDocClick(e: Event): void {
             if (!(e.target instanceof Node)) return;
             if (root.contains(e.target)) return;
+            if (popover.contains(e.target)) return;
             setOpen(false);
         }
 
@@ -246,6 +274,8 @@ export const dropdownMultiRenderer: WidgetRenderer = {
             },
             destroy(): void {
                 document.removeEventListener("click", onDocClick, true);
+                // Popover lives in document.body — always remove on destroy.
+                if (popover.parentNode) popover.parentNode.removeChild(popover);
                 if (root.parentNode) root.parentNode.removeChild(root);
             },
             element: root,

@@ -13,14 +13,37 @@
 
 import {
     FilterDimBinding, FilterSlotSettings, FilterState, SlotWidget,
-    HIGH_CARDINALITY_THRESHOLD, dimLabel,
+    HIGH_CARDINALITY_THRESHOLD, dimLabel, resolveWidget, ConcreteWidget,
 } from "./state";
 import { buildDropdownWidget, buildSearchInput, buildCheckRow } from "./widgets/searchChips";
 import { buildWidgetPickerButton } from "./widgets/widgetPicker";
+import { buildClearButton } from "./widgets/widgetCommon";
+import type { WidgetRenderer } from "./widgets/widget";
+import { pillsMultiRenderer } from "./widgets/pillsMulti";
+import { pillsSingleRenderer } from "./widgets/pillsSingle";
+import { dropdownMultiRenderer } from "./widgets/dropdownMulti";
+
+/** Map a resolved slicer-widget kind to its concrete renderer for use in
+ *  the sidebar's expanded dim block when "Apply to filter pane" is on.
+ *  search-chips + range-slider are stubbed to dropdownMulti / pillsMulti
+ *  the same way the slicer dispatches today. */
+function sidebarRendererFor(kind: ConcreteWidget): WidgetRenderer {
+    switch (kind) {
+        case "pills-multi":    return pillsMultiRenderer;
+        case "pills-single":   return pillsSingleRenderer;
+        case "dropdown-multi": return dropdownMultiRenderer;
+        case "search-chips":   return dropdownMultiRenderer;
+        case "range-slider":   return pillsMultiRenderer;
+    }
+}
 
 const SIDEBAR_BG = "#ffffff";
 const SIDEBAR_BORDER = "#c0c0c0";
-const BADGE_BG = "#1F77B4";
+// Selection-count badge (in each dim header) — green to distinguish it
+// from the blue faceted-count badges on individual values. Green reads
+// as "result of your action" / "active state"; blue stays for the
+// read-only cross-filter metadata.
+const BADGE_BG = "#2ca02c";
 const BADGE_FG = "#ffffff";
 const FOOTER_BG = "#f6f6f8";
 const MAX_LIST_HEIGHT_PX = 180;
@@ -37,6 +60,12 @@ export interface ComprehensivePanelOptions {
     /** INF-3745 Phase A — current widget choice for the slot (drives the
      *  flyout's check-marker and the gear's filled/outlined state). */
     currentWidget: (slotIndex: number) => SlotWidget;
+    /** True when the slicer's widget should also drive the sidebar's
+     *  expanded value rendering for this dim (Apply to filter pane). */
+    isApplyToFilterPane: (slotIndex: number) => boolean;
+    /** Called when the user toggles the "Apply to filter pane" checkbox
+     *  in the gear flyout. */
+    onToggleApplyToFilterPane: (slotIndex: number) => void;
 }
 
 export interface ComprehensivePanelHandle {
@@ -114,6 +143,10 @@ export function mountComprehensivePanel(
     let lastSlots: ReadonlyArray<FilterSlotSettings> = [];
     const searchQueries: Map<string, string> = new Map();
     const dropdownOpen: Map<string, boolean> = new Map();
+    // Per-dim collapsed state. Persists across re-renders (lives in
+    // mount-closure). Default expanded; user clicks the chevron to fold
+    // a dim to just its header row — important when many dims are bound.
+    const collapsed: Map<string, boolean> = new Map();
 
     state.subscribe(() => repaint());
 
@@ -128,7 +161,7 @@ export function mountComprehensivePanel(
             for (const b of lastBindings) {
                 const slot = lastSlots[b.slotIndex];
                 if (slot === undefined) continue;
-                body.appendChild(buildDimBlock(b, slot, state, searchQueries, dropdownOpen, options));
+                body.appendChild(buildDimBlock(b, slot, state, searchQueries, dropdownOpen, collapsed, repaint, options));
             }
         }
         const count = state.activeCount();
@@ -152,8 +185,14 @@ function buildDimBlock(
     state: FilterState,
     searchQueries: Map<string, string>,
     dropdownOpen: Map<string, boolean>,
+    collapsed: Map<string, boolean>,
+    repaint: () => void,
     options: ComprehensivePanelOptions,
 ): HTMLDivElement {
+    // Default collapsed — dims with many bound rows would otherwise blow
+    // out the sidebar height. User clicks the chevron to expand. Once
+    // toggled, the state persists in the closure Map across re-renders.
+    const isCollapsed = collapsed.get(binding.dimName) !== false;
     const block = document.createElement("div");
     block.style.cssText = "margin-bottom:14px;";
 
@@ -167,6 +206,15 @@ function buildDimBlock(
         "margin-bottom:4px",
     ].join(";");
 
+    // Chevron — toggles the dim block's collapsed state. Folded blocks
+    // show only this header row (one control line) so a sidebar with
+    // many bound dims doesn't run off-screen.
+    const chevron = buildChevronToggle(isCollapsed, () => {
+        collapsed.set(binding.dimName, !isCollapsed);
+        repaint();
+    });
+    hdr.appendChild(chevron);
+
     const pinBtn = buildPinButton(options.isPinned(binding.slotIndex), () => {
         options.onTogglePin(binding.slotIndex);
     });
@@ -179,6 +227,8 @@ function buildDimBlock(
         binding,
         currentWidget: options.currentWidget(binding.slotIndex),
         onPick: (widget) => options.onWidgetChange(binding.slotIndex, widget),
+        applyToFilterPane: options.isApplyToFilterPane(binding.slotIndex),
+        onToggleApplyToFilterPane: () => options.onToggleApplyToFilterPane(binding.slotIndex),
     });
     hdr.appendChild(gearBtn);
 
@@ -202,17 +252,64 @@ function buildDimBlock(
             "text-align:center",
         ].join(";");
         hdr.appendChild(badge);
+        // Per-dim clear-✕ — visible only when this dim has an active
+        // selection. Sits at the right end of the header row, beside
+        // the count badge.
+        hdr.appendChild(buildClearButton(() => state.clear(binding.dimName)));
     }
     block.appendChild(hdr);
 
-    const isHighCardinality = binding.distinctValues.length > HIGH_CARDINALITY_THRESHOLD;
-    if (isHighCardinality) {
-        block.appendChild(buildDropdownWidget(binding, state, searchQueries, dropdownOpen));
-    } else {
-        block.appendChild(buildCheckboxWidget(binding, state, searchQueries));
+    // When collapsed, the dim shows ONLY the header row. The value list
+    // (search + checkboxes / dropdown) is skipped.
+    if (!isCollapsed) {
+        if (options.isApplyToFilterPane(binding.slotIndex)) {
+            // Mirror the slicer's widget: resolve the user's pick (or
+            // auto-rule) then mount the same renderer the slicer uses.
+            const resolved = resolveWidget(slot, binding);
+            const renderer = sidebarRendererFor(resolved.kind);
+            const host = document.createElement("div");
+            renderer.mount(host, { binding, slot, state, density: "compact" });
+            block.appendChild(host);
+        } else {
+            const isHighCardinality = binding.distinctValues.length > HIGH_CARDINALITY_THRESHOLD;
+            if (isHighCardinality) {
+                block.appendChild(buildDropdownWidget(binding, state, searchQueries, dropdownOpen));
+            } else {
+                block.appendChild(buildCheckboxWidget(binding, state, searchQueries));
+            }
+        }
     }
 
     return block;
+}
+
+/** Small chevron-toggle button for dim block collapse. ▾ when the block
+ *  is expanded (value list visible); ▸ when collapsed (header only). */
+function buildChevronToggle(collapsed: boolean, onClick: () => void): HTMLButtonElement {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.title = collapsed ? "Expand" : "Collapse";
+    btn.textContent = collapsed ? "\u25b8" : "\u25be";
+    btn.style.cssText = [
+        "display:inline-flex",
+        "align-items:center",
+        "justify-content:center",
+        "width:16px",
+        "height:16px",
+        "padding:0",
+        "border:none",
+        "background:transparent",
+        "color:#555",
+        "font-size:10px",
+        "cursor:pointer",
+        "user-select:none",
+        "flex-shrink:0",
+    ].join(";");
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onClick();
+    });
+    return btn;
 }
 
 function buildPinButton(active: boolean, onClick: () => void): HTMLButtonElement {

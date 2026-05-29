@@ -69,6 +69,11 @@ export const MAX_DISTINCT_VALUES = 1000;
 export class FilterState {
     private readonly _selections: Map<string, Set<string>> = new Map();
     private readonly _listeners: Set<() => void> = new Set();
+    /** Row tuples for faceted-count computation. Each row is a Map of
+     *  dimName→value (only filter-dim columns present). Populated by the
+     *  controller via setRows() each dataView refresh. Empty rows array
+     *  means getValueCounts returns an empty map (graceful fallback). */
+    private _rows: ReadonlyArray<ReadonlyMap<string, string>> = [];
 
     /** Returns the set of selected values for dimName. Empty set = "no filter active" (all values pass). */
     get(dimName: string): ReadonlySet<string> {
@@ -139,6 +144,41 @@ export class FilterState {
         return out;
     }
 
+    /** Populate the row source for faceted-count computation. Called by
+     *  the controller on each dataView refresh. Rows are dimName→value
+     *  maps, one per data record. Does NOT fire listeners (this is data,
+     *  not user selection). */
+    setRows(rows: ReadonlyArray<ReadonlyMap<string, string>>): void {
+        this._rows = rows;
+    }
+
+    /** Faceted counts — for each distinct value of dimName, the number of
+     *  rows that match THAT value AND pass all OTHER currently-active
+     *  filters. Returns an empty map if no rows are set. The dim being
+     *  queried is EXCLUDED from the filter set (so its pill counts show
+     *  what would happen if you toggled them, not just current matches). */
+    getValueCounts(dimName: string): Map<string, number> {
+        const counts = new Map<string, number>();
+        if (this._rows.length === 0) return counts;
+        // Snapshot OTHER active filters once outside the row loop.
+        const otherFilters: Array<[string, ReadonlySet<string>]> = [];
+        for (const [dn, sel] of this._selections) {
+            if (dn === dimName) continue;
+            if (sel.size === 0) continue;
+            otherFilters.push([dn, sel]);
+        }
+        rowLoop: for (const row of this._rows) {
+            for (const [dn, sel] of otherFilters) {
+                const v = row.get(dn);
+                if (v === undefined || !sel.has(v)) continue rowLoop;
+            }
+            const v = row.get(dimName);
+            if (v === undefined) continue;
+            counts.set(v, (counts.get(v) ?? 0) + 1);
+        }
+        return counts;
+    }
+
     /** Restore from persisted JSON. Silent on shape mismatch. Does NOT fire listeners. */
     static fromJSON(raw: unknown): FilterState {
         const out = new FilterState();
@@ -198,12 +238,11 @@ export function dimLabel(binding: FilterDimBinding, slot: FilterSlotSettings): s
 }
 
 /** v2.3 INF-3745 Phase A — cardinality bands for the "auto" widget rule.
- *  Tunable knobs; chosen to match the spec's table:
- *      text + ≤AUTO_PILLS_MAX        → pills-multi
- *      text + ≤AUTO_DROPDOWN_MAX     → dropdown-multi
- *      text + > AUTO_DROPDOWN_MAX    → search-chips */
+ *  Tunable knob; chosen to match the spec's table after search-chips
+ *  was consolidated into dropdown-multi:
+ *      text + ≤AUTO_PILLS_MAX → pills-multi
+ *      text + >AUTO_PILLS_MAX → dropdown-multi */
 export const AUTO_PILLS_MAX = 8;
-export const AUTO_DROPDOWN_MAX = 100;
 
 /** True if the column's metadata type is numeric. */
 function isNumericType(col: powerbi.DataViewMetadataColumn): boolean {
@@ -244,8 +283,13 @@ export function resolveWidget(
         }
         const n = binding.distinctValues.length;
         if (n <= AUTO_PILLS_MAX) return { kind: "pills-multi", reason: "auto-cardinality" };
-        if (n <= AUTO_DROPDOWN_MAX) return { kind: "dropdown-multi", reason: "auto-cardinality" };
-        return { kind: "search-chips", reason: "auto-cardinality" };
+        // Text columns of any cardinality > AUTO_PILLS_MAX route to
+        // dropdown-multi. The "search-chips" enum value is kept for
+        // backward-compat with persisted settings (dispatched to the
+        // dropdown-multi renderer in topSlicerStrip) but is no longer a
+        // user-facing choice in the picker — visually identical to
+        // dropdown-multi, so consolidating reduces confusion.
+        return { kind: "dropdown-multi", reason: "auto-cardinality" };
     }
 
     // User picked a concrete widget. Range-slider on text → fallback.

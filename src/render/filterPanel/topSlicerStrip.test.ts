@@ -312,3 +312,44 @@ describe("I3: widget DOM order matches bindings array order", () => {
         cleanup(container);
     });
 });
+
+// INF-3755 — row-gap regression guard. The strip's flex-wrap row-gap MUST
+// exceed the count-badge protrusion below each pill, otherwise badges from
+// the upper row visually overlap pills in the lower row. Tests assert the
+// computed gap (badgeProtrusionPx + breathing) yields the expected pixel
+// values per density. If buildPill's badge-position math changes and these
+// values shift, this test flags the regression at the strip layer too.
+describe("topSlicerStrip row-gap clears count-badge protrusion (INF-3755)", () => {
+    it("computes badge protrusion + breathing greater than current row-gap for compact density", async () => {
+        const { DENSITY, badgeProtrusionPx } = await import("./widgets/widgetCommon");
+        const protrusion = badgeProtrusionPx(DENSITY.compact);
+        // compact density: pillH=16, badgeH=11, protrusion = 8px below pill box.
+        expect(protrusion).toBe(8);
+        // Strip's row-gap = protrusion + 4px breathing = 12px. Strictly greater
+        // than the OLD row-gap (DENSITY.compact.interPillGapPx = 4), so the
+        // upper row's badges no longer spill into the lower row.
+        expect(protrusion + 4).toBeGreaterThan(DENSITY.compact.interPillGapPx);
+    });
+
+    it("protrusion matches buildPill's bottom-offset math for every density", async () => {
+        const { DENSITY, badgeProtrusionPx } = await import("./widgets/widgetCommon");
+        for (const density of ["comfortable", "compact", "dense"] as const) {
+            const d = DENSITY[density];
+            // Re-derive from buildPill's formula to ensure parity.
+            const pillH = d.pillPaddingV * 2 + d.pillFontSizePx;
+            const badgeH = Math.max(11, Math.round(pillH * 0.2));
+            const descenderBottomFromTop = d.pillPaddingV + d.pillFontSizePx;
+            const expected = descenderBottomFromTop + badgeH - pillH;
+            expect(badgeProtrusionPx(d)).toBe(expected);
+        }
+    });
+
+    it("known protrusion baseline per density (regression snapshot)", async () => {
+        const { DENSITY, badgeProtrusionPx } = await import("./widgets/widgetCommon");
+        // Baseline at INF-3755 fix time. If a future density-spec change shifts
+        // these numbers, the row-gap math needs revisiting.
+        expect(badgeProtrusionPx(DENSITY.comfortable)).toBe(5);
+        expect(badgeProtrusionPx(DENSITY.compact)).toBe(8);
+        expect(badgeProtrusionPx(DENSITY.dense)).toBe(10);
+    });
+});

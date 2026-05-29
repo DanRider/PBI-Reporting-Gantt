@@ -16,7 +16,7 @@ import {
     FilterDimBinding, FilterSlotSettings, FilterState, PinnedDensity,
     dimLabel, resolveWidget, ConcreteWidget,
 } from "./state";
-import { DENSITY } from "./widgets/widgetCommon";
+import { DENSITY, badgeProtrusionPx } from "./widgets/widgetCommon";
 import type { WidgetHandle, WidgetRenderer } from "./widgets/widget";
 import { pillsMultiRenderer } from "./widgets/pillsMulti";
 import { pillsSingleRenderer } from "./widgets/pillsSingle";
@@ -172,7 +172,14 @@ export function mountTopSlicerStrip(
 
         // Non-empty path: setup strip layout styles and add NEW widgets.
         const d = DENSITY[density];
-        strip.style.gap = `${d.interPillGapPx}px ${d.interClusterGapPx}px`;
+        // INF-3755 — when clusters flex-wrap to a second row, CSS gap's
+        // FIRST value is the row-gap. Must clear the count-badge protrusion
+        // below each pill (badge bottom hangs negatively past the pill box)
+        // plus a few px of breathing room. Otherwise badges from row N
+        // visually overlap pills in row N+1.
+        const ROW_GAP_BREATHING_PX = 4;
+        const rowGapPx = badgeProtrusionPx(d) + ROW_GAP_BREATHING_PX;
+        strip.style.gap = `${rowGapPx}px ${d.interClusterGapPx}px`;
         // Padding-left forced to 0 so first widget's left edge sits at
         // strip's left:36 (= funnel-clearance offset). Density's
         // stripPaddingH is preserved on the RIGHT only.

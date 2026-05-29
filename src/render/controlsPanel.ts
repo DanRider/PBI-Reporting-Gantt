@@ -43,6 +43,11 @@ export interface ControlsPanelOptions {
 }
 
 export interface ControlsPanelHandle {
+    /** Override the panel's vertical bounds. By default the MountablePanel
+     *  primitive sets top:0 / height:100%. Use this to push the panel down
+     *  below the slicer + master-slider chrome and clip its bottom. */
+    setVerticalBounds(topPx: number, heightPx: number): void;
+
     /** Slide the panel open (true) or closed (false). No-op if already in
      *  that state. */
     setOpen(open: boolean): void;
@@ -164,6 +169,14 @@ export function mountControlsPanel(
         widthPct(): number {
             const cur = Math.max(1, root.getBoundingClientRect().width);
             return (panel.sizePx() / cur) * 100;
+        },
+        setVerticalBounds(topPx: number, heightPx: number): void {
+            // Override the MountablePanel's default top:0/height:100% so the
+            // popout sits BELOW the chrome row (toggles + master slider) and
+            // clips at the supplied bottom — doesn't run the full visual
+            // height and doesn't sit behind the toggle row.
+            panel.element.style.top = Math.max(0, topPx) + "px";
+            panel.element.style.height = Math.max(0, heightPx) + "px";
         },
         element: panel.element,
     };

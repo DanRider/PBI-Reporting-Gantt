@@ -23,7 +23,6 @@ const WIDGET_OPTIONS: ReadonlyArray<PickerOption> = [
     { value: "pills-multi",    label: "Pills (multi)" },
     { value: "pills-single",   label: "Pills (single)" },
     { value: "dropdown-multi", label: "Dropdown" },
-    { value: "search-chips",   label: "Search" },
     { value: "range-slider",   label: "Range slider" },
 ];
 
@@ -37,6 +36,12 @@ export interface WidgetPickerOptions {
     binding: FilterDimBinding;
     currentWidget: SlotWidget;
     onPick: (widget: SlotWidget) => void;
+    /** When true, the sidebar's expanded value list for this dim renders
+     *  using the same widget as the slicer (instead of the default
+     *  checkbox / dropdown by cardinality). Controlled by a checkbox at
+     *  the top of the flyout. */
+    applyToFilterPane: boolean;
+    onToggleApplyToFilterPane: () => void;
 }
 
 /** Build the gear-icon button. Click toggles a flyout that shows the 6
@@ -85,6 +90,13 @@ export function buildWidgetPickerButton(opts: WidgetPickerOptions): HTMLElement 
 
     const ordinal = isOrdinalColumn(opts.binding);
 
+    // "Apply to filter pane" checkbox row at the top of the flyout.
+    // When checked, the sidebar's expanded value rendering uses the
+    // SAME widget as the slicer (instead of the default checkbox
+    // list / dropdown by cardinality). Bordered separator below to
+    // visually divide it from the widget options.
+    flyout.appendChild(buildApplyToFilterPaneRow(opts));
+
     for (const o of WIDGET_OPTIONS) {
         flyout.appendChild(buildOptionRow(o, opts, ordinal, () => setOpen(false)));
     }
@@ -123,6 +135,37 @@ export function buildWidgetPickerButton(opts: WidgetPickerOptions): HTMLElement 
     });
 
     return root;
+}
+
+function buildApplyToFilterPaneRow(opts: WidgetPickerOptions): HTMLLabelElement {
+    const row = document.createElement("label");
+    row.style.cssText = [
+        "display:flex",
+        "align-items:center",
+        "gap:6px",
+        "padding:5px 12px 7px 12px",
+        "font-size:11px",
+        "color:#333",
+        "cursor:pointer",
+        "user-select:none",
+        "border-bottom:1px solid #e0e0e0",
+        "margin-bottom:3px",
+    ].join(";");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = opts.applyToFilterPane;
+    cb.style.cssText = "margin:0;cursor:pointer;accent-color:#2ca02c;";
+    cb.addEventListener("click", (e) => {
+        e.stopPropagation();
+        opts.onToggleApplyToFilterPane();
+    });
+    row.appendChild(cb);
+    const text = document.createElement("span");
+    text.textContent = "Apply to filter pane";
+    row.appendChild(text);
+    // Stop bubbling to the document-click handler that closes the flyout.
+    row.addEventListener("click", (e) => e.stopPropagation());
+    return row;
 }
 
 function buildOptionRow(

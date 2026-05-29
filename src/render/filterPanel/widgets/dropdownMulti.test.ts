@@ -1,6 +1,11 @@
 // INF-3745 Phase A — dropdownMulti widget tests.
+//
+// Post search-chips consolidation: the popover is portaled to
+// document.body to escape the slicer-strip's stacking context.
+// Tests query the popover via document.body; afterEach removes any
+// stray popovers so tests don't bleed into each other.
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import powerbi from "powerbi-visuals-api";
 import { FilterState, FilterDimBinding, FilterSlotSettings } from "../state";
 import { dropdownMultiRenderer } from "./dropdownMulti";
@@ -20,7 +25,16 @@ function makeSlot(): FilterSlotSettings {
 
 const TWENTY_FOUR = Array.from({ length: 24 }, (_, i) => `Act${i.toString().padStart(2, "0")}`);
 
+function getPopover(): HTMLDivElement {
+    return document.body.querySelector(".filter-widget-dropdown-popover") as HTMLDivElement;
+}
+
 describe("dropdownMulti widget", () => {
+    afterEach(() => {
+        // Clean up any portaled popovers between tests.
+        document.body.querySelectorAll(".filter-widget-dropdown-popover").forEach((el) => el.remove());
+    });
+
     it("mounts in collapsed state — trigger button visible, popover hidden", () => {
         const host = document.createElement("div");
         const state = new FilterState();
@@ -31,7 +45,7 @@ describe("dropdownMulti widget", () => {
             density: "compact",
         });
         const trigger = h.element.querySelector(".filter-widget-dropdown-trigger") as HTMLButtonElement;
-        const popover = h.element.querySelector(".filter-widget-dropdown-popover") as HTMLDivElement;
+        const popover = getPopover();
         expect(trigger).toBeTruthy();
         expect(popover.style.display).toBe("none");
         expect(trigger.textContent).toContain("Activity");
@@ -49,7 +63,7 @@ describe("dropdownMulti widget", () => {
         });
         const trigger = h.element.querySelector(".filter-widget-dropdown-trigger") as HTMLButtonElement;
         trigger.click();
-        const popover = h.element.querySelector(".filter-widget-dropdown-popover") as HTMLDivElement;
+        const popover = getPopover();
         expect(popover.style.display).toBe("flex");
     });
 
@@ -64,7 +78,8 @@ describe("dropdownMulti widget", () => {
         });
         const trigger = h.element.querySelector(".filter-widget-dropdown-trigger") as HTMLButtonElement;
         trigger.click();
-        const checkboxes = h.element.querySelectorAll('input[type="checkbox"]');
+        const popover = getPopover();
+        const checkboxes = popover.querySelectorAll('input[type="checkbox"]');
         expect(checkboxes.length).toBe(24);
     });
 
@@ -79,10 +94,11 @@ describe("dropdownMulti widget", () => {
         });
         const trigger = h.element.querySelector(".filter-widget-dropdown-trigger") as HTMLButtonElement;
         trigger.click();
-        const search = h.element.querySelector('input[type="text"]') as HTMLInputElement;
+        const popover = getPopover();
+        const search = popover.querySelector('input[type="text"]') as HTMLInputElement;
         search.value = "de";
         search.dispatchEvent(new Event("input"));
-        const checkboxes = h.element.querySelectorAll('input[type="checkbox"]');
+        const checkboxes = popover.querySelectorAll('input[type="checkbox"]');
         // Matches "Deploy" and "Design" (case-insensitive contains "de").
         // "Discovery" lacks the substring "de".
         expect(checkboxes.length).toBe(2);
@@ -99,7 +115,8 @@ describe("dropdownMulti widget", () => {
         });
         const trigger = h.element.querySelector(".filter-widget-dropdown-trigger") as HTMLButtonElement;
         trigger.click();
-        const checkboxes = h.element.querySelectorAll('input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+        const popover = getPopover();
+        const checkboxes = popover.querySelectorAll('input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
         checkboxes[0].click();
         expect(state.get("Activity").has("Build")).toBe(true);
     });
@@ -115,7 +132,7 @@ describe("dropdownMulti widget", () => {
         });
         const trigger = h.element.querySelector(".filter-widget-dropdown-trigger") as HTMLButtonElement;
         trigger.click();
-        const popover = h.element.querySelector(".filter-widget-dropdown-popover") as HTMLDivElement;
+        const popover = getPopover();
         expect(popover.style.display).toBe("flex");
         // Find the Done button by text content
         const buttons = Array.from(popover.querySelectorAll("button")) as HTMLButtonElement[];

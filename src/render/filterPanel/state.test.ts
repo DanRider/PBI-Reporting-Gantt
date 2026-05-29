@@ -229,9 +229,9 @@ describe("resolveWidget (INF-3745 Phase A)", () => {
         expect(r.kind).toBe("dropdown-multi");
     });
 
-    it("auto + text + 200 values → search-chips (auto-cardinality)", () => {
+    it("auto + text + 200 values → dropdown-multi (auto-cardinality, post search-chips consolidation)", () => {
         const r = resolveWidget(makeSlot("auto"), makeBinding(200, { text: true }));
-        expect(r.kind).toBe("search-chips");
+        expect(r.kind).toBe("dropdown-multi");
         expect(r.reason).toBe("auto-cardinality");
     });
 

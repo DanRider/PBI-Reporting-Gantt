@@ -7,7 +7,7 @@
 //   - Pills wrap inline via flex.
 
 import type { WidgetHandle, WidgetRenderer, WidgetOptions } from "./widget";
-import { DENSITY, buildPill } from "./widgetCommon";
+import { DENSITY, buildPill, buildClearButton } from "./widgetCommon";
 
 export const pillsMultiRenderer: WidgetRenderer = {
     mount(host: HTMLElement, opts: WidgetOptions): WidgetHandle {
@@ -28,11 +28,21 @@ export const pillsMultiRenderer: WidgetRenderer = {
             while (pillsWrap.firstChild) pillsWrap.removeChild(pillsWrap.firstChild);
             const selected = state.get(binding.dimName);
             const allActive = selected.size === 0;
+            // Faceted counts: how many records each value matches under
+            // current cross-filters from OTHER dims. Empty map (no row
+            // data plumbed) → counts stay undefined → buildPill skips
+            // the badge. Graceful fallback.
+            const counts = state.getValueCounts(binding.dimName);
+            const hasCounts = counts.size > 0;
+            const totalForAll = hasCounts
+                ? Array.from(counts.values()).reduce((s, n) => s + n, 0)
+                : undefined;
             pillsWrap.appendChild(buildPill({
                 label: "All",
                 active: allActive,
                 onClick: () => state.clear(binding.dimName),
                 density: d,
+                count: totalForAll,
             }));
             for (const v of binding.distinctValues) {
                 pillsWrap.appendChild(buildPill({
@@ -40,7 +50,14 @@ export const pillsMultiRenderer: WidgetRenderer = {
                     active: selected.has(v),
                     onClick: () => state.toggle(binding.dimName, v),
                     density: d,
+                    count: hasCounts ? (counts.get(v) ?? 0) : undefined,
                 }));
+            }
+            // Clear-✕ affordance — only when the dim has an active filter.
+            // Faster than clicking the "All" pill since it's semantically
+            // tied to "delete this filter" rather than "select all".
+            if (selected.size > 0) {
+                pillsWrap.appendChild(buildClearButton(() => state.clear(binding.dimName)));
             }
         }
         render();

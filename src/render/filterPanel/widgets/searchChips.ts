@@ -10,6 +10,7 @@
 // module; the extraction preserves identical behavior.
 
 import { FilterDimBinding, FilterState } from "../state";
+import { buildCountBadge } from "./widgetCommon";
 
 const BADGE_BG = "#1F77B4";
 const BADGE_FG = "#ffffff";
@@ -179,7 +180,9 @@ export function buildCheckRow(
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = active;
-    checkbox.style.cssText = "margin:0;cursor:pointer;";
+    // Green accent matches the selection-count badge — color-codes
+    // controls that mutate selection state.
+    checkbox.style.cssText = "margin:0;cursor:pointer;accent-color:#2ca02c;";
     checkbox.addEventListener("click", (e) => {
         e.stopPropagation();
         state.toggle(binding.dimName, value);
@@ -189,6 +192,14 @@ export function buildCheckRow(
     span.textContent = value;
     span.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;";
     row.appendChild(span);
+    // Faceted count badge — important metadata, shown next to the value
+    // label so users see how many records that value matches under the
+    // current cross-filter state. Graceful fallback: no badge if state
+    // has no row data plumbed yet.
+    const counts = state.getValueCounts(binding.dimName);
+    if (counts.size > 0) {
+        row.appendChild(buildCountBadge(counts.get(value) ?? 0, false, "inline"));
+    }
     row.addEventListener("mouseenter", () => { row.style.background = ROW_HOVER_BG; });
     row.addEventListener("mouseleave", () => { row.style.background = "transparent"; });
     row.addEventListener("click", (e) => e.stopPropagation());

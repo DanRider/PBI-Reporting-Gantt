@@ -30,6 +30,10 @@ export const pillsSingleRenderer: WidgetRenderer = {
         function render(): void {
             while (pillsWrap.firstChild) pillsWrap.removeChild(pillsWrap.firstChild);
             const selected = state.get(binding.dimName);
+            // Faceted counts under current cross-filters from OTHER dims.
+            // Empty map (no row data plumbed) → buildPill skips the badge.
+            const counts = state.getValueCounts(binding.dimName);
+            const hasCounts = counts.size > 0;
             for (const v of binding.distinctValues) {
                 const active = selected.has(v);
                 pillsWrap.appendChild(buildPill({
@@ -45,6 +49,7 @@ export const pillsSingleRenderer: WidgetRenderer = {
                         }
                     },
                     density: d,
+                    count: hasCounts ? (counts.get(v) ?? 0) : undefined,
                 }));
             }
         }
