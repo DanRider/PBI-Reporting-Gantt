@@ -97,11 +97,11 @@ export function mountTopSlicerStrip(
         "width:100%",
         "font-family:'Segoe UI',system-ui,sans-serif",
         // INF-3751: per-widget wipes. Strip itself does NOT clip — each
-        // child cluster has its own clip-path + transition (see repaint).
-        // overflow:hidden is kept to handle horizontal content overflow
-        // during widget add/remove (clusters being animated in/out may
-        // briefly extend past the strip's visible width).
-        "overflow:hidden",
+        // cluster's clip-path handles its own wipe. overflow:visible so
+        // the pill count badges (negative-positioned below pills) aren't
+        // clipped by the strip's box; slicerContainer's padding-bottom:12
+        // gives them room below.
+        "overflow:visible",
     ].join(";");
     container.appendChild(strip);
 

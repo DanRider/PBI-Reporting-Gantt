@@ -105,8 +105,8 @@ export function mountFilterPanelController(
         },
     });
 
-    // INF-3751: slicerContainer at left:36 (clears anchored funnel at top:6 left:6).
-    // z-index:9 (avoid 15+ — widget wipes render over right Filters panel). padding-bottom:2.
+    // INF-3751: left:36 clears anchored funnel. z-index:9 avoids right Filters panel.
+    // padding-bottom:12 = clearance for pill count badges (widgetCommon.ts:bottomOffset).
     const slicerContainer = document.createElement("div");
     slicerContainer.style.cssText = [
         "position:absolute",
@@ -115,7 +115,7 @@ export function mountFilterPanelController(
         "width:100%",
         "z-index:9",
         "pointer-events:auto",
-        "padding-bottom:2px",
+        "padding-bottom:12px",
     ].join(";");
     root.appendChild(slicerContainer);
     const topSlicer: TopSlicerStripHandle = mountTopSlicerStrip(slicerContainer, state);
