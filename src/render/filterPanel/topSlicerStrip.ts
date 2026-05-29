@@ -225,7 +225,7 @@ export function mountTopSlicerStrip(
             // rapid-unpin can cancel it.
             m.revealTimerId = window.setTimeout(() => {
                 m.revealTimerId = null;
-                root.style.clipPath = "inset(0 0 -10px 0)";
+                root.style.clipPath = "inset(0 -10px -10px 0)";
             }, revealDelay);
         }
     }

@@ -123,7 +123,7 @@ describe("CELL 1: E_PIN_FIRST — boundary open", () => {
 
         // Advance past — now revealed
         vi.advanceTimersByTime(20);
-        expect(cluster.style.clipPath).toBe("inset(0 0 -10px 0)");
+        expect(cluster.style.clipPath).toBe("inset(0 -10px -10px 0)");
 
         cleanup(container);
     });
@@ -149,7 +149,7 @@ describe("CELL 2: E_PIN_MORE — intermediate add", () => {
         // delay path. Reveal happens at 50ms.
         vi.advanceTimersByTime(WIPE_DELAY_DEFAULT_MS_EXPORT + 10);
         const existing = strip.children[0] as HTMLElement;
-        expect(existing.style.clipPath).toBe("inset(0 0 -10px 0)");
+        expect(existing.style.clipPath).toBe("inset(0 -10px -10px 0)");
 
         // Now ADD a second binding — no class on root
         handle.render(
@@ -167,9 +167,9 @@ describe("CELL 2: E_PIN_MORE — intermediate add", () => {
 
         // After default delay, it reveals
         vi.advanceTimersByTime(WIPE_DELAY_DEFAULT_MS_EXPORT + 10);
-        expect(newCluster.style.clipPath).toBe("inset(0 0 -10px 0)");
+        expect(newCluster.style.clipPath).toBe("inset(0 -10px -10px 0)");
         // Existing untouched
-        expect(existing.style.clipPath).toBe("inset(0 0 -10px 0)");
+        expect(existing.style.clipPath).toBe("inset(0 -10px -10px 0)");
 
         cleanup(container);
     });
