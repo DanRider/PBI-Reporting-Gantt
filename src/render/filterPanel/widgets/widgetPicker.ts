@@ -215,33 +215,44 @@ function buildOptionRow(
     return row;
 }
 
-/** Crisp 14px inline-SVG gear. Filled when a non-"auto" widget is in
- *  effect (signals user override), outlined when "auto". */
+/** Real gear icon — multi-element solid silhouette that reads as a
+ *  settings gear at 16px: 8 rectangular teeth around the perimeter,
+ *  round body, white-filled center hub. Solid-filled in both states
+ *  (no outline mode); active = blue, inactive = gray. INF-3757. */
 function buildGearSvg(filled: boolean): SVGElement {
     const SVG_NS = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(SVG_NS, "svg");
-    svg.setAttribute("width", "14");
-    svg.setAttribute("height", "14");
+    svg.setAttribute("width", "11");
+    svg.setAttribute("height", "11");
     svg.setAttribute("viewBox", "0 0 16 16");
     svg.style.pointerEvents = "none";
     const fg = filled ? PICKER_ACTIVE_FG : PICKER_INACTIVE_FG;
-    // 8-tooth gear + center circle. Simple polygon approximation.
-    const gear = document.createElementNS(SVG_NS, "path");
-    gear.setAttribute("d",
-        "M8 1 L9 3 L11 2 L11 4 L13 5 L12 7 L14 8 L12 9 L13 11 L11 12 L11 14 L9 13 L8 15 L7 13 L5 14 L5 12 L3 11 L4 9 L2 8 L4 7 L3 5 L5 4 L5 2 L7 3 Z",
-    );
-    gear.setAttribute("fill", filled ? fg : "none");
-    gear.setAttribute("stroke", fg);
-    gear.setAttribute("stroke-width", "1");
-    gear.setAttribute("stroke-linejoin", "round");
-    svg.appendChild(gear);
-    const inner = document.createElementNS(SVG_NS, "circle");
-    inner.setAttribute("cx", "8");
-    inner.setAttribute("cy", "8");
-    inner.setAttribute("r", "2");
-    inner.setAttribute("fill", "#ffffff");
-    inner.setAttribute("stroke", fg);
-    inner.setAttribute("stroke-width", "1");
-    svg.appendChild(inner);
+    // 8 teeth — rectangles at 45° intervals around (8,8). Slightly rounded
+    // corners (rx=0.3) so they read as "settings teeth" not "saw blade."
+    for (let i = 0; i < 8; i++) {
+        const tooth = document.createElementNS(SVG_NS, "rect");
+        tooth.setAttribute("x", "6.8");
+        tooth.setAttribute("y", "0.5");
+        tooth.setAttribute("width", "2.4");
+        tooth.setAttribute("height", "3");
+        tooth.setAttribute("rx", "0.3");
+        tooth.setAttribute("fill", fg);
+        tooth.setAttribute("transform", `rotate(${i * 45} 8 8)`);
+        svg.appendChild(tooth);
+    }
+    // Body circle covers tooth roots; same fill so no seam shows.
+    const body = document.createElementNS(SVG_NS, "circle");
+    body.setAttribute("cx", "8");
+    body.setAttribute("cy", "8");
+    body.setAttribute("r", "4.6");
+    body.setAttribute("fill", fg);
+    svg.appendChild(body);
+    // White-filled hub — gives the gear its center "hole" read.
+    const hub = document.createElementNS(SVG_NS, "circle");
+    hub.setAttribute("cx", "8");
+    hub.setAttribute("cy", "8");
+    hub.setAttribute("r", "1.8");
+    hub.setAttribute("fill", "#ffffff");
+    svg.appendChild(hub);
     return svg;
 }

@@ -135,9 +135,25 @@ export function mountTopSlicerStrip(
         // Each individual widget cluster animates its OWN clip-path — strip
         // itself does not wipe. This handles all transitions uniformly:
         // first pin, intermediate add, intermediate remove, last unpin.
-        const newSlotIndices = new Set(bindings.map(b => b.slotIndex));
-        const toAnimateOut = mounted.filter(m => !newSlotIndices.has(m.slotIndex));
-        const kept = mounted.filter(m => newSlotIndices.has(m.slotIndex));
+        // INF-3757: also detect widget-KIND changes (operator picked a
+        // different widget via the gear). A kind change forces wipe-out +
+        // remount because update() can't morph a pills widget into a
+        // dropdown widget.
+        const newKindBySlot = new Map<number, ConcreteWidget>();
+        for (const b of bindings) {
+            const slot = slots[b.slotIndex];
+            if (slot !== undefined) {
+                newKindBySlot.set(b.slotIndex, resolveWidget(slot, b).kind);
+            }
+        }
+        const toAnimateOut = mounted.filter(m => {
+            const nextKind = newKindBySlot.get(m.slotIndex);
+            return nextKind === undefined || nextKind !== m.kind;
+        });
+        const kept = mounted.filter(m => {
+            const nextKind = newKindBySlot.get(m.slotIndex);
+            return nextKind !== undefined && nextKind === m.kind;
+        });
 
         // Wipe-out animations for removed widgets. Cancel any pending
         // reveal timer first (rapid pin→unpin would otherwise show the
@@ -235,6 +251,21 @@ export function mountTopSlicerStrip(
                 root.style.clipPath = "inset(0 -10px -10px 0)";
             }, revealDelay);
         }
+
+        // INF-3758 — reorder DOM children to match the input `bindings`
+        // order. appendChild on an existing node MOVES it (doesn't clone),
+        // so this is cheap. Also reorder `mounted` to match so the next
+        // repaint's diff stays consistent with DOM order.
+        const mountedBySlot = new Map<number, MountedCluster>();
+        for (const m of mounted) mountedBySlot.set(m.slotIndex, m);
+        const reorderedMounted: MountedCluster[] = [];
+        for (const b of bindings) {
+            const m = mountedBySlot.get(b.slotIndex);
+            if (m === undefined) continue;
+            strip.appendChild(m.element);
+            reorderedMounted.push(m);
+        }
+        mounted = reorderedMounted;
     }
 
     return {

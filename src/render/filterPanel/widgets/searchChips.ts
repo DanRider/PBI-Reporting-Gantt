@@ -21,89 +21,49 @@ export function buildDropdownWidget(
     binding: FilterDimBinding,
     state: FilterState,
     searchQueries: Map<string, string>,
-    dropdownOpen: Map<string, boolean>,
+    _dropdownOpen: Map<string, boolean>,
 ): HTMLDivElement {
+    // INF-3757: identical structure to buildCheckboxWidget (search + list)
+    // but with a 200-row cap + "more — narrow the search" tail. Removes the
+    // prior chipBar collapse layer that made high-cardinality dims require
+    // a second click after the chevron to see values. The dim block's
+    // chevron is the only collapse control needed; consistency with
+    // ≤HIGH_CARDINALITY_THRESHOLD dims wins over the old chip-summary UX.
     const wrap = document.createElement("div");
-    wrap.style.cssText = "display:flex;flex-direction:column;gap:4px;";
+    const search = buildSearchInput(binding.dimName, searchQueries, () => renderList());
+    wrap.appendChild(search);
 
-    const selected = state.get(binding.dimName);
-
-    const chipBar = document.createElement("div");
-    chipBar.style.cssText = [
-        "display:flex",
-        "flex-wrap:wrap",
-        "gap:4px",
-        "padding:6px 8px",
-        "border:1px solid #c0c0c0",
+    const list = document.createElement("div");
+    list.style.cssText = [
+        `max-height:${MAX_LIST_HEIGHT_PX}px`,
+        "overflow-y:auto",
+        "border:1px solid #e0e0e0",
         "border-radius:3px",
-        "min-height:28px",
-        "cursor:pointer",
-        "background:#fff",
     ].join(";");
+    wrap.appendChild(list);
 
-    if (selected.size === 0) {
-        const placeholder = document.createElement("span");
-        placeholder.textContent = `Search ${binding.distinctValues.length} values…`;
-        placeholder.style.cssText = "color:#999;font-size:11px;flex:1;";
-        chipBar.appendChild(placeholder);
-    } else {
-        for (const v of Array.from(selected).sort()) {
-            chipBar.appendChild(buildChip(v, () => state.toggle(binding.dimName, v)));
+    function renderList(): void {
+        const q = (searchQueries.get(binding.dimName) ?? "").toLowerCase();
+        while (list.firstChild) list.removeChild(list.firstChild);
+        const matches = binding.distinctValues.filter(v => v.toLowerCase().includes(q));
+        if (matches.length === 0) {
+            const empty = document.createElement("div");
+            empty.textContent = "No matches";
+            empty.style.cssText = "padding:6px 8px;color:#888;font-style:italic;font-size:11px;";
+            list.appendChild(empty);
+            return;
+        }
+        for (const v of matches.slice(0, 200)) {
+            list.appendChild(buildCheckRow(binding, v, state.get(binding.dimName).has(v), state));
+        }
+        if (matches.length > 200) {
+            const more = document.createElement("div");
+            more.textContent = `(${matches.length - 200} more — narrow the search)`;
+            more.style.cssText = "padding:6px 8px;color:#888;font-style:italic;font-size:11px;";
+            list.appendChild(more);
         }
     }
-    const caret = document.createElement("span");
-    caret.textContent = dropdownOpen.get(binding.dimName) ? "▴" : "▾";
-    caret.style.cssText = "color:#666;font-size:10px;align-self:center;margin-left:auto;";
-    chipBar.appendChild(caret);
-
-    chipBar.addEventListener("click", (e) => {
-        e.stopPropagation();
-        dropdownOpen.set(binding.dimName, !dropdownOpen.get(binding.dimName));
-        renderBody();
-    });
-    wrap.appendChild(chipBar);
-
-    const bodyWrap = document.createElement("div");
-    wrap.appendChild(bodyWrap);
-
-    function renderBody(): void {
-        while (bodyWrap.firstChild) bodyWrap.removeChild(bodyWrap.firstChild);
-        if (!dropdownOpen.get(binding.dimName)) return;
-        const search = buildSearchInput(binding.dimName, searchQueries, () => renderList());
-        bodyWrap.appendChild(search);
-        const list = document.createElement("div");
-        list.style.cssText = [
-            `max-height:${MAX_LIST_HEIGHT_PX}px`,
-            "overflow-y:auto",
-            "border:1px solid #e0e0e0",
-            "border-radius:3px",
-        ].join(";");
-        bodyWrap.appendChild(list);
-
-        function renderList(): void {
-            const q = (searchQueries.get(binding.dimName) ?? "").toLowerCase();
-            while (list.firstChild) list.removeChild(list.firstChild);
-            const matches = binding.distinctValues.filter(v => v.toLowerCase().includes(q));
-            if (matches.length === 0) {
-                const empty = document.createElement("div");
-                empty.textContent = "No matches";
-                empty.style.cssText = "padding:6px 8px;color:#888;font-style:italic;font-size:11px;";
-                list.appendChild(empty);
-                return;
-            }
-            for (const v of matches.slice(0, 200)) {
-                list.appendChild(buildCheckRow(binding, v, state.get(binding.dimName).has(v), state));
-            }
-            if (matches.length > 200) {
-                const more = document.createElement("div");
-                more.textContent = `(${matches.length - 200} more — narrow the search)`;
-                more.style.cssText = "padding:6px 8px;color:#888;font-style:italic;font-size:11px;";
-                list.appendChild(more);
-            }
-        }
-        renderList();
-    }
-    renderBody();
+    renderList();
     return wrap;
 }
 

@@ -11,7 +11,7 @@ import {
 } from "./state";
 import { mountComprehensivePanel, ComprehensivePanelHandle } from "./comprehensivePanel";
 import { mountTopSlicerStrip, TopSlicerStripHandle, PinnedDensity } from "./topSlicerStrip";
-import { pushFilters, persistSelections, persistPin, persistWidget } from "./persistence";
+import { pushFilters, persistSelections, persistPin, persistWidget, persistSortOrders } from "./persistence";
 import type { VisualFormattingSettingsModel } from "../../settings";
 
 type IVisualHost = powerbi.extensibility.visual.IVisualHost;
@@ -61,6 +61,10 @@ export function mountFilterPanelController(
     // Optimistic overrides — hold user intent until PBI persistProperties round-trips.
     const pinOverride: Map<number, boolean> = new Map();
     const widgetOverride: Map<number, SlotWidget> = new Map();
+    // INF-3758 — sortOrder override map (slotIndex → sortOrder). Layered on
+    // top of the persisted sortOrdersJson so drag changes are visible
+    // immediately, then survive the persistProperties round-trip.
+    const sortOrderOverride: Map<number, number> = new Map();
     // In-memory only; "Apply to filter pane" routes sidebar value-row render to slicer widget.
     const applyToFilterPaneOverride: Map<number, boolean> = new Map();
     let restoredFromPersisted = false;
@@ -101,6 +105,18 @@ export function mountFilterPanelController(
         onToggleApplyToFilterPane: (slotIndex: number) => {
             const next = applyToFilterPaneOverride.get(slotIndex) !== true;
             applyToFilterPaneOverride.set(slotIndex, next);
+            options.onChange();
+        },
+        onReorder: (newSortOrders: ReadonlyArray<number>) => {
+            // INF-3758 — operator dropped a drag. Apply the array to all 8
+            // slots (one entry per slot, in slot-index order), persist, and
+            // re-render. The override map shadows persisted values so the
+            // sidebar + strip reflow immediately.
+            sortOrderOverride.clear();
+            for (let i = 0; i < newSortOrders.length; i++) {
+                sortOrderOverride.set(i, newSortOrders[i]);
+            }
+            persistSortOrders(options.host, newSortOrders);
             options.onChange();
         },
     });
@@ -186,7 +202,10 @@ export function mountFilterPanelController(
             currentBindings = extractBindings(dataView);
             // Feed row tuples for cross-filtered count badges.
             state.setRows(extractFilterRows(dataView, currentBindings));
-            const slots: FilterSlotSettings[] = extractSlotSettings(settings, pinOverride, widgetOverride);
+            const persistedSortOrders = extractPersistedSortOrders(settings);
+            const slots: FilterSlotSettings[] = extractSlotSettings(
+                settings, pinOverride, widgetOverride, sortOrderOverride, persistedSortOrders,
+            );
             mutateSlotLabels(settings, currentBindings);
 
             if (!restoredFromPersisted) {
@@ -348,6 +367,8 @@ function extractSlotSettings(
     settings: VisualFormattingSettingsModel,
     pinOverride: ReadonlyMap<number, boolean>,
     widgetOverride: ReadonlyMap<number, SlotWidget>,
+    sortOrderOverride: ReadonlyMap<number, number>,
+    persistedSortOrders: ReadonlyArray<number | undefined>,
 ): FilterSlotSettings[] {
     const fs = settings.filterSlots;
     const slotRefs = [
@@ -368,14 +389,40 @@ function extractSlotSettings(
         const persistedPinned = !!s.pinned.value;
         const pinned = pinOverride.has(idx) ? pinOverride.get(idx)! : persistedPinned;
         const widget = widgetOverride.has(idx) ? widgetOverride.get(idx)! : widgetPersisted;
+        // INF-3758 sortOrder resolution: override > persisted > undefined.
+        const sortOrder = sortOrderOverride.has(idx)
+            ? sortOrderOverride.get(idx)!
+            : persistedSortOrders[idx];
         return {
             tier: (tier === "comprehensive" || tier === "hidden") ? tier : "comprehensive",
             widget,
             defaultSelection: "all",
             labelOverride: s.label.value ?? "",
             pinned,
+            sortOrder,
         };
     });
+}
+
+/** INF-3758 — parse the persisted sortOrdersJson array from the layout card.
+ *  Returns 8-element array; index i corresponds to slot i. Missing entries
+ *  default to undefined (falls back to slotIndex for ordering). Invalid JSON
+ *  or shape returns all-undefined; graceful fallback to bind-order behavior. */
+function extractPersistedSortOrders(
+    settings: VisualFormattingSettingsModel,
+): ReadonlyArray<number | undefined> {
+    const raw = settings.filterPanelLayout.sortOrdersJson.value ?? "";
+    const out: (number | undefined)[] = new Array(MAX_FILTER_DIMENSIONS).fill(undefined);
+    if (raw.trim().length === 0) return out;
+    try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return out;
+        for (let i = 0; i < Math.min(parsed.length, MAX_FILTER_DIMENSIONS); i++) {
+            const v = parsed[i];
+            if (typeof v === "number" && Number.isFinite(v)) out[i] = v;
+        }
+    } catch { /* malformed JSON — fall back to all-undefined */ }
+    return out;
 }
 
 function mutateSlotLabels(

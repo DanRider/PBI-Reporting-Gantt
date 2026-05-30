@@ -603,6 +603,10 @@ export class FilterPanelLayoutCard extends SimpleCard {
         name: "selectionsJson", displayName: "Persisted selections (JSON)",
         placeholder: "{}", value: "",
     });
+    sortOrdersJson = new formattingSettings.TextInput({
+        name: "sortOrdersJson", displayName: "Persisted dim sort orders (JSON array)",
+        placeholder: "[]", value: "",
+    });
     pinnedDensity = new formattingSettings.ItemDropdown({
         name: "pinnedDensity", displayName: "Pinned slicer density",
         items: PINNED_DENSITY_ITEMS,
@@ -612,7 +616,7 @@ export class FilterPanelLayoutCard extends SimpleCard {
     displayName: string = "Filter Panel Layout";
     slices: FormattingSettingsSlice[] = [
         this.showFeatured, this.showComprehensive, this.comprehensiveSizePx,
-        this.pinnedDensity, this.selectionsJson,
+        this.pinnedDensity, this.selectionsJson, this.sortOrdersJson,
     ];
 }
 

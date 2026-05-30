@@ -22,6 +22,7 @@ import type { WidgetRenderer } from "./widgets/widget";
 import { pillsMultiRenderer } from "./widgets/pillsMulti";
 import { pillsSingleRenderer } from "./widgets/pillsSingle";
 import { dropdownMultiRenderer } from "./widgets/dropdownMulti";
+import { DragReorderController, mountDragController } from "./dragReorder";
 
 /** Map a resolved slicer-widget kind to its concrete renderer for use in
  *  the sidebar's expanded dim block when "Apply to filter pane" is on.
@@ -66,6 +67,11 @@ export interface ComprehensivePanelOptions {
     /** Called when the user toggles the "Apply to filter pane" checkbox
      *  in the gear flyout. */
     onToggleApplyToFilterPane: (slotIndex: number) => void;
+    /** INF-3758 — called when the user drops a dim block at a new position.
+     *  Receives the full 8-element sortOrders array (slot index → sortOrder).
+     *  Slots not in the visible-dragged set get sortOrder + 1000 as a
+     *  high-number placeholder so they sort AFTER visible ones. */
+    onReorder?: (newSortOrders: ReadonlyArray<number>) => void;
 }
 
 export interface ComprehensivePanelHandle {
@@ -148,10 +154,23 @@ export function mountComprehensivePanel(
     // a dim to just its header row — important when many dims are bound.
     const collapsed: Map<string, boolean> = new Map();
 
+    // INF-3758 — drag-reorder controller. Lives outside comprehensivePanel
+    // to keep this file under the 400-LOC cap.
+    const dragController = mountDragController(body, {
+        getVisibleSlotIndices: () => lastBindings.map(b => b.slotIndex),
+        onReorder: (newSortOrders) => options.onReorder?.(newSortOrders),
+    });
+
     state.subscribe(() => repaint());
 
     function repaint(): void {
-        while (body.firstChild) body.removeChild(body.firstChild);
+        // Preserve the drop indicator across repaints — it's the only child
+        // we don't tear down.
+        const children = Array.from(body.children);
+        for (const c of children) {
+            if ((c as HTMLElement).style.display === "none" && (c as HTMLElement).style.position === "absolute") continue; // drop indicator
+            body.removeChild(c);
+        }
         if (lastBindings.length === 0) {
             const empty = document.createElement("div");
             empty.textContent = "Bind columns to 'Filter Dimensions' in the Build pane to enable filters.";
@@ -161,7 +180,10 @@ export function mountComprehensivePanel(
             for (const b of lastBindings) {
                 const slot = lastSlots[b.slotIndex];
                 if (slot === undefined) continue;
-                body.appendChild(buildDimBlock(b, slot, state, searchQueries, dropdownOpen, collapsed, repaint, options));
+                body.appendChild(buildDimBlock(
+                    b, slot, state, searchQueries, dropdownOpen, collapsed,
+                    repaint, options, dragController,
+                ));
             }
         }
         const count = state.activeCount();
@@ -188,6 +210,7 @@ function buildDimBlock(
     collapsed: Map<string, boolean>,
     repaint: () => void,
     options: ComprehensivePanelOptions,
+    dragController: DragReorderController,
 ): HTMLDivElement {
     // Default collapsed — dims with many bound rows would otherwise blow
     // out the sidebar height. User clicks the chevron to expand. Once
@@ -257,6 +280,34 @@ function buildDimBlock(
         // the count badge.
         hdr.appendChild(buildClearButton(() => state.clear(binding.dimName)));
     }
+
+    // INF-3758 — grab handle on the right end of the header. Click and
+    // drag to reorder dim blocks. Visual: two-column dots universal
+    // drag affordance. The drag controller wires pointer events.
+    const grab = document.createElement("span");
+    grab.textContent = "\u22ee\u22ee"; // ⋮⋮
+    grab.title = "Drag to reorder";
+    grab.style.cssText = [
+        "display:inline-flex",
+        "align-items:center",
+        "justify-content:center",
+        "width:14px",
+        "height:18px",
+        "color:#999",
+        "font-size:14px",
+        "font-weight:700",
+        "line-height:1",
+        "letter-spacing:-2px",
+        "cursor:grab",
+        "user-select:none",
+        "flex-shrink:0",
+        "touch-action:none",
+    ].join(";");
+    grab.addEventListener("mouseenter", () => { grab.style.color = "#555"; });
+    grab.addEventListener("mouseleave", () => { grab.style.color = "#999"; });
+    hdr.appendChild(grab);
+    dragController.attachDragHandle(grab, block, binding.slotIndex);
+
     block.appendChild(hdr);
 
     // When collapsed, the dim shows ONLY the header row. The value list
@@ -294,13 +345,14 @@ function buildChevronToggle(collapsed: boolean, onClick: () => void): HTMLButton
         "display:inline-flex",
         "align-items:center",
         "justify-content:center",
-        "width:16px",
-        "height:16px",
+        "width:18px",
+        "height:18px",
         "padding:0",
         "border:none",
         "background:transparent",
         "color:#555",
-        "font-size:10px",
+        "font-size:14px",
+        "line-height:1",
         "cursor:pointer",
         "user-select:none",
         "flex-shrink:0",
@@ -332,22 +384,16 @@ function buildPinButton(active: boolean, onClick: () => void): HTMLButtonElement
     // Crisp 16px viewBox; no platform-emoji rendering inconsistency.
     const SVG_NS = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(SVG_NS, "svg");
-    svg.setAttribute("width", "14");
-    svg.setAttribute("height", "14");
-    svg.setAttribute("viewBox", "0 0 16 16");
+    svg.setAttribute("width", "16");
+    svg.setAttribute("height", "16");
+    svg.setAttribute("viewBox", "0 0 24 24");
     svg.style.pointerEvents = "none";
     const path = document.createElementNS(SVG_NS, "path");
-    // Push-pin shape: cap at top, body tapering, stem at bottom.
-    path.setAttribute("d", "M6 1 L10 1 L11 4 L11 7 L13 9 L13 10 L9 10 L9 14 L8 15 L7 14 L7 10 L3 10 L3 9 L5 7 L5 4 Z");
-    if (active) {
-        path.setAttribute("fill", PIN_ACTIVE_FG);
-        path.setAttribute("stroke", PIN_ACTIVE_FG);
-    } else {
-        path.setAttribute("fill", "none");
-        path.setAttribute("stroke", PIN_INACTIVE_FG);
-        path.setAttribute("stroke-width", "1.2");
-        path.setAttribute("stroke-linejoin", "round");
-    }
+    // INF-3757: Material Icons push_pin path — universally recognizable
+    // vertical pushpin (cap + body + needle). Solid-filled in both states;
+    // active = blue, inactive = gray (color is the affordance, not outline).
+    path.setAttribute("d", "M16,12V4h1V2H7v2h1v8l-2,2v2h5.2v6h1.6v-6H18v-2L16,12z");
+    path.setAttribute("fill", active ? PIN_ACTIVE_FG : PIN_INACTIVE_FG);
     svg.appendChild(path);
     btn.appendChild(svg);
     btn.addEventListener("mouseenter", () => { btn.style.background = "#f0f0f3"; });

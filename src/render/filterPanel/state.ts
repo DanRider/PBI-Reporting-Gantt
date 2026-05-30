@@ -60,6 +60,10 @@ export interface FilterSlotSettings {
     /** v2.2 INF-3739 — when true, the dim renders as an always-on top slicer
      *  strip ABOVE the chart in addition to appearing in the sidebar. */
     pinned: boolean;
+    /** INF-3758 — render order. Lower = rendered first. Undefined falls back
+     *  to slotIndex so untouched slots preserve their PBI bind order.
+     *  Persisted via filterPanelLayout.sortOrdersJson. */
+    sortOrder?: number;
 }
 
 /** Maximum distinct values pulled into a filter dim's dropdown. */
@@ -209,27 +213,51 @@ function setsEqual<T>(a: Set<T>, b: Set<T>): boolean {
  *  lists readable while long lists stay scannable via a search box + chips. */
 export const HIGH_CARDINALITY_THRESHOLD = 12;
 
+/** Sort key for INF-3758 drag-reorder. Bindings with explicit sortOrder come
+ *  first (in ascending sortOrder); untouched bindings fall back to slotIndex
+ *  so the default PBI bind order is preserved when the user hasn't dragged
+ *  anything. Ties on sortOrder break by slotIndex for stability. */
+function bindingSortKey(
+    binding: FilterDimBinding,
+    slot: FilterSlotSettings | undefined,
+): number {
+    const so = slot?.sortOrder;
+    if (so === undefined) return binding.slotIndex + 1000; // unsorted: after sorted
+    return so;
+}
+
 /** v2.2 INF-3739 — dims whose slot is pinned render as always-on top slicer
- *  strips. Per-slot toggle persists via host.persistProperties. */
+ *  strips. Per-slot toggle persists via host.persistProperties.
+ *  INF-3758 — output sorted by sortOrder so drag-reorder affects both the
+ *  strip and the sidebar consistently. */
 export function pinnedBindings(
     bindings: ReadonlyArray<FilterDimBinding>,
     slotSettings: ReadonlyArray<FilterSlotSettings>,
 ): FilterDimBinding[] {
-    return bindings.filter((_, i) => {
+    const filtered = bindings.filter((_, i) => {
         const s = slotSettings[i];
         return s != null && s.pinned && s.tier !== "hidden";
     });
+    return filtered
+        .map(b => ({ b, k: bindingSortKey(b, slotSettings[b.slotIndex]) }))
+        .sort((a, z) => a.k - z.k || a.b.slotIndex - z.b.slotIndex)
+        .map(x => x.b);
 }
 
-/** Filter bindings for the dims that should appear in the comprehensive sidebar (everything not hidden). */
+/** Filter bindings for the dims that should appear in the comprehensive sidebar (everything not hidden).
+ *  INF-3758 — output sorted by sortOrder so the sidebar reflects drag-reorder. */
 export function comprehensiveBindings(
     bindings: ReadonlyArray<FilterDimBinding>,
     slotSettings: ReadonlyArray<FilterSlotSettings>,
 ): FilterDimBinding[] {
-    return bindings.filter((_, i) => {
+    const filtered = bindings.filter((_, i) => {
         const s = slotSettings[i];
         return s != null && s.tier !== "hidden";
     });
+    return filtered
+        .map(b => ({ b, k: bindingSortKey(b, slotSettings[b.slotIndex]) }))
+        .sort((a, z) => a.k - z.k || a.b.slotIndex - z.b.slotIndex)
+        .map(x => x.b);
 }
 
 /** User-facing label — slot's labelOverride wins, else dim's columnName. */

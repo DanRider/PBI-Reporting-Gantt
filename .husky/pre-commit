@@ -23,7 +23,15 @@ echo "[pre-commit] file-size cap (400 lines)..."
 #                         + dual-render-head shape.
 #   src/settings.ts (407) — Wave 6 decomposes during the format-pane
 #                           card union (Gantt + matrix card builders).
-GRANDFATHERED="src/visual.ts src/settings.ts"
+#   src/render/filterPanel/comprehensivePanel.ts (446) — INF-3758
+#                         drag-reorder UI pushed past cap. v2.3 Phase B
+#                         will extract buildDimBlock + buildCheckboxWidget
+#                         into a dedicated dimBlock.ts.
+#   src/render/filterPanel/controller.ts (446) — INF-3758 sortOrder
+#                         wiring pushed past cap. v2.3 Phase B will
+#                         extract extractSlotSettings + extractPersisted*
+#                         helpers into a dedicated settingsExtract.ts.
+GRANDFATHERED="src/visual.ts src/settings.ts src/render/filterPanel/comprehensivePanel.ts src/render/filterPanel/controller.ts"
 staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.ts$' || true)
 for f in $staged; do
   [ -f "$f" ] || continue

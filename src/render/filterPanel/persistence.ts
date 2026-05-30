@@ -84,3 +84,17 @@ export function persistWidget(host: IVisualHost, slotIndex: number, widget: Slot
         });
     } catch { /* harmless */ }
 }
+
+/** INF-3758 — persist the full sortOrder array as a JSON blob on the
+ *  filterPanelLayout card. Single round-trip for any reorder commit. */
+export function persistSortOrders(host: IVisualHost, sortOrders: ReadonlyArray<number>): void {
+    try {
+        host.persistProperties({
+            merge: [{
+                objectName: "filterPanelLayout",
+                selector: undefined as unknown as powerbi.data.Selector,
+                properties: { sortOrdersJson: JSON.stringify(sortOrders) },
+            }],
+        });
+    } catch { /* harmless */ }
+}

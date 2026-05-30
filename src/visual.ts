@@ -934,16 +934,19 @@ export class Visual implements IVisual {
         // bar itself never overlaps either region's content.
         const tableRowsPresent = !!(dataView?.table?.rows?.length);
         this.splitter.setVisible(tableRowsPresent);
-        // v2.2 INF-3739 — subtract top-slicer-strip rows from the splitter's
-        // available viewport so gantt + matrix + bar fit BELOW the slicer.
-        const splitterViewportHeight = Math.max(0, options.viewport.height - topSlicerHeightPx);
-        const ganttHeightPx = tableRowsPresent
-            ? this.splitter.ganttHeightPx(splitterViewportHeight)
-            : splitterViewportHeight;
-        const matrixHeightPx = tableRowsPresent
-            ? this.splitter.matrixHeightPx(splitterViewportHeight)
-            : 0;
+        // INF-3759: strip-growth absorbs from gantt only, NOT matrix.
+        // Matrix size is computed at its percentage of the FULL viewport
+        // (only subtracting the splitter bar), so the table region stays
+        // visually constant as the user pins / unpins dim filters. Gantt
+        // takes whatever's left: viewport − topSlicer − bar − matrix.
+        // Sum invariant: topSlicer + gantt + bar + matrix = viewport.
         const splitterBarHeightPx = this.splitter.barHeightPx();
+        const matrixHeightPx = tableRowsPresent
+            ? this.splitter.matrixHeightPx(options.viewport.height)
+            : 0;
+        const ganttHeightPx = tableRowsPresent
+            ? Math.max(0, options.viewport.height - topSlicerHeightPx - splitterBarHeightPx - matrixHeightPx)
+            : Math.max(0, options.viewport.height - topSlicerHeightPx);
 
         // Push the inspector / controls popout down below the slicer +
         // chrome row, and clip its bottom to the chart area only (so it
@@ -1055,7 +1058,14 @@ export class Visual implements IVisual {
         // slider strip). Only push when gantt is visible.
         // v2.2 INF-3739 — additional push for any pinned top-slicer-strip rows.
         const wrapperChromeOffset = (ganttHeightPx > 0 ? MASTER_SLIDER_CHROME_PX : 0) + topSlicerHeightPx;
-        const height = Math.max(0, ganttHeightPx - wrapperChromeOffset);
+        // INF-3759 fix: wrapper HEIGHT subtracts only the slider chrome,
+        // not topSlicer. topSlicer is already accounted for outside the
+        // gantt region (it lives ABOVE the gantt region's top, not inside
+        // it). Subtracting it from height too creates a topSlicer-sized
+        // whitespace gap between the gantt wrapper bottom and the splitter
+        // bar that grows linearly each time the strip flex-wraps.
+        const wrapperHeightSubtract = (ganttHeightPx > 0 ? MASTER_SLIDER_CHROME_PX : 0);
+        const height = Math.max(0, ganttHeightPx - wrapperHeightSubtract);
 
         this.ganttScrollWrapper.style.left = panelWidthPx + "px";
         this.ganttScrollWrapper.style.top = wrapperChromeOffset + "px";
