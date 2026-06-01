@@ -1013,11 +1013,18 @@ export class Visual implements IVisual {
                 widthPx: options.viewport.width - panelWidthPx,
             });
             this.matrixDiv.style.display = "block";
-            // v2.1 audit-fix #12 + #24c — when Gantt is hidden, push matrix
-            // down by the header height AND the master-slider chrome reserve.
-            // v2.2 INF-3739 — additionally push by top-slicer-strip rows.
+            // INF-3768 (followup) — anchor the matrix BOTTOM to viewport
+            // bottom (bottom:0); height auto-derives from top+bottom in
+            // position:absolute. Pre-fix used top + height — during a
+            // splitter drag the height was recomputed every rAF tick,
+            // briefly showing the matrix shrink from the bottom before
+            // snapping back to fill. Anchored bottom = no transient
+            // resize, since the bottom y-coord is invariant at 0.
+            // v2.1 audit-fix #12 + #24c — Gantt-hidden header + chrome
+            // reserve still push the matrix TOP down; bottom stays put.
             this.matrixDiv.style.top = (topSlicerHeightPx + ganttHeightPx + splitterBarHeightPx + ganttHiddenHeaderPx + ganttHiddenChromePush) + "px";
-            this.matrixDiv.style.height = (matrixHeightPx - ganttHiddenHeaderPx - ganttHiddenChromePush) + "px";
+            this.matrixDiv.style.bottom = "0px";
+            this.matrixDiv.style.height = "auto";
             this.matrixDiv.style.left = panelWidthPx + "px";
             // v2.2 INF-3739 — reserve comprehensive sidebar width on the right.
             this.matrixDiv.style.width = Math.max(0, options.viewport.width - panelWidthPx - comprehensiveWidthPx) + "px";
