@@ -11,7 +11,8 @@ import {
 } from "./state";
 import { mountComprehensivePanel, ComprehensivePanelHandle } from "./comprehensivePanel";
 import { mountTopSlicerStrip, TopSlicerStripHandle, PinnedDensity } from "./topSlicerStrip";
-import { pushFilters, persistSelections, persistPin, persistWidget, persistSortOrders } from "./persistence";
+import { persistPin, persistWidget, persistSortOrders } from "./persistence";
+import { createPersistenceQueue, PersistenceQueue } from "./persistenceQueue";
 import type { VisualFormattingSettingsModel } from "../../settings";
 
 type IVisualHost = powerbi.extensibility.visual.IVisualHost;
@@ -40,6 +41,8 @@ export interface FilterPanelController {
     pinnedCount(): number;
     /** First child of slicerContainer (the strip element). null if not mounted. */
     slicerStripElement(): HTMLElement | null;
+    /** INF-3770 — flush debounced writes; called from visual.destroy(). */
+    flushPersistence(): void;
     layout(opts: { viewportWidth: number; viewportHeight: number }): void;
     /** Returns active filter map (used by visual.ts to narrow vm + table). */
     update(
@@ -136,10 +139,12 @@ export function mountFilterPanelController(
     root.appendChild(slicerContainer);
     const topSlicer: TopSlicerStripHandle = mountTopSlicerStrip(slicerContainer, state);
 
-    // State subscribe — every mutation fires applyJsonFilter + persist + redraw.
+    // INF-3770 — debounced host-write queue (cadences in persistenceQueue.ts).
+    // options.onChange stays synchronous so in-visual rerender is instant;
+    // only the cross-visual filter + settings round-trips debounce.
+    const persistenceQueue: PersistenceQueue = createPersistenceQueue(options.host, state);
     state.subscribe(() => {
-        pushFilters(options.host, state, currentBindings);
-        persistSelections(options.host, state);
+        persistenceQueue.schedule(currentBindings);
         options.onChange();
     });
 
@@ -187,6 +192,7 @@ export function mountFilterPanelController(
         slicerStripElement(): HTMLElement | null {
             return slicerContainer.firstElementChild as HTMLElement | null;
         },
+        flushPersistence(): void { persistenceQueue.flush(); },
 
         layout(opts): void {
             const sp = sidebarPanel.element;

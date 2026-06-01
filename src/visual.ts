@@ -1688,6 +1688,15 @@ export class Visual implements IVisual {
         }
     }
 
+    /** INF-3770 — flush any debounced filter-pane persistence writes
+     *  before the visual is torn down. PBI calls destroy() on tab close /
+     *  visual removal; without this flush, the last debounce window of
+     *  user state (up to 300ms of pending persistSelections, 50ms of
+     *  pending applyJsonFilter) would be lost. */
+    public destroy(): void {
+        this.filterPanel.flushPersistence();
+    }
+
     public getFormattingModel(): powerbi.visuals.FormattingModel {
         // All slots use static declared properties — Format-pane edits round-trip
         // cleanly through populateFormattingSettingsModel. DisplayNames are

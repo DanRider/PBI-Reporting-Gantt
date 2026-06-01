@@ -26,6 +26,7 @@ export function pushFilters(
 ): void {
     const byName = new Map(bindings.map(b => [b.dimName, b]));
     const filters: powerbi.IFilter[] = [];
+    const dimNames: string[] = [];
     for (const [dimName, values] of state.entries()) {
         const b = byName.get(dimName);
         if (b === undefined) continue;
@@ -40,10 +41,17 @@ export function pushFilters(
             filterType: 1,
         } as unknown as powerbi.IFilter;
         filters.push(filter);
+        dimNames.push(dimName);
     }
     try {
         host.applyJsonFilter(filters as unknown as powerbi.IFilter, "general", "filter", 1);
-    } catch { /* harmless */ }
+    } catch (e) {
+        // INF-3770 — replace silent /* harmless */. Per-call shape so a
+        // client console captures enough to triage without sources.
+        console.warn("[filterPanel] applyJsonFilter failed", {
+            dimCount: filters.length, dims: dimNames, error: e,
+        });
+    }
 }
 
 export function persistSelections(host: IVisualHost, state: FilterState): void {
@@ -55,7 +63,14 @@ export function persistSelections(host: IVisualHost, state: FilterState): void {
                 properties: { selectionsJson: JSON.stringify(state.toJSON()) },
             }],
         });
-    } catch { /* harmless */ }
+    } catch (e) {
+        // INF-3770 — see pushFilters note. Carry activeCount so triage
+        // can distinguish "host rejected empty state" from "host rejected
+        // a deep selection set" without inspecting the persisted JSON.
+        console.warn("[filterPanel] persistSelections failed", {
+            activeCount: state.activeCount(), error: e,
+        });
+    }
 }
 
 export function persistPin(host: IVisualHost, slotIndex: number, pinned: boolean): void {
@@ -68,7 +83,9 @@ export function persistPin(host: IVisualHost, slotIndex: number, pinned: boolean
                 properties: { [prop]: pinned },
             }],
         });
-    } catch { /* harmless */ }
+    } catch (e) {
+        console.warn("[filterPanel] persistPin failed", { slotIndex, pinned, error: e });
+    }
 }
 
 /** INF-3745 Phase A — persist per-slot widget choice. Mirrors persistPin. */
@@ -82,7 +99,9 @@ export function persistWidget(host: IVisualHost, slotIndex: number, widget: Slot
                 properties: { [prop]: widget },
             }],
         });
-    } catch { /* harmless */ }
+    } catch (e) {
+        console.warn("[filterPanel] persistWidget failed", { slotIndex, widget, error: e });
+    }
 }
 
 /** INF-3758 — persist the full sortOrder array as a JSON blob on the
@@ -96,5 +115,9 @@ export function persistSortOrders(host: IVisualHost, sortOrders: ReadonlyArray<n
                 properties: { sortOrdersJson: JSON.stringify(sortOrders) },
             }],
         });
-    } catch { /* harmless */ }
+    } catch (e) {
+        console.warn("[filterPanel] persistSortOrders failed", {
+            sortOrders: Array.from(sortOrders), error: e,
+        });
+    }
 }
