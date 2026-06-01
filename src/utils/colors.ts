@@ -94,7 +94,31 @@ export function buildColorContext(
 }
 
 export function areaColor(area: string, ctx: ColorContext): string {
-    return ctx.areaColors[area] ?? FALLBACK_COLOR;
+    const exact = ctx.areaColors[area];
+    if (exact !== undefined) return exact;
+    // INF-3782 — areaBindings caps at 8 swim-lane slots (slot1Color..slot8Color
+    // in SwimlanesSettingsShape). On datasets with more than 8 distinct areas,
+    // lanes 9+ were not bound to a slot → not in ctx.areaColors → fell back
+    // to the uniform FALLBACK_COLOR "#888" and rendered as indistinguishable
+    // grey rows. Operator-reported on client deployment with 12+ areas:
+    // "swim lane colors eventually switched to be all grey as i scrolled down."
+    // Fix: deterministically hash the area name into the bound palette so
+    // beyond-cap lanes cycle through bound slot colors rather than collapsing
+    // to grey. Same area name yields the same color across data refreshes.
+    // Repeats are visible but the lanes stay distinguishable.
+    const values = Object.values(ctx.areaColors);
+    if (values.length === 0) return FALLBACK_COLOR;
+    return values[stableHashUint(area) % values.length];
+}
+
+/** Deterministic 31-bit unsigned hash of a string. djb2-style; cheap;
+ *  stable across reloads because it depends only on the area name. */
+function stableHashUint(s: string): number {
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) {
+        h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+    }
+    return h < 0 ? -h : h;
 }
 
 /** v2.1 audit-fix #7 — prefer the per-activity override (lane-focus mode)
