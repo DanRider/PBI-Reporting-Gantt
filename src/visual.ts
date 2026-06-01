@@ -948,10 +948,16 @@ export class Visual implements IVisual {
             ? Math.max(0, options.viewport.height - topSlicerHeightPx - splitterBarHeightPx - matrixHeightPx)
             : Math.max(0, options.viewport.height - topSlicerHeightPx);
 
-        // Push the inspector / controls popout down below the slicer +
-        // chrome row, and clip its bottom to the chart area only (so it
-        // doesn't span the entire vertical including the table region).
-        this.controls.setVerticalBounds(topSlicerHeightPx, ganttHeightPx);
+        // INF-3779 — push the inspector / controls popout down below the
+        // slicer + chrome row; let it span from there to the viewport
+        // bottom. Full left-rail surface covering gantt + splitter +
+        // matrix regions — operator-aligned behavior; restores the
+        // pre-clip-to-gantt span that existed before an earlier
+        // audit-fix introduced the artificial gantt-bottom clip.
+        this.controls.setVerticalBounds(
+            topSlicerHeightPx,
+            Math.max(0, options.viewport.height - topSlicerHeightPx),
+        );
 
         // v2.1 audit-fix #12 — when Gantt is fully hidden via the top-left
         // toggle, render a thin header strip with the chart title so the
