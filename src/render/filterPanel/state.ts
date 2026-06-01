@@ -69,6 +69,18 @@ export interface FilterSlotSettings {
 /** Maximum distinct values pulled into a filter dim's dropdown. */
 export const MAX_DISTINCT_VALUES = 1000;
 
+/** INF-3777 — memoization entry for getValueCounts. Within a single
+ *  render pass, getValueCounts is called once per VALUE per visible widget
+ *  (searchChips.buildCheckRow calls it inside its 200-row loop). The cache
+ *  collapses 200 identical calls to 1 compute + 199 O(1) hits. Cleared on
+ *  every state mutation (in _fire) and every dataView refresh (in setRows). */
+interface ValueCountsCacheEntry {
+    /** Snapshot of state hash at compute time. Used as a freshness check. */
+    stateHash: number;
+    /** Computed value→count map for the dimName at that state hash. */
+    counts: Map<string, number>;
+}
+
 /** Single source of truth for cross-tier sync. */
 export class FilterState {
     private readonly _selections: Map<string, Set<string>> = new Map();
@@ -78,6 +90,9 @@ export class FilterState {
      *  controller via setRows() each dataView refresh. Empty rows array
      *  means getValueCounts returns an empty map (graceful fallback). */
     private _rows: ReadonlyArray<ReadonlyMap<string, string>> = [];
+    /** INF-3777 — value-counts memoization. dimName → cache entry.
+     *  Cleared aggressively on any state mutation or row refresh. */
+    private readonly _valueCountsCache: Map<string, ValueCountsCacheEntry> = new Map();
 
     /** Returns the set of selected values for dimName. Empty set = "no filter active" (all values pass). */
     get(dimName: string): ReadonlySet<string> {
@@ -151,17 +166,46 @@ export class FilterState {
     /** Populate the row source for faceted-count computation. Called by
      *  the controller on each dataView refresh. Rows are dimName→value
      *  maps, one per data record. Does NOT fire listeners (this is data,
-     *  not user selection). */
+     *  not user selection). INF-3777 — invalidates the memoization cache
+     *  because row data is the second axis the cache depends on. */
     setRows(rows: ReadonlyArray<ReadonlyMap<string, string>>): void {
         this._rows = rows;
+        this._valueCountsCache.clear();
+    }
+
+    /** INF-3777 — cheap hash of current selection state. Used as the
+     *  cache freshness key for getValueCounts. The cache is also cleared
+     *  on every mutation (_fire) and every row refresh (setRows), so the
+     *  hash is belt-and-suspenders for the within-render-pass case where
+     *  many widgets read counts back-to-back without mutations in between. */
+    private _stateHash(): number {
+        let h = this._selections.size;
+        for (const [k, sel] of this._selections) {
+            // 31-bit mix; cheap; distinguishes (size, key-shape) combos.
+            h = (h * 31 + k.length + sel.size) | 0;
+        }
+        return h;
     }
 
     /** Faceted counts — for each distinct value of dimName, the number of
      *  rows that match THAT value AND pass all OTHER currently-active
      *  filters. Returns an empty map if no rows are set. The dim being
      *  queried is EXCLUDED from the filter set (so its pill counts show
-     *  what would happen if you toggled them, not just current matches). */
+     *  what would happen if you toggled them, not just current matches).
+     *  INF-3777 — memoized per dimName; cache invalidated by _fire (any
+     *  state mutation) and by setRows (any row refresh). */
     getValueCounts(dimName: string): Map<string, number> {
+        const hash = this._stateHash();
+        const cached = this._valueCountsCache.get(dimName);
+        if (cached !== undefined && cached.stateHash === hash) return cached.counts;
+        const counts = this._computeValueCounts(dimName);
+        this._valueCountsCache.set(dimName, { stateHash: hash, counts });
+        return counts;
+    }
+
+    /** INF-3777 — uncached computation. Extracted from getValueCounts so
+     *  tests can spy on it via vi.spyOn(FilterState.prototype, ...). */
+    private _computeValueCounts(dimName: string): Map<string, number> {
         const counts = new Map<string, number>();
         if (this._rows.length === 0) return counts;
         // Snapshot OTHER active filters once outside the row loop.
@@ -196,6 +240,10 @@ export class FilterState {
     }
 
     private _fire(): void {
+        // INF-3777 — invalidate the value-counts cache before notifying
+        // listeners. Subscribers will re-read counts during their repaint
+        // and need to see fresh data, not the previous-state cache.
+        this._valueCountsCache.clear();
         for (const fn of this._listeners) fn();
     }
 }

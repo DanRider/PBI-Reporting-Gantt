@@ -267,3 +267,106 @@ describe("resolveWidget (INF-3745 Phase A)", () => {
         expect(r.kind).toBe("pills-multi");
     });
 });
+
+// ---------- INF-3777: getValueCounts memoization ----------
+
+describe("FilterState.getValueCounts memoization (INF-3777)", () => {
+    // Build a small row set with two dims that share a few values, so
+    // counts are non-trivial and we can verify correctness across the
+    // cache boundary.
+    function makeRows(): ReadonlyArray<ReadonlyMap<string, string>> {
+        const rows: Array<Map<string, string>> = [];
+        for (let i = 0; i < 10; i++) {
+            const r = new Map<string, string>();
+            r.set("DimA", i % 2 === 0 ? "even" : "odd");
+            r.set("DimB", i % 3 === 0 ? "third" : "other");
+            rows.push(r);
+        }
+        return rows;
+    }
+
+    // TypeScript `private` is compile-time only — the method exists on
+    // the prototype at runtime and vi.spyOn can intercept it.
+    function spyCompute(s: FilterState) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return vi.spyOn(s as any, "_computeValueCounts");
+    }
+
+    it("returns identical results across cache boundary (correctness)", () => {
+        const s = new FilterState();
+        s.setRows(makeRows());
+        const first = s.getValueCounts("DimA");
+        const second = s.getValueCounts("DimA");
+        // Same Map instance returned on cache hit — proves we didn't recompute.
+        expect(second).toBe(first);
+        expect(first.get("even")).toBe(5);
+        expect(first.get("odd")).toBe(5);
+    });
+
+    it("second call with no mutation is a cache HIT (compute fires once)", () => {
+        const s = new FilterState();
+        s.setRows(makeRows());
+        const spy = spyCompute(s);
+        s.getValueCounts("DimA");
+        s.getValueCounts("DimA");
+        s.getValueCounts("DimA");
+        expect(spy).toHaveBeenCalledTimes(1);
+        spy.mockRestore();
+    });
+
+    it("state mutation invalidates cache (compute fires again)", () => {
+        const s = new FilterState();
+        s.setRows(makeRows());
+        const spy = spyCompute(s);
+        s.getValueCounts("DimA");
+        expect(spy).toHaveBeenCalledTimes(1);
+
+        s.toggle("DimB", "third"); // _fire → cache.clear
+
+        s.getValueCounts("DimA");
+        expect(spy).toHaveBeenCalledTimes(2);
+        spy.mockRestore();
+    });
+
+    it("setRows invalidates cache (compute fires again)", () => {
+        const s = new FilterState();
+        s.setRows(makeRows());
+        const spy = spyCompute(s);
+        s.getValueCounts("DimA");
+        expect(spy).toHaveBeenCalledTimes(1);
+
+        s.setRows(makeRows()); // fresh rows → cache.clear
+
+        s.getValueCounts("DimA");
+        expect(spy).toHaveBeenCalledTimes(2);
+        spy.mockRestore();
+    });
+
+    it("post-mutation counts reflect the NEW state (not stale cache)", () => {
+        const s = new FilterState();
+        s.setRows(makeRows());
+        // Initially no filter on DimB; DimA's even/odd both count 5.
+        let counts = s.getValueCounts("DimA");
+        expect(counts.get("even")).toBe(5);
+        expect(counts.get("odd")).toBe(5);
+
+        // Now filter DimB → only "third" rows pass. Of 10 rows, indices
+        // 0,3,6,9 have DimB=third; of those, evens=0,6 → 2; odds=3,9 → 2.
+        s.set("DimB", ["third"]);
+        counts = s.getValueCounts("DimA");
+        expect(counts.get("even")).toBe(2);
+        expect(counts.get("odd")).toBe(2);
+    });
+
+    it("different dimNames are cached independently (per-dim entries)", () => {
+        const s = new FilterState();
+        s.setRows(makeRows());
+        const spy = spyCompute(s);
+        s.getValueCounts("DimA"); // compute #1
+        s.getValueCounts("DimB"); // compute #2 (different dim)
+        s.getValueCounts("DimA"); // hit
+        s.getValueCounts("DimB"); // hit
+        expect(spy).toHaveBeenCalledTimes(2);
+        spy.mockRestore();
+    });
+});
