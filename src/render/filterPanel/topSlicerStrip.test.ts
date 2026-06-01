@@ -16,6 +16,15 @@ import {
     WIPE_CLEANUP_BUFFER_MS_EXPORT,
 } from "./topSlicerStrip";
 
+/** INF-3771 — fire a synthetic clip-path transitionend on an element.
+ *  jsdom dispatches the event but does NOT auto-fire transitions, so
+ *  tests must drive the cleanup path explicitly. */
+function fireClipPathTransitionEnd(el: HTMLElement): void {
+    const ev = new Event("transitionend", { bubbles: true });
+    Object.assign(ev, { propertyName: "clip-path" });
+    el.dispatchEvent(ev);
+}
+
 // ---------- fixtures ----------
 
 function makeBinding(dimName: string, slotIndex: number, values: string[]): FilterDimBinding {
@@ -213,8 +222,8 @@ describe("CELL 3: E_UNPIN_SOME — intermediate remove", () => {
         // Still in DOM during wipe
         expect(strip.children.length).toBe(2);
 
-        // Advance past wipe duration + cleanup buffer
-        vi.advanceTimersByTime(WIPE_MS_EXPORT + WIPE_CLEANUP_BUFFER_MS_EXPORT + 10);
+        // INF-3771 — cleanup gated on transitionend. Fire it synthetically.
+        fireClipPathTransitionEnd(removed);
         // Now removed
         expect(strip.children.length).toBe(1);
         // Surviving widget intact
@@ -245,8 +254,9 @@ describe("CELL 4: E_UNPIN_LAST — boundary close", () => {
         // Still 34+ tall during wipe (strip's min-height NOT yet collapsed)
         expect(parseInt(strip.style.minHeight, 10)).toBeGreaterThanOrEqual(34);
 
-        // Advance past wipe + buffer
-        vi.advanceTimersByTime(WIPE_MS_EXPORT + WIPE_CLEANUP_BUFFER_MS_EXPORT + 10);
+        // INF-3771 — cleanup AND strip collapse both ride the widget's
+        // clip-path transitionend. Fire synthetically.
+        fireClipPathTransitionEnd(widget);
         // Widget removed
         expect(strip.children.length).toBe(0);
         // Strip collapsed — jsdom normalizes "0" → "0px"
@@ -255,6 +265,9 @@ describe("CELL 4: E_UNPIN_LAST — boundary close", () => {
         cleanup(container);
     });
 });
+
+// NOTE: INF-3771 transitionend tests live in topSlicerStrip.transitionend.test.ts
+// (extracted to keep this file under the 400-LOC cap).
 
 // ---------- CELL 6: E_RAPID_CLICK (cancel mid-flight) ----------
 

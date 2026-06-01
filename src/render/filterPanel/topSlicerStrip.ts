@@ -39,6 +39,12 @@ export const WIPE_DELAY_FIRST_PIN_MS_EXPORT = 800;
 export const WIPE_DELAY_DEFAULT_MS_EXPORT = 50;
 export const WIPE_CLEANUP_BUFFER_MS_EXPORT = 50;
 export const WIPE_EASING_EXPORT = "cubic-bezier(0.45, 0, 0.25, 1)";
+// INF-3771 — fallback deadline for cleanup if transitionend never fires
+// (rare clip-path / GPU-driver edge case per filter primitives agent Q4).
+// 50% margin over the 1000ms expectation: rare interrupted-transition
+// scenarios still get cleaned up; normal browsers short-circuit via the
+// transitionend event well before this.
+export const WIPE_FALLBACK_MS_EXPORT = 1500;
 
 const STRIP_BG = "#ffffff";
 const STRIP_BORDER = "#c0c0c0";
@@ -123,8 +129,39 @@ export function mountTopSlicerStrip(
     const WIPE_MS = WIPE_MS_EXPORT;
     const WIPE_DELAY_FIRST_PIN_MS = WIPE_DELAY_FIRST_PIN_MS_EXPORT;
     const WIPE_DELAY_DEFAULT_MS = WIPE_DELAY_DEFAULT_MS_EXPORT;
-    const WIPE_CLEANUP_BUFFER_MS = WIPE_CLEANUP_BUFFER_MS_EXPORT;
     const WIPE_EASING = WIPE_EASING_EXPORT;
+    const WIPE_FALLBACK_MS = WIPE_FALLBACK_MS_EXPORT;
+
+    /** INF-3771 — gate `callback` on the element's clip-path transitionend,
+     *  with a fallback timer so an interrupted-or-skipped transition still
+     *  triggers cleanup eventually. Idempotent: callback runs exactly once
+     *  regardless of whether transitionend or fallback wins. propertyName
+     *  filter ensures unrelated transitions (e.g. opacity in tests) do
+     *  not short-circuit. */
+    function onClipPathTransitionEnd(
+        el: HTMLElement,
+        callback: () => void,
+        fallbackMs: number,
+    ): void {
+        let fired = false;
+        const fire = (): void => {
+            if (fired) return;
+            fired = true;
+            el.removeEventListener("transitionend", handler);
+            window.clearTimeout(fallbackId);
+            callback();
+        };
+        const handler = (e: Event): void => {
+            // jsdom + real browsers both expose propertyName on TransitionEvent;
+            // duck-type via property read to avoid TransitionEvent-instanceof
+            // checks that may fail across constructor identity in jsdom.
+            const propertyName = (e as TransitionEvent).propertyName;
+            if (propertyName !== "clip-path") return;
+            fire();
+        };
+        el.addEventListener("transitionend", handler);
+        const fallbackId: number = window.setTimeout(fire, fallbackMs);
+    }
 
     function repaint(
         bindings: ReadonlyArray<FilterDimBinding>,
@@ -159,6 +196,12 @@ export function mountTopSlicerStrip(
         // reveal timer first (rapid pin→unpin would otherwise show the
         // widget briefly mid-destruction). Then set clip-path:inset(100%)
         // — the transition fires — and schedule destroy + DOM removal.
+        // INF-3771 — cleanup is gated on the widget's clip-path transitionend
+        // (with WIPE_FALLBACK_MS guard), not a fixed setTimeout. Slow hosts
+        // no longer destroy mid-animation; fast hosts cleanup as soon as
+        // the transition truly completes.
+        const willCollapseStrip = bindings.length === 0;
+        let pendingCleanups = toAnimateOut.length;
         for (const m of toAnimateOut) {
             const el = m.element;
             const handle = m.handle;
@@ -169,22 +212,29 @@ export function mountTopSlicerStrip(
             // -10px bottom inset keeps the badge area in the clip rect
             // (matches the reveal state below).
             el.style.clipPath = "inset(0 100% -10px 0)";
-            window.setTimeout(() => {
+            onClipPathTransitionEnd(el, () => {
                 handle.destroy();
                 if (el.parentNode) el.parentNode.removeChild(el);
-            }, WIPE_MS + WIPE_CLEANUP_BUFFER_MS);
+                pendingCleanups--;
+                // INF-3771 — strip collapse rides the LAST widget's cleanup,
+                // not a separate setTimeout. Guarantees strip stays at full
+                // height until every removed widget has actually completed
+                // its wipe (or its fallback fired).
+                if (pendingCleanups === 0 && willCollapseStrip) {
+                    strip.style.minHeight = "0";
+                }
+            }, WIPE_FALLBACK_MS);
         }
 
         mounted = kept;
 
-        if (bindings.length === 0) {
-            // Last widget being wiped out. Defer strip's vertical collapse
-            // (min-height → 0) until after the wipe animation completes.
-            window.setTimeout(() => {
-                strip.style.minHeight = "0";
-            }, WIPE_MS + WIPE_CLEANUP_BUFFER_MS);
+        if (willCollapseStrip && toAnimateOut.length === 0) {
+            // Bindings empty AND nothing to animate (e.g. already-empty strip
+            // re-rendered). Collapse immediately — no transitions to wait on.
+            strip.style.minHeight = "0";
             return;
         }
+        if (bindings.length === 0) return;
 
         // Non-empty path: setup strip layout styles and add NEW widgets.
         const d = DENSITY[density];
