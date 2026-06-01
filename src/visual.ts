@@ -1788,13 +1788,19 @@ export class Visual implements IVisual {
         const wrapperChromeOffset = (ganttHeightPx > 0 ? MASTER_SLIDER_CHROME_PX : 0) + topSlicerHeightPx;
         const wrapperHeightSubtract = (ganttHeightPx > 0 ? MASTER_SLIDER_CHROME_PX : 0);
         const wrapperHeight = Math.max(0, ganttHeightPx - wrapperHeightSubtract);
-        const wrapperWidth = Math.max(0, viewport.width - panelWidthPx - comprehensiveWidthPx);
         this.ganttScrollWrapper.style.top = wrapperChromeOffset + "px";
         this.ganttScrollWrapper.style.height = wrapperHeight + "px";
-        // SVG height attr matches wrapper for crisp viewBox math. Width
-        // doesn't change during a vertical drag — set anyway for safety
-        // (cheap; D3 selection update is O(1)).
-        this.svg.attr("width", wrapperWidth).attr("height", wrapperHeight);
+        // INF-3781 followup — DO NOT mutate SVG width/height during drag.
+        // The SVG's content (axes, bars, swimlanes) was laid out at the
+        // pre-drag dimensions by the last full update(); shrinking the
+        // SVG attr would clip the content INSIDE the SVG (no scroll bar)
+        // because the wrapper's overflow:auto only kicks in when SVG
+        // height > wrapper height. By leaving SVG dimensions intact,
+        // the wrapper's overflow naturally reveals a scrollbar when
+        // user drags the splitter up to shrink the gantt — content
+        // scrolls inside the wrapper at its original layout. Content
+        // reflows tightly to new dimensions on pointerup via the full
+        // update() path.
     }
 
     /** INF-3770 — flush any debounced filter-pane persistence writes
