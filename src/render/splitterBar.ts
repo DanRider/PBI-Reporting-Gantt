@@ -177,6 +177,13 @@ export function mountSplitterBar(
         // (rare but possible with touch + capture quirks).
         cancelPendingDrag();
         bar.setPointerCapture(e.pointerId);
+        // INF-379X — flag documentElement during drag so the chrome-
+        // animation CSS transitions (visual.less .matrix-region etc.)
+        // are disabled. Without this disable, every drag-frame style.top
+        // mutation is eased over the transition's duration — the matrix
+        // chases the splitter at transition speed, not pointer speed
+        // (operator: "it moves but it is too slow").
+        document.documentElement.classList.add("splitter-dragging");
         dragStartY = e.clientY;
         dragStartPct = userPct;
         const rootRect = root.getBoundingClientRect();
@@ -210,6 +217,10 @@ export function mountSplitterBar(
         if (bar.hasPointerCapture(e.pointerId)) {
             bar.releasePointerCapture(e.pointerId);
         }
+        // INF-379X — drag finished; re-enable the chrome-animation CSS
+        // transitions so the next strip-pin/unpin animation (INF-3751)
+        // still eases as designed.
+        document.documentElement.classList.remove("splitter-dragging");
         // INF-379X — commit the drag: cancel any pending rAF (its
         // onLiveDrag is now stale) and fire onChange synchronously so
         // the visual reflows content (gantt SVG, table rows) to the
@@ -229,6 +240,7 @@ export function mountSplitterBar(
         // INF-379X — cancel pending frame on pointercancel (touch interrupted,
         // capture lost). Don't fire onChange — the drag was aborted.
         cancelPendingDrag();
+        document.documentElement.classList.remove("splitter-dragging");
     });
 
     root.appendChild(bar);

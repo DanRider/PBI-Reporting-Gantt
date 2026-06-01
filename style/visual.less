@@ -103,6 +103,21 @@
     transition: top @chrome-half-ms @chrome-easing;
 }
 
+// INF-379X — during a splitter drag, disable the chrome-animation
+// transitions. The transitions above (and on .top-left-toggles /
+// .master-time-anchor) are designed for the once-per-strip-pin
+// animation; during a live drag, the splitter primitive mutates
+// the matrix top on every rAF tick, and the transition's ease would
+// chase the new top at transition-speed instead of tracking the
+// pointer 1:1. The `splitter-dragging` class is toggled on
+// documentElement by splitterBar.ts pointerdown/pointerup/pointercancel.
+.splitter-dragging .gantt-hidden-header,
+.splitter-dragging .matrix-region,
+.splitter-dragging .top-left-toggles,
+.splitter-dragging .master-time-anchor {
+    transition: none;
+}
+
 // Filter strip itself does NOT animate. Per-widget wipe animations live
 // on each cluster's inline style — see topSlicerStrip.ts:repaint().
 
