@@ -54,6 +54,15 @@ export function mountDragController(
         pointerDownY: number;
         dragging: boolean;
         targetIndex: number;
+        /** INF-3778 — snapshot of getVisibleSlotIndices() at pointerdown.
+         *  Pre-fix: drop math used the CURRENT visible-slots list at
+         *  pointerup; if FilterState mutated mid-drag (repaint fires →
+         *  lastBindings updates → getVisibleSlotIndices returns new array),
+         *  the drop landed in the WRONG slot or computed bad indices.
+         *  Post-fix: snapshot frozen at drag-start drives drop math; if
+         *  snapshot differs from current at drop time, abort with a warn
+         *  so the drop never produces an incorrect reorder. */
+        snapshotSlotIndices: ReadonlyArray<number>;
     } | null = null;
 
     function visibleBlocks(): HTMLElement[] {
@@ -116,6 +125,10 @@ export function mountDragController(
                 pointerDownY: e.clientY,
                 dragging: false,
                 targetIndex: -1,
+                // INF-3778 — freeze the visible-slot order NOW so drop math
+                // is computed against the binding list the user started
+                // dragging against, not against any mid-drag refresh.
+                snapshotSlotIndices: Array.from(options.getVisibleSlotIndices()),
             };
         });
 
@@ -139,14 +152,32 @@ export function mountDragController(
             const wasDragging = dragState.dragging;
             const sourceSlot = dragState.sourceSlotIndex;
             const targetIdx = dragState.targetIndex;
+            // INF-3778 — pull snapshot out of dragState BEFORE cleanup() nulls it.
+            const snapshotSlots = dragState.snapshotSlotIndices;
             cleanup();
             if (!wasDragging) return;
 
-            // Compute new ordering. Take the current visible slot list,
-            // remove the source slot, then insert it at targetIdx — adjusting
-            // for the fact that targetIdx was measured against a list that
-            // INCLUDED the source.
-            const visibleSlots = Array.from(options.getVisibleSlotIndices());
+            // INF-3778 — verify the binding list didn't mutate during the drag.
+            // If it did, the user's intent is ambiguous — recomputing drop
+            // index math against the new list could land the dropped dim in
+            // the wrong slot. Abort with a warn; user re-drags if they meant it.
+            const currentSlots = options.getVisibleSlotIndices();
+            const snapshotChanged =
+                snapshotSlots.length !== currentSlots.length ||
+                !snapshotSlots.every((s, i) => s === currentSlots[i]);
+            if (snapshotChanged) {
+                console.warn(
+                    "[dragReorder] visible bindings changed mid-drag, aborting drop",
+                    { snapshot: snapshotSlots, current: Array.from(currentSlots) },
+                );
+                return;
+            }
+
+            // Compute new ordering against the SNAPSHOT (which we've now
+            // verified equals current). Remove source slot, insert at
+            // targetIdx — adjusting for the fact that targetIdx was
+            // measured against a list that INCLUDED the source.
+            const visibleSlots = Array.from(snapshotSlots);
             const sourceVisualPos = visibleSlots.indexOf(sourceSlot);
             const without = visibleSlots.filter(s => s !== sourceSlot);
             let insertAt = targetIdx;
