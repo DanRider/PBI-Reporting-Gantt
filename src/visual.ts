@@ -934,19 +934,26 @@ export class Visual implements IVisual {
         // bar itself never overlaps either region's content.
         const tableRowsPresent = !!(dataView?.table?.rows?.length);
         this.splitter.setVisible(tableRowsPresent);
-        // INF-3759: strip-growth absorbs from gantt only, NOT matrix.
-        // Matrix size is computed at its percentage of the FULL viewport
-        // (only subtracting the splitter bar), so the table region stays
-        // visually constant as the user pins / unpins dim filters. Gantt
-        // takes whatever's left: viewport − topSlicer − bar − matrix.
-        // Sum invariant: topSlicer + gantt + bar + matrix = viewport.
-        const splitterBarHeightPx = this.splitter.barHeightPx();
-        const matrixHeightPx = tableRowsPresent
-            ? this.splitter.matrixHeightPx(options.viewport.height)
-            : 0;
+        // INF-3768+3772: REVERSES the prior INF-3759 "matrix-stays-constant"
+        // architecture per operator's clarified UX intent: gantt + matrix
+        // share the below-strip viewport and divide proportionally at the
+        // splitter's userPct ratio. As the slicer strip grows, BOTH shrink
+        // proportionally — matching operator's "same container, divide by
+        // percent" intent. Track A's vertical-stack rebuild (INF-3769) will
+        // refactor this surface; this surgical fix gets the behavior
+        // correct in the meantime.
+        // Sum invariant: topSlicer + gantt + bar + matrix === viewport.
+        const splitterViewportHeight = Math.max(0, options.viewport.height - topSlicerHeightPx);
+        // INF-3768: bar height counted only when the table region is bound
+        // (otherwise the bar is hidden via setVisible(false) and reserves
+        // no real estate — keeps the sum invariant exact at unbound state).
+        const splitterBarHeightPx = tableRowsPresent ? this.splitter.barHeightPx() : 0;
         const ganttHeightPx = tableRowsPresent
-            ? Math.max(0, options.viewport.height - topSlicerHeightPx - splitterBarHeightPx - matrixHeightPx)
-            : Math.max(0, options.viewport.height - topSlicerHeightPx);
+            ? this.splitter.ganttHeightPx(splitterViewportHeight)
+            : splitterViewportHeight;
+        const matrixHeightPx = tableRowsPresent
+            ? this.splitter.matrixHeightPx(splitterViewportHeight)
+            : 0;
 
         // INF-3779 — push the inspector / controls popout down below the
         // slicer + chrome row; let it span from there to the viewport
@@ -992,12 +999,17 @@ export class Visual implements IVisual {
         }
 
         if (tableRowsPresent) {
-            // Splitter bar sits AT y = ganttHeightPx, immediately below the
-            // Gantt scroll wrapper. Matrix region starts at ganttHeightPx +
-            // splitterBarHeightPx so the bar lives in its own band.
+            // INF-3772: splitter bar sits AT y = topSlicer + ganttHeightPx —
+            // directly between gantt-wrapper bottom and matrix top. Pre-fix
+            // used `ganttHeightPx` alone, missing the topSlicer offset, so
+            // the bar visually occluded the bottom topSlicer-px of gantt
+            // content (z-index:6) and left a topSlicer-sized gap above the
+            // matrix. Matrix top calculation at line 1001 already accounts
+            // for both offsets (topSlicer + ganttHeightPx + bar) so no
+            // change needed there.
             this.splitter.layout({
                 leftPx: panelWidthPx,
-                topPx: ganttHeightPx,
+                topPx: topSlicerHeightPx + ganttHeightPx,
                 widthPx: options.viewport.width - panelWidthPx,
             });
             this.matrixDiv.style.display = "block";
