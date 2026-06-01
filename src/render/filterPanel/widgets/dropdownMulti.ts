@@ -8,7 +8,10 @@
 // Document-click closes the popover unless the click is inside it.
 
 import type { WidgetHandle, WidgetRenderer, WidgetOptions } from "./widget";
-import { DENSITY, PILL_BORDER, buildCountBadge, buildClearButton } from "./widgetCommon";
+import {
+    DENSITY, PILL_BORDER, buildCountBadge, buildClearButton,
+    attachOutsideClickGuard, OutsideClickGuard,
+} from "./widgetCommon";
 import { dimLabel } from "../state";
 
 const POPOVER_BG = "#ffffff";
@@ -233,6 +236,10 @@ export const dropdownMultiRenderer: WidgetRenderer = {
             return row;
         }
 
+        // INF-3774 — outside-click guard handle. Replaces the prior
+        // setTimeout(0) + manual document.addEventListener pattern.
+        let outsideGuard: OutsideClickGuard | null = null;
+
         function setOpen(next: boolean): void {
             if (open === next) return;
             open = next;
@@ -245,19 +252,18 @@ export const dropdownMultiRenderer: WidgetRenderer = {
                 popover.style.left = rect.left + "px";
                 popover.style.display = "flex";
                 renderList();
-                // Defer document-click attach to AFTER this click bubble.
-                setTimeout(() => document.addEventListener("click", onDocClick, true), 0);
+                // INF-3774 — synchronous capture-phase attach. Safe because
+                // (a) addEventListener inside an in-flight event dispatch
+                // does not catch that event, and (b) trigger.click calls
+                // stopPropagation. The shared helper checks BOTH trigger
+                // (root) and popover containment so clicking the trigger
+                // again to toggle never misfires as an outside-click.
+                outsideGuard = attachOutsideClickGuard(root, popover, () => setOpen(false));
             } else {
                 popover.style.display = "none";
-                document.removeEventListener("click", onDocClick, true);
+                outsideGuard?.dispose();
+                outsideGuard = null;
             }
-        }
-
-        function onDocClick(e: Event): void {
-            if (!(e.target instanceof Node)) return;
-            if (root.contains(e.target)) return;
-            if (popover.contains(e.target)) return;
-            setOpen(false);
         }
 
         trigger.addEventListener("click", (e) => {
@@ -273,7 +279,8 @@ export const dropdownMultiRenderer: WidgetRenderer = {
                 if (open) renderList();
             },
             destroy(): void {
-                document.removeEventListener("click", onDocClick, true);
+                outsideGuard?.dispose();
+                outsideGuard = null;
                 // Popover lives in document.body — always remove on destroy.
                 if (popover.parentNode) popover.parentNode.removeChild(popover);
                 if (root.parentNode) root.parentNode.removeChild(root);

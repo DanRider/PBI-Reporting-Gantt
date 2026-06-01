@@ -9,6 +9,7 @@
 // but-disabled with a tooltip.
 
 import type { FilterDimBinding, SlotWidget } from "../state";
+import { attachOutsideClickGuard, OutsideClickGuard } from "./widgetCommon";
 
 const PICKER_INACTIVE_FG = "#999";
 const PICKER_ACTIVE_FG = "#1F77B4";
@@ -102,6 +103,9 @@ export function buildWidgetPickerButton(opts: WidgetPickerOptions): HTMLElement 
     }
 
     let open = false;
+    // INF-3774 — outside-click guard handle. Replaces setTimeout(0)
+    // + manual document.addEventListener / removeEventListener pattern.
+    let outsideGuard: OutsideClickGuard | null = null;
     function setOpen(next: boolean): void {
         if (open === next) return;
         open = next;
@@ -114,20 +118,17 @@ export function buildWidgetPickerButton(opts: WidgetPickerOptions): HTMLElement 
             if (flyout.parentElement !== document.body) {
                 document.body.appendChild(flyout);
             }
-            setTimeout(() => document.addEventListener("click", onDocClick, true), 0);
+            // INF-3774 — see attachOutsideClickGuard docs. Checks BOTH
+            // root (in-sidebar trigger) and flyout (portaled to body).
+            outsideGuard = attachOutsideClickGuard(root, flyout, () => setOpen(false));
         } else {
             flyout.style.display = "none";
             if (flyout.parentElement === document.body) {
                 document.body.removeChild(flyout);
             }
-            document.removeEventListener("click", onDocClick, true);
+            outsideGuard?.dispose();
+            outsideGuard = null;
         }
-    }
-    function onDocClick(e: Event): void {
-        if (!(e.target instanceof Node)) return;
-        if (root.contains(e.target)) return;
-        if (flyout.contains(e.target)) return;
-        setOpen(false);
     }
     btn.addEventListener("click", (e) => {
         e.stopPropagation();

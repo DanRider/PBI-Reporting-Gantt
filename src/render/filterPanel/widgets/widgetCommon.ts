@@ -269,3 +269,45 @@ export function positionPopoverBelow(
         popover.style.top = "auto";
     }
 }
+
+/** INF-3774 — shared outside-click guard for popovers + flyouts. Used by
+ *  dropdownMulti and widgetPicker (and any future popover widget). The
+ *  popovers in this codebase live on document.body to escape local
+ *  stacking contexts — the trigger element is the IN-place button in the
+ *  sidebar/strip. Clicks on EITHER must NOT dismiss; only true-outside
+ *  clicks should fire onOutside.
+ *
+ *  Replaces the `setTimeout(0)` deferral pattern (closing-on-open-click
+ *  was the original concern). Synchronous capture-phase attach is safe
+ *  because (a) addEventListener added inside an in-flight event dispatch
+ *  does not catch that event, and (b) the trigger's click handler calls
+ *  e.stopPropagation() anyway. */
+export interface OutsideClickGuard {
+    /** Detach the document-level capture listener. Idempotent. */
+    dispose(): void;
+}
+
+export function attachOutsideClickGuard(
+    trigger: HTMLElement,
+    popover: HTMLElement,
+    onOutside: () => void,
+): OutsideClickGuard {
+    let disposed = false;
+    const handler = (e: Event): void => {
+        if (disposed) return;
+        if (!(e.target instanceof Node)) return;
+        // Clicks on the in-place trigger or the portaled popover are
+        // INSIDE the widget — never dismiss.
+        if (trigger.contains(e.target)) return;
+        if (popover.contains(e.target)) return;
+        onOutside();
+    };
+    document.addEventListener("click", handler, true);
+    return {
+        dispose(): void {
+            if (disposed) return;
+            disposed = true;
+            document.removeEventListener("click", handler, true);
+        },
+    };
+}
