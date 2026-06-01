@@ -164,6 +164,20 @@ export function mountComprehensivePanel(
     state.subscribe(() => repaint());
 
     function repaint(): void {
+        // INF-3776 — focus preservation snapshot. Without this, every
+        // FilterState mutation tears down the search input DOM below and
+        // the recreated input has no focus — next keystroke goes to body.
+        // Scope to body.contains() so we never steal focus from the Format
+        // pane, another visual on the page, or anything else outside the
+        // sidebar.
+        const active = document.activeElement;
+        const wasInsideSidebarSearch =
+            active instanceof HTMLInputElement &&
+            active.dataset.searchRole === "in-dim" &&
+            body.contains(active);
+        const focusDimName = wasInsideSidebarSearch ? (active.dataset.dimName ?? null) : null;
+        const focusSelStart = wasInsideSidebarSearch ? (active.selectionStart ?? 0) : 0;
+
         // Preserve the drop indicator across repaints — it's the only child
         // we don't tear down.
         const children = Array.from(body.children);
@@ -189,6 +203,29 @@ export function mountComprehensivePanel(
         const count = state.activeCount();
         activeLabel.textContent = count === 0 ? "No active filters" :
             count === 1 ? "1 active filter" : `${count} active filters`;
+
+        // INF-3776 — restore focus on the rebuilt input. Iterate candidates
+        // matching the static role attribute (selector-safe) and compare
+        // dataset.dimName by JS string equality — avoids CSS.escape gymnastics
+        // for dimNames that can contain quotes, brackets, or other CSS
+        // selector metacharacters (column displayNames are user-controlled).
+        if (focusDimName !== null) {
+            const candidates = body.querySelectorAll(
+                'input[data-search-role="in-dim"]',
+            );
+            for (let i = 0; i < candidates.length; i++) {
+                const c = candidates.item(i);
+                if (c instanceof HTMLInputElement && c.dataset.dimName === focusDimName) {
+                    c.focus();
+                    try {
+                        c.setSelectionRange(focusSelStart, focusSelStart);
+                    } catch {
+                        // setSelectionRange not supported on this input type — silent ok
+                    }
+                    break;
+                }
+            }
+        }
     }
 
     return {

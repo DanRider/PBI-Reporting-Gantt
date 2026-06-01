@@ -102,6 +102,15 @@ export function buildSearchInput(
 ): HTMLInputElement {
     const search = document.createElement("input");
     search.type = "text";
+    // INF-3776 — focus preservation tags. The sidebar's state.subscribe
+    // tears down every dim block on each FilterState mutation, destroying
+    // the input DOM element. comprehensivePanel.ts:repaint() snapshots
+    // document.activeElement before the tear-down and re-focuses the new
+    // input by matching ON BOTH attributes after rebuild. searchRole
+    // future-proofs against a later "header search" or other input
+    // pattern; data-dim-name pinpoints the specific input.
+    search.dataset.searchRole = "in-dim";
+    search.dataset.dimName = dimName;
     search.placeholder = "Search…";
     search.value = searchQueries.get(dimName) ?? "";
     search.style.cssText = [
