@@ -46,8 +46,17 @@ export interface SplitterOptions {
     minGanttPx: number;
     /** Minimum px Matrix occupies when Matrix is collapsed (or drag pins to min). */
     minMatrixPx: number;
-    /** Called when the splitter state changes (drag, button click). */
+    /** Called on programmatic state change OR after a drag completes
+     *  (pointerup). Triggers a full re-render including any content
+     *  that depends on the new layout (gantt SVG rows, table rows). */
     onChange: () => void;
+    /** INF-379X — optional fast-path called on every drag frame
+     *  (requestAnimationFrame-coalesced). If provided, consumer
+     *  should apply ONLY the splitter-affected layout (style.top,
+     *  style.height) without re-rendering content — keeps drag
+     *  buttery at 60fps even on large datasets. If omitted, drag
+     *  falls back to onChange (slow but functionally correct). */
+    onLiveDrag?: () => void;
 }
 
 export interface SplitterHandle {
@@ -125,8 +134,48 @@ export function mountSplitterBar(
     let dragStartY = 0;
     let dragStartPct = userPct;
     let dragRootTop = 0;
+
+    // INF-379X — requestAnimationFrame coalesce for live-drag updates.
+    // pointermove on modern hardware fires 120Hz+; each fire triggered
+    // a full visual.update() (expensive at pointer-event rate). rAF
+    // caps the drag callback at the browser's paint cadence (60Hz)
+    // AND deduplicates multiple events within the same frame. During
+    // drag, onLiveDrag (cheap layout-only) fires per frame. On
+    // pointerup the pending frame is cancelled and onChange fires
+    // synchronously (full re-render to reflow content).
+    let pendingFrame = 0;
+    function scheduleDragChange(): void {
+        if (pendingFrame !== 0) return;
+        pendingFrame = window.requestAnimationFrame(() => {
+            pendingFrame = 0;
+            (options.onLiveDrag ?? options.onChange)();
+        });
+    }
+    function commitDrag(): void {
+        // Called from pointerup. Cancels any pending frame so a stale
+        // onLiveDrag does not fire AFTER the final settle. Fires
+        // onChange synchronously (full re-render reflows content that
+        // onLiveDrag deliberately skipped during drag).
+        const wasMidDrag = pendingFrame !== 0;
+        if (pendingFrame !== 0) {
+            window.cancelAnimationFrame(pendingFrame);
+            pendingFrame = 0;
+        }
+        if (wasMidDrag) options.onChange();
+    }
+    function cancelPendingDrag(): void {
+        if (pendingFrame !== 0) {
+            window.cancelAnimationFrame(pendingFrame);
+            pendingFrame = 0;
+        }
+    }
+
     bar.addEventListener("pointerdown", (e) => {
         if (!visible) return;
+        // Cancel any pending frame from a previous interaction —
+        // belt-and-suspenders for a new drag starting before pointerup
+        // (rare but possible with touch + capture quirks).
+        cancelPendingDrag();
         bar.setPointerCapture(e.pointerId);
         dragStartY = e.clientY;
         dragStartPct = userPct;
@@ -150,7 +199,9 @@ export function mountSplitterBar(
         if (usable <= 0) return;
         const deltaPct = deltaY / usable;
         userPct = clampPct(dragStartPct + deltaPct);
-        options.onChange();
+        // INF-379X — rAF coalesce. Multiple pointermove events within
+        // the same frame collapse to one onChange call.
+        scheduleDragChange();
         // Silence unused-var: dragRootTop is reserved for future
         // root-relative drag math if PBI ever reports stale clientY.
         void dragRootTop;
@@ -159,6 +210,11 @@ export function mountSplitterBar(
         if (bar.hasPointerCapture(e.pointerId)) {
             bar.releasePointerCapture(e.pointerId);
         }
+        // INF-379X — commit the drag: cancel any pending rAF (its
+        // onLiveDrag is now stale) and fire onChange synchronously so
+        // the visual reflows content (gantt SVG, table rows) to the
+        // new dimensions.
+        commitDrag();
         // audit-fix #24e — swallow the synthetic click after pointerup so
         // the root whitespace handler doesn't clear the selection (and
         // close the Inspector panel). Same pattern as controlsPanel.
@@ -168,6 +224,11 @@ export function mountSplitterBar(
             window.removeEventListener("click", swallowNextClick, true);
         };
         window.addEventListener("click", swallowNextClick, true);
+    });
+    bar.addEventListener("pointercancel", () => {
+        // INF-379X — cancel pending frame on pointercancel (touch interrupted,
+        // capture lost). Don't fire onChange — the drag was aborted.
+        cancelPendingDrag();
     });
 
     root.appendChild(bar);

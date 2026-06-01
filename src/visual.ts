@@ -331,6 +331,16 @@ export class Visual implements IVisual {
     // can load with pinned dims, and we don't want an animated "boot"
     // from a non-existent zero state into the initial pinned state.
     private firstUpdate: boolean = true;
+    // INF-379X — layout context cached from each full update() so the
+    // splitter's onLiveDrag fast-path (applyDragLayout) can recompute
+    // splitter-affected geometry WITHOUT re-running data conversion,
+    // gantt SVG content render, or table HTML render. These four values
+    // are stable during a drag (user cannot drag splitter AND resize
+    // controls/filter panel simultaneously).
+    private lastTopSlicerHeightPx: number = 0;
+    private lastPanelWidthPx: number = 0;
+    private lastComprehensiveWidthPx: number = 0;
+    private lastTableRowsPresent: boolean = false;
 
     constructor(options?: VisualConstructorOptions) {
         // pbiviz 6.2's auto-generated visualPlugin.ts emits
@@ -553,7 +563,15 @@ export class Visual implements IVisual {
             initialPct: INITIAL_GANTT_PCT,
             minGanttPx: MIN_GANTT_PX,
             minMatrixPx: MIN_MATRIX_PX,
+            // Programmatic state change OR drag commit (pointerup) →
+            // full re-render reflows content to new dimensions.
             onChange: () => this.requestRerender(),
+            // INF-379X — fast-path during drag: only mutates the
+            // splitter-affected style.top / style.height values
+            // (~4 DOM writes), no data conversion, no SVG content
+            // render, no table HTML render. Drag stays at 60fps even
+            // on large datasets where full update() is 30+ms.
+            onLiveDrag: () => this.applyDragLayout(),
         });
 
         // v2.2 INF-3739 — filter panel controller mounted BEFORE topRight so the
@@ -954,6 +972,15 @@ export class Visual implements IVisual {
         const matrixHeightPx = tableRowsPresent
             ? this.splitter.matrixHeightPx(splitterViewportHeight)
             : 0;
+
+        // INF-379X — cache the layout context that applyDragLayout()
+        // needs to recompute splitter geometry without a full update().
+        // These four are stable during a drag (user cannot simultaneously
+        // drag splitter AND resize controls/filter panel).
+        this.lastTopSlicerHeightPx = topSlicerHeightPx;
+        this.lastPanelWidthPx = panelWidthPx;
+        this.lastComprehensiveWidthPx = comprehensiveWidthPx;
+        this.lastTableRowsPresent = tableRowsPresent;
 
         // INF-3779 — push the inspector / controls popout down below the
         // slicer + chrome row; let it span from there to the viewport
@@ -1711,6 +1738,63 @@ export class Visual implements IVisual {
         if (this.lastOptions) {
             this.update(this.lastOptions);
         }
+    }
+
+    /** INF-379X — fast-path layout invoked by the splitter's onLiveDrag
+     *  callback (rAF-coalesced during pointermove). Mutates ONLY the
+     *  splitter-affected geometry (~4 style writes + 1 SVG attr write).
+     *  Skips: data conversion, gantt SVG content render, table HTML
+     *  render, filter panel layout — none of which change during a
+     *  drag. Content reflows on pointerup via the splitter's onChange
+     *  → requestRerender path (full update). The cached layout context
+     *  (lastTopSlicerHeightPx etc.) is populated by each full update();
+     *  during a drag those values are stable (user cannot drag + resize
+     *  panels simultaneously). */
+    private applyDragLayout(): void {
+        if (this.lastOptions === null) return;
+        const viewport = this.lastOptions.viewport;
+
+        const tableRowsPresent = this.lastTableRowsPresent;
+        const topSlicerHeightPx = this.lastTopSlicerHeightPx;
+        const panelWidthPx = this.lastPanelWidthPx;
+        const comprehensiveWidthPx = this.lastComprehensiveWidthPx;
+
+        const splitterViewportHeight = Math.max(0, viewport.height - topSlicerHeightPx);
+        const splitterBarHeightPx = tableRowsPresent ? this.splitter.barHeightPx() : 0;
+        const ganttHeightPx = tableRowsPresent
+            ? this.splitter.ganttHeightPx(splitterViewportHeight)
+            : splitterViewportHeight;
+        const ganttHiddenHeaderPx = this.splitter.hiddenMode() === "gantt" ? 40 : 0;
+        const ganttHiddenChromePush =
+            this.splitter.hiddenMode() === "gantt" ? MASTER_SLIDER_CHROME_PX : 0;
+
+        // Splitter bar — top is below gantt wrapper (INF-3772 anchor).
+        if (tableRowsPresent) {
+            this.splitter.layout({
+                leftPx: panelWidthPx,
+                topPx: topSlicerHeightPx + ganttHeightPx,
+                widthPx: viewport.width - panelWidthPx,
+            });
+        }
+
+        // Matrix top moves with drag; bottom stays anchored at 0
+        // (INF-3768 followup). Height auto-derives in CSS.
+        if (tableRowsPresent) {
+            this.matrixDiv.style.top = (topSlicerHeightPx + ganttHeightPx + splitterBarHeightPx + ganttHiddenHeaderPx + ganttHiddenChromePush) + "px";
+        }
+
+        // Gantt scroll wrapper — top is master-slider-chrome + topSlicer
+        // when gantt visible; height is gantt minus chrome reserve.
+        const wrapperChromeOffset = (ganttHeightPx > 0 ? MASTER_SLIDER_CHROME_PX : 0) + topSlicerHeightPx;
+        const wrapperHeightSubtract = (ganttHeightPx > 0 ? MASTER_SLIDER_CHROME_PX : 0);
+        const wrapperHeight = Math.max(0, ganttHeightPx - wrapperHeightSubtract);
+        const wrapperWidth = Math.max(0, viewport.width - panelWidthPx - comprehensiveWidthPx);
+        this.ganttScrollWrapper.style.top = wrapperChromeOffset + "px";
+        this.ganttScrollWrapper.style.height = wrapperHeight + "px";
+        // SVG height attr matches wrapper for crisp viewBox math. Width
+        // doesn't change during a vertical drag — set anyway for safety
+        // (cheap; D3 selection update is O(1)).
+        this.svg.attr("width", wrapperWidth).attr("height", wrapperHeight);
     }
 
     /** INF-3770 — flush any debounced filter-pane persistence writes
