@@ -563,15 +563,20 @@ export class Visual implements IVisual {
             initialPct: INITIAL_GANTT_PCT,
             minGanttPx: MIN_GANTT_PX,
             minMatrixPx: MIN_MATRIX_PX,
-            // Programmatic state change OR drag commit (pointerup) →
-            // full re-render reflows content to new dimensions.
+            // INF-379X followup — drag-frame AND drag-commit both route
+            // through requestRerender (full update). The fast-path
+            // applyDragLayout() approach was deliberately omitting the
+            // gantt SVG content render, which left swim-lane row heights
+            // locked at pre-drag values — operator: "swim lanes appear
+            // to be a static size while they were previously expanding
+            // and contracting." Full update on each rAF frame restores
+            // the live row-reflow; the rAF coalesce + .splitter-dragging
+            // CSS-transition-disable rule give us 60fps tracking as long
+            // as update() completes in <16ms (well within budget on the
+            // fixture). On very large datasets where update() exceeds
+            // 16ms, frame rate gracefully degrades — Track A's vertical-
+            // stack rebuild is the long-term path to constant-time drag.
             onChange: () => this.requestRerender(),
-            // INF-379X — fast-path during drag: only mutates the
-            // splitter-affected style.top / style.height values
-            // (~4 DOM writes), no data conversion, no SVG content
-            // render, no table HTML render. Drag stays at 60fps even
-            // on large datasets where full update() is 30+ms.
-            onLiveDrag: () => this.applyDragLayout(),
         });
 
         // v2.2 INF-3739 — filter panel controller mounted BEFORE topRight so the
