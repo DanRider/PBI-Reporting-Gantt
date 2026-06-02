@@ -58,7 +58,7 @@ describe("glidePath orchestrator — activity baseline-tick layer", () => {
     it("emits one tick per eligible activity (those with baselineEnd bound)", () => {
         renderActivityBaselineTickLayer(bodyG, activities, xScale, 30);
         // 1 no-base + 2 with-base → 2 ticks
-        expect(bodyG.selectAll("line.activity-baseline-tick").nodes()).toHaveLength(2);
+        expect(bodyG.selectAll("path.activity-baseline-tick").nodes()).toHaveLength(2);
     });
 
     it("idempotent — re-renders don't duplicate the layer", () => {

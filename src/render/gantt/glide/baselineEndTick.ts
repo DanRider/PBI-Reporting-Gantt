@@ -26,10 +26,11 @@ import { barHeightFor } from "../bars";
 //
 // Fires automatically when baselineEnd is bound — no toggle.
 
-const TICK_STROKE = "#777777";
-const TICK_STROKE_WIDTH = 1.5;
-const TICK_LENGTH_PX = 6;          // vertical extent below the bar
-const TICK_GAP_PX = 1;             // gap between bar bottom and tick top
+const TICK_STROKE = "#444444";
+const TICK_STROKE_WIDTH = 2.5;
+const TICK_LENGTH_PX = 12;         // vertical extent below the bar
+const TICK_CAP_HALF_WIDTH = 4;     // half-width of horizontal cap (forms "T" anchor)
+const TICK_GAP_PX = 2;             // gap between bar bottom and tick top (cap)
 
 interface TickDatum {
     activity: Activity;
@@ -43,7 +44,7 @@ export function renderActivityBaselineTicks(
     activities: Activity[],
     xScale: ScaleTime<number, number>,
     rowHeight: number,
-): Selection<SVGLineElement, TickDatum, SVGGElement, unknown> {
+): Selection<SVGPathElement, TickDatum, SVGGElement, unknown> {
     const barH = barHeightFor(rowHeight);
     const padding = (rowHeight - barH) / 2;
 
@@ -60,15 +61,20 @@ export function renderActivityBaselineTicks(
         });
     }
 
-    return g.selectAll<SVGLineElement, TickDatum>("line.activity-baseline-tick")
+    // Single path per anchor: horizontal cap at top + vertical stem (T shape).
+    // Reads cartographically as "reference mark at this point" — more
+    // obvious than a bare vertical line at portfolio scale while still
+    // staying neutral (no semantic color).
+    return g.selectAll<SVGPathElement, TickDatum>("path.activity-baseline-tick")
         .data(eligible, (d: TickDatum) => d.activity.name)
-        .join("line")
+        .join("path")
         .attr("class", "activity-baseline-tick")
         .attr("data-activity", d => d.activity.name)
-        .attr("x1", d => d.x)
-        .attr("x2", d => d.x)
-        .attr("y1", d => d.yTop)
-        .attr("y2", d => d.yBottom)
+        .attr("d", d =>
+            `M${d.x - TICK_CAP_HALF_WIDTH},${d.yTop} L${d.x + TICK_CAP_HALF_WIDTH},${d.yTop} ` +
+            `M${d.x},${d.yTop} L${d.x},${d.yBottom}`
+        )
+        .attr("fill", "none")
         .attr("stroke", TICK_STROKE)
         .attr("stroke-width", TICK_STROKE_WIDTH)
         .attr("stroke-linecap", "round")

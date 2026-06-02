@@ -32,7 +32,7 @@ describe("renderActivityBaselineTicks (INF-3787 activity baseline-end tick)", ()
         xScale = scaleTime().domain([new Date("2026-01-01"), new Date("2026-06-01")]).range([0, 500]);
     });
 
-    const ticks = () => g.selectAll<SVGLineElement, unknown>("line.activity-baseline-tick").nodes();
+    const ticks = () => g.selectAll<SVGPathElement, unknown>("path.activity-baseline-tick").nodes();
 
     it("filters out activities without baselineEnd", () => {
         renderActivityBaselineTicks(g, [
@@ -43,18 +43,28 @@ describe("renderActivityBaselineTicks (INF-3787 activity baseline-end tick)", ()
         expect(ticks()[0].getAttribute("data-activity")).toBe("with-base");
     });
 
-    it("renders short vertical tick at baselineEnd x-position", () => {
+    it("emits a T-shaped anchor path (horizontal cap + vertical stem) centered on baselineEnd x", () => {
         const baselineEnd = new Date("2026-02-15");
         renderActivityBaselineTicks(g, [
             mkActivity({ name: "A", index: 0, baselineEnd }),
         ], xScale, 30);
         const tick = ticks()[0];
+        const d = tick.getAttribute("d")!;
+        // Expect 2 moves + 2 lines (M..L M..L) — cap then stem
+        expect((d.match(/M/g) || []).length).toBe(2);
+        expect((d.match(/L/g) || []).length).toBe(2);
+        // Numbers extracted in order: [capLeftX, capY, capRightX, capY, stemX, stemTopY, stemX, stemBotY]
+        const nums = d.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+        expect(nums).toHaveLength(8);
         const x = xScale(baselineEnd);
-        expect(Number(tick.getAttribute("x1"))).toBeCloseTo(x);
-        expect(Number(tick.getAttribute("x2"))).toBeCloseTo(x);
+        expect(nums[0]).toBeCloseTo(x - 4); // cap left
+        expect(nums[2]).toBeCloseTo(x + 4); // cap right
+        expect(nums[4]).toBeCloseTo(x);      // stem x
+        expect(nums[6]).toBeCloseTo(x);      // stem x
+        expect(nums[7]).toBeGreaterThan(nums[5]); // stem extends down
     });
 
-    it("positions tick BELOW the forecast bar (yTop > bar bottom)", () => {
+    it("positions anchor BELOW the forecast bar (cap y > bar bottom)", () => {
         const rowHeight = 30;
         const barH = barHeightFor(rowHeight);
         const padding = (rowHeight - barH) / 2;
@@ -63,32 +73,33 @@ describe("renderActivityBaselineTicks (INF-3787 activity baseline-end tick)", ()
             mkActivity({ name: "B", index: 0, baselineEnd: new Date("2026-02-15") }),
         ], xScale, rowHeight);
         const tick = ticks()[0];
-        const yTop = Number(tick.getAttribute("y1"));
-        const yBottom = Number(tick.getAttribute("y2"));
-        expect(yTop).toBeGreaterThan(expectedBarBottom);
-        expect(yBottom).toBeGreaterThan(yTop);
+        const nums = tick.getAttribute("d")!.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+        const capY = nums[1];
+        expect(capY).toBeGreaterThan(expectedBarBottom);
     });
 
-    it("tick has fixed length (6px) regardless of rowHeight", () => {
+    it("stem has fixed length (12px) regardless of rowHeight", () => {
         renderActivityBaselineTicks(g, [
             mkActivity({ name: "C", index: 0, baselineEnd: new Date("2026-02-15") }),
         ], xScale, 30);
         const tick = ticks()[0];
-        const length = Number(tick.getAttribute("y2")) - Number(tick.getAttribute("y1"));
-        expect(length).toBe(6);
+        const nums = tick.getAttribute("d")!.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+        const length = nums[7] - nums[5]; // stemBotY - stemTopY
+        expect(length).toBe(12);
     });
 
-    it("emits neutral grey stroke (no semantic color signal)", () => {
+    it("emits darker grey stroke + thicker width for portfolio-scale visibility", () => {
         renderActivityBaselineTicks(g, [
             mkActivity({ name: "D", index: 0, baselineEnd: new Date("2026-02-15") }),
         ], xScale, 30);
         const tick = ticks()[0];
-        expect(tick.getAttribute("stroke")).toBe("#777777");
-        expect(tick.getAttribute("stroke-width")).toBe("1.5");
+        expect(tick.getAttribute("stroke")).toBe("#444444");
+        expect(tick.getAttribute("stroke-width")).toBe("2.5");
+        expect(tick.getAttribute("fill")).toBe("none");
         expect(tick.getAttribute("pointer-events")).toBe("none");
     });
 
-    it("emits one tick per eligible activity (multi-row)", () => {
+    it("emits one anchor per eligible activity (multi-row)", () => {
         renderActivityBaselineTicks(g, [
             mkActivity({ name: "A", index: 0, baselineEnd: new Date("2026-02-15") }),
             mkActivity({ name: "B", index: 1, baselineEnd: new Date("2026-03-01") }),
