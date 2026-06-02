@@ -82,6 +82,36 @@ table Activities
 
 		annotation SummarizationSetBy = Automatic
 
+	/// INF-3787 visual-gate scaffolding — calculated columns to exercise
+	/// the glide-path layers without changing the demo source data.
+	/// 14-day slip → minor magnitude (yellow chevron expected).
+	/// 60% complete → half-height actual bar shorter than forecast.
+	/// INF-3787 — heterogeneous slip per row via SortOrder cycle so
+	/// the visual demo doesn't show identical chrome on every row.
+	/// SWITCH cycles 7 patterns: critical slip / minor pull / minor
+	/// slip / major slip / on-track / minor slip / major pull.
+	column 'Baseline End' = [End Date] - SWITCH(MOD([SortOrder], 7), 0, 35, 1, -12, 2, 5, 3, 28, 4, -1, 5, 14, 6, -22, 0)
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 3f624196-d3ee-41c9-b964-402c3b97dd81
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	/// Heterogeneous completion percentage per row via SortOrder
+	/// cycle — 30% to 89% completion across the activity portfolio.
+	column 'Actual End' = [Start Date] + INT(([End Date] - [Start Date]) * (30 + MOD([SortOrder] * 13, 60)) / 100)
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 5335ce68-48c8-423c-840d-c1f19985d122
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
 	partition Activities-26e3e969-f225-4e9d-a275-a5ce3a299a19 = m
 		mode: import
 		source =

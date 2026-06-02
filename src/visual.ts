@@ -35,6 +35,10 @@ import { renderMilestones, renderMilestoneLabels, computeVisibleLabels } from ".
 import { renderSwimlanes } from "./render/gantt/swimlanes";
 import { renderSlipIBeamLayer } from "./render/gantt/glidePath";
 import { renderMilestoneBaselineGhosts } from "./render/gantt/glide/milestoneBaselineGhost";
+import {
+    renderBarExtensionHatches,
+    ensureBarHatchPattern,
+} from "./render/gantt/glide/barExtensionHatch";
 import { SlipThresholds, slipToHealthColor, computeSlip } from "./model/activityState";
 import {
     renderActivityLabels,
@@ -1553,11 +1557,16 @@ export class Visual implements IVisual {
         this.labelBgG.selectAll("*").remove();
 
         this.bodyG.attr("transform", `translate(0, ${bodyY})`);
-        // INF-3787 — shifted activities render with 30%-shrunk bar
-        // anchored at row bottom; vertical I-beam at xScale(baselineEnd)
-        // fills the freed top + bisects the shrunken bar. Together they
-        // read as "originally the bar's top was at the I-beam height".
+        // INF-3787 — three layered variance encodings:
+        //   1. Shifted-bar height shrink (renderBars + shiftedActivityNames)
+        //   2. Hatched-pattern overlay on the variance region (renderBar
+        //      ExtensionHatches — depends on the <pattern> defs being
+        //      mounted on the svg root before render)
+        //   3. Vertical I-beam at the baseline-end x (renderSlipIBeamLayer
+        //      below — last so it draws on top)
+        ensureBarHatchPattern(this.svg);
         const barsSel = renderBars(this.bodyG, vm.activities, xScale, rowHeight, colors, shiftedActivityNames);
+        renderBarExtensionHatches(this.bodyG, vm.activities, xScale, rowHeight, slipThresholds);
         const starsSel = renderMilestones(
             this.bodyG, vm.milestones, xScale, rowHeight, colors,
             milestoneCard.hoverExpansion.value
