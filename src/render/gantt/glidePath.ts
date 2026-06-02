@@ -3,38 +3,39 @@
 import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
 import { Activity } from "../../viewmodel";
-import { renderActivityBaselineTicks } from "./glide/baselineEndTick";
+import { SlipThresholds } from "../../model/activityState";
+import { renderSlipIBeams } from "./glide/slipIBeam";
 
-// INF-3787 Phase 5 re-spec — glide-path layer orchestrator.
+// INF-3787 Phase 5 re-spec — slip I-beam layer orchestrator.
 //
-// Per the EARNED-escalation principle + the industry-convention
-// survey, default render now ships:
+// Per the EARNED-escalation principle + the bar-shrink convention,
+// default render now ships:
 //   1. Bullet escalation (lives in activityLabels.ts via the
 //      slipBulletColorByActivity opt — already wired)
-//   2. Activity baseline-end tick (this orchestrator's sole job —
-//      a short grey vertical mark just below the forecast bar at
-//      xScale(baselineEnd) for each activity with baselineEnd bound)
+//   2. Shifted-bar 30% height shrink (lives in bars.ts via the
+//      shiftedSet arg — wired in visual.ts before this orchestrator)
+//   3. Slip I-beam in the freed top space (this orchestrator's
+//      sole job — neutral dark grey, length = slip magnitude)
 //
-// Future scopes (not in this orchestrator):
-//   3. Milestone hollow-ghost + connector → src/render/gantt/glide/
-//      milestoneBaselineGhost.ts called from a different render path
-//      (milestone-layer orchestration, not activity-layer)
-//
-// The tick layer is appended as the LAST child of the parent so it
-// draws above the forecast bar in z-order (the tick sits BELOW the
-// bar geometrically but is rendered AFTER so other render calls don't
-// occlude it). Idempotent across re-renders.
+// The I-beam layer is appended as the LAST child of the parent so it
+// draws above the (already-shrunken) forecast bar in z-order. Idempotent
+// across re-renders.
 
-const TICK_LAYER_CLASS = "glide-baseline-tick-layer";
+const IBEAM_LAYER_CLASS = "glide-ibeam-layer";
 
-export function renderActivityBaselineTickLayer(
+export interface GlidePathOptions {
+    slipThresholds?: SlipThresholds;
+}
+
+export function renderSlipIBeamLayer(
     parent: Selection<SVGGElement, unknown, null, undefined>,
     activities: Activity[],
     xScale: ScaleTime<number, number>,
     rowHeight: number,
+    options: GlidePathOptions = {},
 ): void {
-    const layer = ensureSiblingLayer(parent, TICK_LAYER_CLASS);
-    renderActivityBaselineTicks(layer, activities, xScale, rowHeight);
+    const layer = ensureSiblingLayer(parent, IBEAM_LAYER_CLASS);
+    renderSlipIBeams(layer, activities, xScale, rowHeight, options.slipThresholds);
 }
 
 function ensureSiblingLayer(

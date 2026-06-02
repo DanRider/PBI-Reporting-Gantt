@@ -33,7 +33,7 @@ import { renderTimeAxis, computeAxisLayout, AxisLayoutInfo, ChevronStyle } from 
 import { renderBars } from "./render/gantt/bars";
 import { renderMilestones, renderMilestoneLabels, computeVisibleLabels } from "./render/gantt/milestones";
 import { renderSwimlanes } from "./render/gantt/swimlanes";
-import { renderActivityBaselineTickLayer } from "./render/gantt/glidePath";
+import { renderSlipIBeamLayer } from "./render/gantt/glidePath";
 import { renderMilestoneBaselineGhosts } from "./render/gantt/glide/milestoneBaselineGhost";
 import { SlipThresholds, slipToHealthColor, computeSlip } from "./model/activityState";
 import {
@@ -1454,9 +1454,16 @@ export class Visual implements IVisual {
             fallback: "#888888",
         };
         const slipBulletColorByActivity = new Map<string, string>();
+        // INF-3787 — also track the set of shifted activities so renderBars
+        // can shrink their height to 70%, freeing top-of-row space for the
+        // I-beam layer.
+        const shiftedActivityNames = new Set<string>();
         for (const a of vm.activities) {
-            if (a.health != null && a.health.trim().length > 0) continue; // explicit binding wins
             const slip = computeSlip(a.baselineEnd, a.end, slipThresholds);
+            if (slip != null && slip.direction !== "on-track") {
+                shiftedActivityNames.add(a.name);
+            }
+            if (a.health != null && a.health.trim().length > 0) continue; // explicit binding wins
             const color = slipToHealthColor(slip, slipBulletPalette);
             if (color != null) slipBulletColorByActivity.set(a.name, color);
         }
@@ -1505,7 +1512,10 @@ export class Visual implements IVisual {
         this.labelBgG.selectAll("*").remove();
 
         this.bodyG.attr("transform", `translate(0, ${bodyY})`);
-        const barsSel = renderBars(this.bodyG, vm.activities, xScale, rowHeight, colors);
+        // INF-3787 — shifted activities render with 30%-shrunk bars
+        // anchored at the row bottom, freeing the top of the row for
+        // the slip I-beam layer rendered below.
+        const barsSel = renderBars(this.bodyG, vm.activities, xScale, rowHeight, colors, shiftedActivityNames);
         const starsSel = renderMilestones(
             this.bodyG, vm.milestones, xScale, rowHeight, colors,
             milestoneCard.hoverExpansion.value
@@ -1515,16 +1525,15 @@ export class Visual implements IVisual {
             font: labelFont,
             overflowBehavior: labelOverflow,
         });
-        // INF-3787 Phase 5 re-spec — activity baseline-end tick layer
-        // + milestone baseline ghost + connector. Industry conventions:
-        // Smartsheet/Tufte for the activity tick, MS Project Tracking
-        // Gantt for the milestone hollow-diamond pattern. Both fire
-        // automatically when their bindings are present; both hide
-        // invisibly when baseline matches current. No toggles. Bullet
-        // escalation (slipBulletColorByActivity) already wired above
-        // handles per-row variance status via the existing health
-        // vocabulary.
-        renderActivityBaselineTickLayer(this.bodyG, vm.activities, xScale, rowHeight);
+        // INF-3787 Phase 5 re-spec — slip I-beam layer (bar-and-whisker
+        // pattern in the freed top space of shifted activity bars) +
+        // milestone baseline ghost + connector (MS Project Tracking
+        // Gantt convention). Both fire automatically when their
+        // bindings are present; both hide invisibly when baseline
+        // matches current. No toggles. Bullet escalation (already
+        // wired above via slipBulletColorByActivity) handles per-row
+        // variance status via the existing health vocabulary.
+        renderSlipIBeamLayer(this.bodyG, vm.activities, xScale, rowHeight, { slipThresholds });
         // Milestone ghosts render into bodyG as siblings of the current
         // milestone markers. Connectors paint underneath; current solid
         // markers (already rendered by renderMilestones above) paint
