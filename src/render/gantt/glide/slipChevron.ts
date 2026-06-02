@@ -3,8 +3,9 @@
 import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
 import { Activity } from "../../../viewmodel";
+import { computeSlip, SlipResult, SlipDirection } from "../../../model/activityState";
 
-// INF-3787 Phase 2 — glide-path layer #3: slip-chevron.
+// INF-3787 Phase 2-3 — glide-path layer #3: slip-chevron.
 //
 // Renders a single chevron path per activity that has a baselineEnd
 // bound AND a slip magnitude above the negligible threshold. The chevron
@@ -13,29 +14,12 @@ import { Activity } from "../../../viewmodel";
 // end is BEFORE the baseline end (pulled in earlier). Color is semantic
 // per the slip-magnitude category.
 //
-// Slip thresholds (Decision #3 in INF-3791 build brief):
-//   |slip| <= 2d  → negligible (skip — no chevron renders; on-track is
-//                   implicit when no chevron is present)
-//   |slip| <= 7d  → minor
-//   |slip| <= 30d → major
-//   |slip| >  30d → critical
-//
-// Pulled-in slips use the same magnitude bands but a single
-// "pulled-in" hue (typically read as positive in PM contexts: "ahead
-// of schedule"). Slipping uses warming-tone semantic colors (yellow →
-// orange → red) per the brief.
-//
-// Slip categorization is INLINE here for Phase 2 self-containedness.
-// Phase 3's src/model/activityState.ts will introduce a shared
-// computeSlip() function; the verb will then import it and the inline
-// helpers below will be deleted in that commit. Format-pane configurable
-// thresholds (Decision #3, exposed for override) land in Phase 4.
-
-const MS_PER_DAY = 86_400_000;
-
-const SLIP_NEGLIGIBLE_DAYS = 2;
-const SLIP_MINOR_DAYS = 7;
-const SLIP_MAJOR_DAYS = 30;
+// Slip categorization lives in src/model/activityState.ts as the single
+// source of truth across the glide-path stack (Phase 3 refactor). The
+// verb here is responsible only for the color mapping (magnitude →
+// stroke color) and the chevron geometry — pure rendering concerns.
+// Format-pane configurable thresholds (Decision #3, exposed for
+// override) land in Phase 4 via the same model entry point.
 
 const COLOR_MINOR_SLIP = "#d4a017";    // yellow-ish — minor slip
 const COLOR_MAJOR_SLIP = "#d97706";    // orange    — major slip
@@ -46,45 +30,17 @@ const CHEVRON_SIZE_PX = 8;
 const CHEVRON_STROKE_WIDTH = 2;
 const CHEVRON_X_OFFSET_PX = 4; // gap between forecast-bar end and chevron anchor
 
-export type SlipMagnitude = "negligible" | "minor" | "major" | "critical";
-export type SlipDirection = "slipping" | "on-track" | "pulled-in";
-
-interface SlipCategory {
-    direction: SlipDirection;
-    magnitude: SlipMagnitude;
-    color: string;
-}
-
-function daysBetween(later: Date, earlier: Date): number {
-    return (later.getTime() - earlier.getTime()) / MS_PER_DAY;
-}
-
-function categorizeSlip(slipDays: number): SlipCategory {
-    const abs = Math.abs(slipDays);
-    let magnitude: SlipMagnitude;
-    if (abs <= SLIP_NEGLIGIBLE_DAYS) magnitude = "negligible";
-    else if (abs <= SLIP_MINOR_DAYS) magnitude = "minor";
-    else if (abs <= SLIP_MAJOR_DAYS) magnitude = "major";
-    else magnitude = "critical";
-
-    let direction: SlipDirection;
-    if (magnitude === "negligible") direction = "on-track";
-    else direction = slipDays > 0 ? "slipping" : "pulled-in";
-
-    let color: string;
-    if (direction === "on-track") color = COLOR_PULLED_IN; // unused (filtered out)
-    else if (direction === "pulled-in") color = COLOR_PULLED_IN;
-    else if (magnitude === "critical") color = COLOR_CRITICAL_SLIP;
-    else if (magnitude === "major") color = COLOR_MAJOR_SLIP;
-    else color = COLOR_MINOR_SLIP;
-
-    return { direction, magnitude, color };
+function colorForSlip(result: SlipResult): string {
+    if (result.direction === "pulled-in") return COLOR_PULLED_IN;
+    if (result.magnitude === "critical")  return COLOR_CRITICAL_SLIP;
+    if (result.magnitude === "major")     return COLOR_MAJOR_SLIP;
+    return COLOR_MINOR_SLIP; // direction === "slipping", magnitude === "minor"
+    // (on-track is filtered out before this map fires)
 }
 
 interface ChevronDatum {
     activity: Activity;
-    slipDays: number;
-    category: SlipCategory;
+    slip: SlipResult;
     anchorX: number;
     anchorY: number;
 }
@@ -112,16 +68,15 @@ export function renderSlipChevrons(
 ): Selection<SVGPathElement, ChevronDatum, SVGGElement, unknown> {
     const eligible: ChevronDatum[] = [];
     for (const a of activities) {
-        if (a.baselineEnd == null) continue;
-        const slipDays = daysBetween(a.end, a.baselineEnd);
-        const category = categorizeSlip(slipDays);
-        if (category.direction === "on-track") continue; // negligible → skip
+        const slip = computeSlip(a.baselineEnd, a.end);
+        if (slip == null) continue;                       // no baseline → no chevron
+        if (slip.direction === "on-track") continue;      // negligible magnitude → no chevron
         const baseAnchorX = xScale(a.end);
-        const anchorX = baseAnchorX + (category.direction === "slipping"
+        const anchorX = baseAnchorX + (slip.direction === "slipping"
             ? CHEVRON_X_OFFSET_PX
             : -CHEVRON_X_OFFSET_PX);
         const anchorY = a.index * rowHeight + rowHeight / 2;
-        eligible.push({ activity: a, slipDays, category, anchorX, anchorY });
+        eligible.push({ activity: a, slip, anchorX, anchorY });
     }
 
     return g.selectAll<SVGPathElement, ChevronDatum>("path.slip-chevron")
@@ -129,12 +84,12 @@ export function renderSlipChevrons(
         .join("path")
         .attr("class", "slip-chevron")
         .attr("data-activity", d => d.activity.name)
-        .attr("data-slip-days", d => d.slipDays.toFixed(2))
-        .attr("data-slip-magnitude", d => d.category.magnitude)
-        .attr("data-slip-direction", d => d.category.direction)
-        .attr("d", d => chevronPath(d.anchorX, d.anchorY, CHEVRON_SIZE_PX, d.category.direction))
+        .attr("data-slip-days", d => d.slip.days.toFixed(2))
+        .attr("data-slip-magnitude", d => d.slip.magnitude)
+        .attr("data-slip-direction", d => d.slip.direction)
+        .attr("d", d => chevronPath(d.anchorX, d.anchorY, CHEVRON_SIZE_PX, d.slip.direction))
         .attr("fill", "none")
-        .attr("stroke", d => d.category.color)
+        .attr("stroke", d => colorForSlip(d.slip))
         .attr("stroke-width", CHEVRON_STROKE_WIDTH)
         .attr("stroke-linecap", "round")
         .attr("stroke-linejoin", "round")
