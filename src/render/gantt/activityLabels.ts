@@ -51,6 +51,17 @@ export interface ActivityLabelOptions {
      *  binding at all), bullet falls back through healthPalette → swim-lane
      *  circle. Caller (visual.ts) builds via buildHealthIconMap(). */
     healthIconMap?: Record<string, ActivityHealthIconConfig>;
+    /** INF-3787 — per-activity slip-derived bullet color override.
+     *  Bullet resolution priority is:
+     *    1. healthIconMap[a.health] → per-value icon symbol (explicit binding)
+     *    2. healthColor(a.health, palette) when a.health bound → palette circle
+     *    3. slipBulletColorByActivity[a.name] → slip-derived circle (NEW)
+     *    4. lollipopColor (swim-lane fallback)
+     *  Tier 3 fires ONLY when a.health is unbound — explicit health wins.
+     *  Caller (visual.ts) builds via slipToHealthColor() so provenance is
+     *  preserved (slip-derived color comes from a separate code path
+     *  rather than mutating Activity.health). */
+    slipBulletColorByActivity?: Map<string, string>;
 }
 
 export interface ActivityLabelsLayout {
@@ -233,9 +244,18 @@ export function renderActivityLabels(
                     pathEl.attr("fill-rule", "evenodd");
                 }
             } else {
-                const bulletColor = (a.health && opts.healthPalette)
-                    ? healthColor(a.health, opts.healthPalette)
-                    : lollipopColor;
+                // INF-3787 — bullet color resolution priority:
+                //   1. explicit health binding via healthPalette
+                //   2. slip-derived override (EARNED escalation)
+                //   3. swim-lane fallback
+                let bulletColor: string;
+                if (a.health && opts.healthPalette) {
+                    bulletColor = healthColor(a.health, opts.healthPalette);
+                } else if (opts.slipBulletColorByActivity?.has(a.name)) {
+                    bulletColor = opts.slipBulletColorByActivity.get(a.name)!;
+                } else {
+                    bulletColor = lollipopColor;
+                }
                 g.append("circle")
                     .attr("class", "activity-label-bullet")
                     .attr("cx", bulletCx)

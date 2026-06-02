@@ -1105,8 +1105,15 @@
         },
         "glidePath": {
             "displayName": "Glide Path",
-            "description": "Slip-magnitude thresholds (days) for the glide-path slip-chevron indicator. Defaults: <=2 negligible (no chevron renders), <=7 minor (yellow), <=30 major (orange), >30 critical (red). Override these to match your portfolio's drift tolerance — e.g. tighter thresholds for a development-stage program, looser for an exploratory roadmap.",
+            "description": "Variance escalation controls. Default behavior: when a baseline date is bound, the activity bullet color escalates based on slip magnitude (Green pulled-in / Yellow minor / Red major-or-critical), reusing the Milestone Health palette. Opt in to the slip whisker for a thin dashed segment showing the delta between forecast-end and baseline-end on shifted rows. Slip-magnitude thresholds (days) drive both bullet escalation and whisker eligibility — override these to match your portfolio's drift tolerance.",
             "properties": {
+                "showSlipWhisker": {
+                    "displayName": "Show slip whisker",
+                    "description": "When ON, a thin dashed line renders between each shifted activity's forecast-end and baseline-end (color = same Milestone Health palette as the bullet). Default OFF — bullet escalation alone keeps the portfolio view uncluttered; turn on when reviewing a single program or comparing drift magnitudes inline.",
+                    "type": {
+                        "bool": true
+                    }
+                },
                 "slipNegligibleDays": {
                     "displayName": "Negligible threshold (days)",
                     "description": "Absolute slip days at or below which an activity is considered on-track (no chevron renders).",

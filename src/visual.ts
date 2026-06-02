@@ -33,8 +33,8 @@ import { renderTimeAxis, computeAxisLayout, AxisLayoutInfo, ChevronStyle } from 
 import { renderBars } from "./render/gantt/bars";
 import { renderMilestones, renderMilestoneLabels, computeVisibleLabels } from "./render/gantt/milestones";
 import { renderSwimlanes } from "./render/gantt/swimlanes";
-import { renderGlidePathBaseline, renderGlidePathOverlays } from "./render/gantt/glidePath";
-import { SlipThresholds } from "./model/activityState";
+import { renderSlipWhiskerLayer, clearSlipWhiskerLayer } from "./render/gantt/glidePath";
+import { SlipThresholds, slipToHealthColor, computeSlip } from "./model/activityState";
 import {
     renderActivityLabels,
     anyActivityLabelWraps,
@@ -1433,6 +1433,32 @@ export class Visual implements IVisual {
             areaStartX: leftMarginPx + leftRailWidth + 8,
         };
         this.activityLabelsG.attr("transform", `translate(0, ${bodyY})`);
+        // INF-3787 Phase 5 re-spec — EARNED-escalation principle.
+        // Build a per-activity slip-derived bullet color map BEFORE
+        // renderActivityLabels so the bullet's resolution chain can
+        // fall through to slip color when an explicit health value
+        // isn't bound. Format-pane Glide Path thresholds override the
+        // defaults; the same palette as Milestone Health backs both
+        // surfaces so the viewer reads one vocabulary.
+        const glidePathCard = this.settings.glidePath;
+        const slipThresholds: SlipThresholds = {
+            negligibleDays: glidePathCard.slipNegligibleDays.value,
+            minorDays: glidePathCard.slipMinorDays.value,
+            majorDays: glidePathCard.slipMajorDays.value,
+        };
+        const slipBulletPalette = {
+            green:    this.settings.milestoneHealthColors.green.value.value,
+            yellow:   this.settings.milestoneHealthColors.yellow.value.value,
+            red:      this.settings.milestoneHealthColors.red.value.value,
+            fallback: "#888888",
+        };
+        const slipBulletColorByActivity = new Map<string, string>();
+        for (const a of vm.activities) {
+            if (a.health != null && a.health.trim().length > 0) continue; // explicit binding wins
+            const slip = computeSlip(a.baselineEnd, a.end, slipThresholds);
+            const color = slipToHealthColor(slip, slipBulletPalette);
+            if (color != null) slipBulletColorByActivity.set(a.name, color);
+        }
         renderActivityLabels(this.activityLabelsG, vm.activities, rowHeight, labelsLayout, xScale, {
             show: this.settings.activityLabels.show.value,
             fillMode: this.settings.activityLabels.fillMode.value.value as "grey" | "area",
@@ -1460,6 +1486,9 @@ export class Visual implements IVisual {
             // Maps activity.health -> { symbol, color, size } per the
             // Activity Health Icons Format-pane card.
             healthIconMap,
+            // INF-3787 — slip-derived bullet color override (tier-3
+            // fallback, after healthIconMap + healthPalette+health).
+            slipBulletColorByActivity,
         }, colors);
 
         // ── Bars + markers + milestone labels ─────────────────────────────────
@@ -1475,12 +1504,6 @@ export class Visual implements IVisual {
         this.labelBgG.selectAll("*").remove();
 
         this.bodyG.attr("transform", `translate(0, ${bodyY})`);
-        // INF-3787 — glide-path baseline-bar layer renders BEFORE forecast
-        // bars so it sits at the bottom of the z-stack within bodyG. The
-        // verb internally filters to activities with both baseline dates
-        // bound; activities without baseline bindings produce no element
-        // (graceful degradation — v2.2.0.3 fixtures render unchanged).
-        renderGlidePathBaseline(this.bodyG, vm.activities, xScale, rowHeight, colors);
         const barsSel = renderBars(this.bodyG, vm.activities, xScale, rowHeight, colors);
         const starsSel = renderMilestones(
             this.bodyG, vm.milestones, xScale, rowHeight, colors,
@@ -1491,19 +1514,19 @@ export class Visual implements IVisual {
             font: labelFont,
             overflowBehavior: labelOverflow,
         });
-        // INF-3787 — glide-path overlay layers (actual-segment +
-        // slip-chevron) render AFTER milestones so they land on top of
-        // the z-stack without blocking marker click-targets. Slip
-        // thresholds threaded through the Format-pane glidePath card
-        // (Decision #3 override surface; defaults locked at 2/7/30 days).
-        const glidePathCard = this.settings.glidePath;
-        const slipThresholds: SlipThresholds = {
-            negligibleDays: glidePathCard.slipNegligibleDays.value,
-            minorDays: glidePathCard.slipMinorDays.value,
-            majorDays: glidePathCard.slipMajorDays.value,
-        };
-        renderGlidePathOverlays(this.bodyG, vm.activities, xScale, rowHeight, colors,
-            { slipThresholds });
+        // INF-3787 Phase 5 re-spec — slip whisker is opt-in chrome
+        // (EARNED principle). Render only when the Glide Path card has
+        // "Show slip whisker" toggled ON; otherwise clear any stale
+        // layer from a prior render with the toggle ON. Bullet color
+        // already tells the slip story on every row (built above into
+        // slipBulletColorByActivity); the whisker adds magnitude detail
+        // for operators who opt in.
+        if (glidePathCard.showSlipWhisker.value) {
+            renderSlipWhiskerLayer(this.bodyG, vm.activities, xScale, rowHeight,
+                { slipThresholds, healthPalette: slipBulletPalette });
+        } else {
+            clearSlipWhiskerLayer(this.bodyG);
+        }
 
         // INF-3736 — invisible column-boundary drag handles. Two 8px-wide
         // <rect> overlays spanning the full body height, positioned in the

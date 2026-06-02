@@ -620,13 +620,21 @@ export class FilterPanelLayoutCard extends SimpleCard {
     ];
 }
 
-// INF-3787 Phase 4 — Glide Path slip-threshold card (Decision #3).
+// INF-3787 Glide Path card (Phase 4 + Phase 5 re-spec).
 //
-// Surfaces the 3 slip-magnitude thresholds (in days) as Format-pane
-// numeric inputs. Defaults match DEFAULT_SLIP_THRESHOLDS in
-// src/model/activityState.ts; visual.ts reads these values and builds a
-// SlipThresholds object passed to renderGlidePath in Phase 5.
+// Default render path uses the EARNED-escalation principle: slip
+// escalation lives in the activity-label bullet (via the existing
+// Milestone Health palette), no glide chrome by default. This card
+// surfaces:
+//   - showSlipWhisker (default OFF) — opt-in thin dashed delta segment
+//     from forecast-end to baseline-end for shifted activities
+//   - slip thresholds (defaults 2/7/30 days) — override the magnitude
+//     band cut-points used by both bullet escalation and whisker
+//     eligibility
 class GlidePathCard extends SimpleCard {
+    showSlipWhisker = new formattingSettings.ToggleSwitch({
+        name: "showSlipWhisker", displayName: "Show slip whisker", value: false,
+    });
     slipNegligibleDays = new formattingSettings.NumUpDown({
         name: "slipNegligibleDays", displayName: "Negligible threshold (days)", value: 2,
     });
@@ -639,6 +647,7 @@ class GlidePathCard extends SimpleCard {
     name: string = "glidePath";
     displayName: string = "Glide Path";
     slices: FormattingSettingsSlice[] = [
+        this.showSlipWhisker,
         this.slipNegligibleDays, this.slipMinorDays, this.slipMajorDays,
     ];
 }

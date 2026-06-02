@@ -1,47 +1,81 @@
 "use strict";
 
 import { ActivityWithState } from "../model/activityState";
+import { slipToHealthColor } from "../model/activityState";
+import { HealthColorPalette, DEFAULT_HEALTH_PALETTE } from "../utils/healthColor";
 
-// INF-3787 Phase 3 — glide-path intent producer.
+// INF-3787 Phase 5 re-spec — glide-path intent producer (EARNED-
+// escalation shape).
 //
-// Pure: given an ActivityWithState, returns the ordered list of render
-// layers that should fire for that activity row. Returns layer NAMES
-// (not full Props) — render verbs compute their own geometry and the
-// orchestrator (src/render/gantt/glidePath.ts) calls each verb against
-// the full activity collection. Each verb internally filters to its
-// eligible subset.
+// Per the EARNED-escalation principle, slip escalation lives in the
+// activity-label BULLET (via slipToHealthColor) by default; full glide
+// chrome (slip whisker) is opt-in. This module's value is the
+// QUERYABLE intent surface: non-render consumers (Inspector tooltips,
+// ARIA descriptions, debug overlays) can ask "how is this row
+// presented?" without touching d3.
 //
-// This module's value is the QUERYABLE intent: a non-render consumer
-// (Inspector tooltip, ARIA description, debug overlay) can ask "what
-// layers does this row have?" without touching d3 or the DOM. Single
-// source of truth for layer composition logic.
+// The original Phase 3 intent producer returned a layered render-call
+// list (baselineBar / bar / actualSegment / slipChevron). After the
+// pivot, all three of those layers retired; the intent is now just two
+// pieces of presentation state per row:
 //
-// Z-order is bottom → top by array index:
-//   index 0: baselineBar  (dashed outline, behind everything)
-//   index 1: bar          (forecast bar, always present — Activity.end
-//                          is required, so the forecast layer is the
-//                          floor of the stack)
-//   index 2: actualSegment (half-height, layered on top of forecast)
-//   index 3: slipChevron  (drift indicator, top of stack)
+//   bulletColorSource: "explicit-health" | "slip-derived" | "lane-fallback"
+//   showWhisker:       boolean (true when slip is non-negligible AND
+//                                the operator has toggled "Show slip
+//                                whisker" ON)
 //
-// Graceful degradation table (matches spec exactly):
-//   !hasBaseline && !hasActual → ["bar"]
-//   hasBaseline only           → ["baselineBar", "bar", "slipChevron"?]
-//   hasBaseline + hasActual    → ["baselineBar", "bar", "actualSegment", "slipChevron"?]
-//   hasActual only             → ["bar", "actualSegment"]   (no baseline → no chevron)
-//
-// slipChevron is conditional: included only when baseline is present AND
-// slip is non-negligible (on-track activities show no chevron).
+// Caller composes this against the bullet render priority + the
+// whisker toggle.
 
-export type GlideLayer = "baselineBar" | "bar" | "actualSegment" | "slipChevron";
+export type BulletColorSource = "explicit-health" | "slip-derived" | "lane-fallback";
 
-export function glidePathRow(state: ActivityWithState): GlideLayer[] {
-    const layers: GlideLayer[] = [];
-    if (state.hasBaseline) layers.push("baselineBar");
-    layers.push("bar"); // forecast — Activity.end is required, so bar is always present
-    if (state.hasActual)  layers.push("actualSegment");
-    if (state.slip != null && state.slip.direction !== "on-track") {
-        layers.push("slipChevron");
+export interface GlidePathRowIntent {
+    /** Where the activity bullet's color comes from. */
+    bulletColorSource: BulletColorSource;
+    /** Resolved bullet color string (null when source = lane-fallback;
+     *  caller resolves lane color from its own ColorContext). */
+    bulletColor: string | null;
+    /** True when this activity has a non-negligible slip and the
+     *  whisker layer is enabled. Caller still owns the toggle gating
+     *  but uses this to enumerate which rows would whisker if ON. */
+    isWhiskerEligible: boolean;
+}
+
+/**
+ * Pure — derive the per-row presentation intent for an
+ * ActivityWithState. Caller passes the palette so theme-customized
+ * colors flow through.
+ */
+export function glidePathRow(
+    state: ActivityWithState,
+    palette: HealthColorPalette = DEFAULT_HEALTH_PALETTE,
+): GlidePathRowIntent {
+    const hasExplicitHealth = state.base.health != null && state.base.health.trim().length > 0;
+
+    if (hasExplicitHealth) {
+        return {
+            bulletColorSource: "explicit-health",
+            bulletColor: null, // caller resolves via healthColor(base.health, palette) — kept separate for provenance
+            isWhiskerEligible: isWhiskerEligible(state),
+        };
     }
-    return layers;
+
+    const slipColor = slipToHealthColor(state.slip, palette);
+    if (slipColor != null) {
+        return {
+            bulletColorSource: "slip-derived",
+            bulletColor: slipColor,
+            isWhiskerEligible: true, // slipColor non-null ⇔ non-negligible slip
+        };
+    }
+
+    return {
+        bulletColorSource: "lane-fallback",
+        bulletColor: null,
+        isWhiskerEligible: false,
+    };
+}
+
+function isWhiskerEligible(state: ActivityWithState): boolean {
+    return state.slip != null && state.slip.direction !== "on-track";
 }

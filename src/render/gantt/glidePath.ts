@@ -3,103 +3,82 @@
 import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
 import { Activity } from "../../viewmodel";
-import { ColorContext } from "../../utils/colors";
-import { renderBaselineBars } from "./glide/baselineBar";
-import { renderActualSegments } from "./glide/actualSegment";
-import { renderSlipChevrons } from "./glide/slipChevron";
+import { HealthColorPalette, DEFAULT_HEALTH_PALETTE } from "../../utils/healthColor";
 import { SlipThresholds } from "../../model/activityState";
+import { renderSlipWhiskers } from "./glide/slipWhisker";
 
-// INF-3787 Phase 3 + Phase 5 — glide-path render orchestrator.
+// INF-3787 Phase 5 re-spec — slip-whisker layer orchestrator.
 //
-// Integration contract: the FORECAST bar rendering (renderBars) stays
-// in the caller's hands (typically src/visual.ts, which renders bars
-// directly into bodyG via the existing v2.2.0.3 path). The orchestrator
-// adds three SIBLING layer groups to that parent at the correct z-order
-// around the caller's own bars+markers content:
+// Per the EARNED-escalation principle (vault capture
+// 2026-06-02-earned-escalation-principle.md), default render is
+// unchanged from v2.2.0.3 — slip escalation lives entirely in the
+// activity-label bullet (via slipToHealthColor + the existing
+// healthPalette resolution chain). This orchestrator handles the ONE
+// opt-in glide chrome layer: the slip whisker, rendered only when
+// settings.glidePath.showSlipWhisker is true.
 //
-//   bodyG
-//   ├── g.glide-baseline-layer   ← inserted as FIRST child (z-bottom)
-//   ├── rect.activity-bar         ← existing forecast bars (caller)
-//   ├── path.milestone-marker     ← existing markers (caller)
-//   ├── circle.milestone-hit      ← existing hit-targets (caller)
-//   ├── text.milestone-label      ← existing labels (caller)
-//   ├── g.glide-actual-layer     ← raised to top (above bars + markers)
-//   └── g.glide-chevron-layer    ← raised LAST (drift indicator on top)
-//
-// Two-call API:
-//   renderGlidePathBaseline(parent, ...)   — call BEFORE renderBars
-//   renderGlidePathOverlays(parent, ..., options) — call AFTER markers+labels
-//
-// This keeps the existing renderBars data-join / selection-wiring
-// unchanged (barsSel is still a direct Selection over bodyG > rect)
-// while layering glide-path render on top. Idempotent across re-renders
-// — sibling layers are repositioned via .lower() / .raise() each call.
+// SVG layering: appends g.glide-whisker-layer as the LAST child of the
+// parent so the whisker draws over forecast bars (visually it's a thin
+// dashed line extending from forecast-end toward baseline-end — by
+// rendering above bars the dashed pattern stays visible against any
+// underlying lane color). Idempotent across re-renders.
 
 export interface GlidePathOptions {
     /** Format-pane override; omit to use DEFAULT_SLIP_THRESHOLDS. */
     slipThresholds?: SlipThresholds;
+    /** Custom health palette (operator-themed); omit for defaults. */
+    healthPalette?: HealthColorPalette;
 }
 
-const BASELINE_LAYER_CLASS = "glide-baseline-layer";
-const ACTUAL_LAYER_CLASS = "glide-actual-layer";
-const CHEVRON_LAYER_CLASS = "glide-chevron-layer";
+const WHISKER_LAYER_CLASS = "glide-whisker-layer";
 
 /**
- * Render the BELOW-bars glide layer (baseline outlines).
- * MUST be called BEFORE the caller's own renderBars/renderMilestones
- * so the baseline layer settles at the bottom of the z-stack inside
- * `parent`.
+ * Render the slip-whisker layer into the parent. Idempotent —
+ * existing g.glide-whisker-layer is reused across re-renders and
+ * raised to last-child to preserve top-of-stack z-order.
+ *
+ * Caller decides whether to invoke (gated on settings.glidePath
+ * .showSlipWhisker). When the toggle is OFF, caller MUST also clear
+ * any existing layer; see `clearSlipWhiskerLayer` below.
  */
-export function renderGlidePathBaseline(
+export function renderSlipWhiskerLayer(
     parent: Selection<SVGGElement, unknown, null, undefined>,
     activities: Activity[],
     xScale: ScaleTime<number, number>,
     rowHeight: number,
-    colors: ColorContext
+    options: GlidePathOptions = {},
 ): void {
-    const layer = ensureSiblingLayer(parent, BASELINE_LAYER_CLASS, "first");
-    renderBaselineBars(layer, activities, xScale, rowHeight, colors);
+    const layer = ensureSiblingLayer(parent, WHISKER_LAYER_CLASS);
+    renderSlipWhiskers(
+        layer,
+        activities,
+        xScale,
+        rowHeight,
+        options.healthPalette ?? DEFAULT_HEALTH_PALETTE,
+        options.slipThresholds,
+    );
 }
 
 /**
- * Render the ABOVE-bars glide layers (actual-segment + slip-chevron).
- * MUST be called AFTER the caller's own renderBars/renderMilestones/
- * renderMilestoneLabels so the overlay layers end up at the top of
- * the z-stack and don't block markers/labels from receiving clicks.
+ * Remove the whisker layer if present. Call when the Format-pane
+ * toggle is OFF so stale whiskers from a previous render don't
+ * persist across user toggle interactions.
  */
-export function renderGlidePathOverlays(
+export function clearSlipWhiskerLayer(
     parent: Selection<SVGGElement, unknown, null, undefined>,
-    activities: Activity[],
-    xScale: ScaleTime<number, number>,
-    rowHeight: number,
-    colors: ColorContext,
-    options: GlidePathOptions = {}
 ): void {
-    const actualLayer = ensureSiblingLayer(parent, ACTUAL_LAYER_CLASS, "last");
-    renderActualSegments(actualLayer, activities, xScale, rowHeight, colors);
-    // chevron AFTER actual so chevron raises above actual on each re-render.
-    const chevronLayer = ensureSiblingLayer(parent, CHEVRON_LAYER_CLASS, "last");
-    renderSlipChevrons(chevronLayer, activities, xScale, rowHeight, colors, options.slipThresholds);
+    parent.select<SVGGElement>(`g.${WHISKER_LAYER_CLASS}`).remove();
 }
 
 function ensureSiblingLayer(
     parent: Selection<SVGGElement, unknown, null, undefined>,
     cls: string,
-    position: "first" | "last"
 ): Selection<SVGGElement, unknown, null, undefined> {
     let layer = parent.select<SVGGElement>(`g.${cls}`);
     if (layer.empty()) {
-        if (position === "first") {
-            layer = parent.insert<SVGGElement>("g", ":first-child").attr("class", cls);
-        } else {
-            layer = parent.append<SVGGElement>("g").attr("class", cls);
-        }
-        return layer;
+        layer = parent.append<SVGGElement>("g").attr("class", cls);
+    } else {
+        layer.raise();
     }
-    // Re-position across re-renders so caller's interleaved content
-    // (potentially appended-after the last update) doesn't push our
-    // layers out of the intended z-position.
-    if (position === "first") layer.lower();
-    else                      layer.raise();
     return layer;
 }

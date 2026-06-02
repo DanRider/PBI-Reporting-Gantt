@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { Activity } from "../viewmodel";
 import { deriveState } from "../model/activityState";
 import { glidePathRow } from "./glidePathRow";
+import { DEFAULT_HEALTH_PALETTE } from "../utils/healthColor";
 
 function mkActivity(over: Partial<Activity> & { name: string; index: number }): Activity {
     return {
@@ -11,7 +12,7 @@ function mkActivity(over: Partial<Activity> & { name: string; index: number }): 
         end: over.end ?? new Date("2026-02-01"),
         index: over.index,
         note: null,
-        health: null,
+        health: over.health ?? null,
         baselineStart: over.baselineStart,
         baselineEnd: over.baselineEnd,
         actualStart: over.actualStart,
@@ -20,98 +21,73 @@ function mkActivity(over: Partial<Activity> & { name: string; index: number }): 
 }
 
 const today = new Date("2026-02-01");
+const P = DEFAULT_HEALTH_PALETTE;
 
-describe("glidePathRow — graceful degradation table", () => {
-    it("no-baseline + no-actual → just forecast bar (v2.2.0.3 shape)", () => {
-        const state = deriveState(mkActivity({ name: "v22-shape", index: 0 }), today);
-        expect(glidePathRow(state)).toEqual(["bar"]);
+describe("glidePathRow — bullet color source resolution (EARNED escalation)", () => {
+    it("explicit health binding wins regardless of slip", () => {
+        const state = deriveState(mkActivity({ name: "h", index: 0,
+            health: "At Risk",
+            baselineEnd: new Date("2026-01-15"),
+            end: new Date("2026-02-15") }), today); // 31d critical slip
+        const intent = glidePathRow(state, P);
+        expect(intent.bulletColorSource).toBe("explicit-health");
+        // bulletColor stays null on explicit path — caller resolves via
+        // healthColor() so provenance + extension hooks stay separate.
+        expect(intent.bulletColor).toBeNull();
+        // Slip still flagged as whisker-eligible (toggle gating is caller's job).
+        expect(intent.isWhiskerEligible).toBe(true);
     });
 
-    it("has-baseline only (no actual) + on-track → baselineBar + bar (no chevron)", () => {
-        const state = deriveState(mkActivity({ name: "B-only-ontrack", index: 0,
-            baselineStart: new Date("2026-01-15"),
+    it("slip-derived when no explicit health AND slip is non-negligible", () => {
+        const state = deriveState(mkActivity({ name: "s", index: 0,
+            baselineEnd: new Date("2026-01-15"),
+            end: new Date("2026-02-15") }), today); // 31d critical slip
+        const intent = glidePathRow(state, P);
+        expect(intent.bulletColorSource).toBe("slip-derived");
+        expect(intent.bulletColor).toBe(P.red);
+        expect(intent.isWhiskerEligible).toBe(true);
+    });
+
+    it("lane-fallback when no explicit health AND no slip (or on-track)", () => {
+        // No baseline → no slip → lane fallback
+        const noSlip = deriveState(mkActivity({ name: "n", index: 0 }), today);
+        expect(glidePathRow(noSlip, P).bulletColorSource).toBe("lane-fallback");
+        expect(glidePathRow(noSlip, P).bulletColor).toBeNull();
+        expect(glidePathRow(noSlip, P).isWhiskerEligible).toBe(false);
+
+        // Baseline but on-track → lane fallback
+        const onTrack = deriveState(mkActivity({ name: "o", index: 0,
             baselineEnd: new Date("2026-02-01"),
             end: new Date("2026-02-01") }), today);
-        expect(glidePathRow(state)).toEqual(["baselineBar", "bar"]);
+        expect(glidePathRow(onTrack, P).bulletColorSource).toBe("lane-fallback");
+        expect(glidePathRow(onTrack, P).isWhiskerEligible).toBe(false);
     });
 
-    it("has-baseline only + slipping → baselineBar + bar + slipChevron", () => {
-        const state = deriveState(mkActivity({ name: "B-only-slip", index: 0,
-            baselineStart: new Date("2026-01-15"),
-            baselineEnd: new Date("2026-02-01"),
-            end: new Date("2026-02-15") }), today);
-        expect(glidePathRow(state)).toEqual(["baselineBar", "bar", "slipChevron"]);
+    it("slip-derived produces yellow for minor, red for major+critical, green for pulled-in", () => {
+        const minor = deriveState(mkActivity({ name: "m", index: 0,
+            baselineEnd: new Date("2026-02-01"), end: new Date("2026-02-06") }), today); // +5d
+        expect(glidePathRow(minor, P).bulletColor).toBe(P.yellow);
+
+        const major = deriveState(mkActivity({ name: "M", index: 0,
+            baselineEnd: new Date("2026-02-01"), end: new Date("2026-02-20") }), today); // +19d
+        expect(glidePathRow(major, P).bulletColor).toBe(P.red);
+
+        const pulled = deriveState(mkActivity({ name: "p", index: 0,
+            baselineEnd: new Date("2026-02-15"), end: new Date("2026-02-01") }), today); // -14d
+        expect(glidePathRow(pulled, P).bulletColor).toBe(P.green);
     });
 
-    it("has-baseline + has-actual + slipping → all four layers", () => {
-        const state = deriveState(mkActivity({ name: "all", index: 0,
-            baselineStart: new Date("2026-01-15"),
-            baselineEnd: new Date("2026-02-01"),
-            actualStart: new Date("2026-01-16"),
-            actualEnd: new Date("2026-01-25"),
-            end: new Date("2026-02-15") }), today);
-        expect(glidePathRow(state)).toEqual(["baselineBar", "bar", "actualSegment", "slipChevron"]);
+    it("uses caller-supplied palette (theme-customized colors propagate)", () => {
+        const custom = { green: "#0f0", yellow: "#ff0", red: "#f00", fallback: "#888" };
+        const state = deriveState(mkActivity({ name: "x", index: 0,
+            baselineEnd: new Date("2026-02-01"), end: new Date("2026-02-06") }), today); // +5d minor
+        expect(glidePathRow(state, custom).bulletColor).toBe("#ff0");
     });
 
-    it("has-actual only (no baseline) → bar + actualSegment (no chevron, no baselineBar)", () => {
-        const state = deriveState(mkActivity({ name: "A-only", index: 0,
-            actualStart: new Date("2026-01-16"),
-            actualEnd: new Date("2026-01-25") }), today);
-        expect(glidePathRow(state)).toEqual(["bar", "actualSegment"]);
-    });
-
-    it("has-baseline + has-actual + on-track (no slip) → baselineBar + bar + actualSegment", () => {
-        const state = deriveState(mkActivity({ name: "BA-ontrack", index: 0,
-            baselineStart: new Date("2026-01-15"),
-            baselineEnd: new Date("2026-02-01"),
-            actualStart: new Date("2026-01-16"),
-            actualEnd: new Date("2026-01-25"),
-            end: new Date("2026-02-01") }), today);
-        expect(glidePathRow(state)).toEqual(["baselineBar", "bar", "actualSegment"]);
-    });
-});
-
-describe("glidePathRow — z-order invariants", () => {
-    it("bar always present (forecast end is required)", () => {
-        const states = [
-            deriveState(mkActivity({ name: "1", index: 0 }), today),
-            deriveState(mkActivity({ name: "2", index: 0,
-                baselineStart: new Date("2026-01-15"), baselineEnd: new Date("2026-02-01") }), today),
-            deriveState(mkActivity({ name: "3", index: 0,
-                actualStart: new Date("2026-01-16"), actualEnd: new Date("2026-01-25") }), today),
-        ];
-        for (const s of states) {
-            expect(glidePathRow(s)).toContain("bar");
-        }
-    });
-
-    it("baselineBar (if present) renders before bar (z-bottom)", () => {
-        const state = deriveState(mkActivity({ name: "z", index: 0,
-            baselineStart: new Date("2026-01-15"),
-            baselineEnd: new Date("2026-02-01"),
-            actualStart: new Date("2026-01-16"),
-            actualEnd: new Date("2026-01-25"),
-            end: new Date("2026-02-15") }), today);
-        const layers = glidePathRow(state);
-        expect(layers.indexOf("baselineBar")).toBeLessThan(layers.indexOf("bar"));
-    });
-
-    it("actualSegment (if present) renders after bar (z-above forecast)", () => {
-        const state = deriveState(mkActivity({ name: "z", index: 0,
-            actualStart: new Date("2026-01-16"),
-            actualEnd: new Date("2026-01-25") }), today);
-        const layers = glidePathRow(state);
-        expect(layers.indexOf("bar")).toBeLessThan(layers.indexOf("actualSegment"));
-    });
-
-    it("slipChevron (if present) renders last (z-top)", () => {
-        const state = deriveState(mkActivity({ name: "z", index: 0,
-            baselineStart: new Date("2026-01-15"),
-            baselineEnd: new Date("2026-02-01"),
-            actualStart: new Date("2026-01-16"),
-            actualEnd: new Date("2026-01-25"),
-            end: new Date("2026-02-15") }), today);
-        const layers = glidePathRow(state);
-        expect(layers[layers.length - 1]).toBe("slipChevron");
+    it("empty-string health is treated as unbound (falls through to slip-derived)", () => {
+        const state = deriveState(mkActivity({ name: "e", index: 0,
+            health: "   ",
+            baselineEnd: new Date("2026-02-01"), end: new Date("2026-02-06") }), today);
+        expect(glidePathRow(state, P).bulletColorSource).toBe("slip-derived");
     });
 });
