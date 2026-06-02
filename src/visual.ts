@@ -33,6 +33,8 @@ import { renderTimeAxis, computeAxisLayout, AxisLayoutInfo, ChevronStyle } from 
 import { renderBars } from "./render/gantt/bars";
 import { renderMilestones, renderMilestoneLabels, computeVisibleLabels } from "./render/gantt/milestones";
 import { renderSwimlanes } from "./render/gantt/swimlanes";
+import { renderGlidePathBaseline, renderGlidePathOverlays } from "./render/gantt/glidePath";
+import { SlipThresholds } from "./model/activityState";
 import {
     renderActivityLabels,
     anyActivityLabelWraps,
@@ -1473,6 +1475,12 @@ export class Visual implements IVisual {
         this.labelBgG.selectAll("*").remove();
 
         this.bodyG.attr("transform", `translate(0, ${bodyY})`);
+        // INF-3787 — glide-path baseline-bar layer renders BEFORE forecast
+        // bars so it sits at the bottom of the z-stack within bodyG. The
+        // verb internally filters to activities with both baseline dates
+        // bound; activities without baseline bindings produce no element
+        // (graceful degradation — v2.2.0.3 fixtures render unchanged).
+        renderGlidePathBaseline(this.bodyG, vm.activities, xScale, rowHeight, colors);
         const barsSel = renderBars(this.bodyG, vm.activities, xScale, rowHeight, colors);
         const starsSel = renderMilestones(
             this.bodyG, vm.milestones, xScale, rowHeight, colors,
@@ -1483,6 +1491,19 @@ export class Visual implements IVisual {
             font: labelFont,
             overflowBehavior: labelOverflow,
         });
+        // INF-3787 — glide-path overlay layers (actual-segment +
+        // slip-chevron) render AFTER milestones so they land on top of
+        // the z-stack without blocking marker click-targets. Slip
+        // thresholds threaded through the Format-pane glidePath card
+        // (Decision #3 override surface; defaults locked at 2/7/30 days).
+        const glidePathCard = this.settings.glidePath;
+        const slipThresholds: SlipThresholds = {
+            negligibleDays: glidePathCard.slipNegligibleDays.value,
+            minorDays: glidePathCard.slipMinorDays.value,
+            majorDays: glidePathCard.slipMajorDays.value,
+        };
+        renderGlidePathOverlays(this.bodyG, vm.activities, xScale, rowHeight, colors,
+            { slipThresholds });
 
         // INF-3736 — invisible column-boundary drag handles. Two 8px-wide
         // <rect> overlays spanning the full body height, positioned in the
