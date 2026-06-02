@@ -133,4 +133,29 @@ describe("renderSlipChevrons (INF-3787 glide-path verb #3)", () => {
         expect(path.getAttribute("stroke-width")).toBe("2");
         expect(path.getAttribute("pointer-events")).toBe("none");
     });
+
+    it("forwards SlipThresholds override → magnitude/direction reclassification", () => {
+        const baselineEnd = new Date("2026-02-01");
+        const acts = [
+            // 4-day slip — default classifies as "minor" (>2 + <=7),
+            // strict classifies as "major" (>1 + <=5)
+            mkActivity({ name: "X", index: 0,
+                end: new Date("2026-02-05"), baselineEnd }),
+        ];
+
+        // Default thresholds path
+        renderSlipChevrons(g, acts, xScale, 30, null);
+        let path = nodes(g)[0];
+        expect(path.getAttribute("data-slip-magnitude")).toBe("minor");
+
+        // Strict override
+        document.body.replaceChildren();
+        const svg2 = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        document.body.appendChild(svg2);
+        const g2 = select(svg2).append<SVGGElement>("g");
+        renderSlipChevrons(g2, acts, xScale, 30, null,
+            { negligibleDays: 0, minorDays: 1, majorDays: 5 });
+        path = g2.selectAll<SVGPathElement, unknown>("path.slip-chevron").nodes()[0];
+        expect(path.getAttribute("data-slip-magnitude")).toBe("major");
+    });
 });

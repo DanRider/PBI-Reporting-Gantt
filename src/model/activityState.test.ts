@@ -7,6 +7,8 @@ import {
     SLIP_NEGLIGIBLE_DAYS,
     SLIP_MINOR_DAYS,
     SLIP_MAJOR_DAYS,
+    DEFAULT_SLIP_THRESHOLDS,
+    SlipThresholds,
 } from "./activityState";
 
 function mkActivity(over: Partial<Activity> & { name: string; index: number }): Activity {
@@ -143,5 +145,49 @@ describe("deriveState", () => {
         const a = mkActivity({ name: "x", index: 0 });
         const state = deriveState(a, today);
         expect(state.base).toBe(a);
+    });
+});
+
+describe("SlipThresholds — Format-pane override (Decision #3)", () => {
+    it("DEFAULT_SLIP_THRESHOLDS matches the published constants", () => {
+        expect(DEFAULT_SLIP_THRESHOLDS).toEqual({
+            negligibleDays: SLIP_NEGLIGIBLE_DAYS,
+            minorDays: SLIP_MINOR_DAYS,
+            majorDays: SLIP_MAJOR_DAYS,
+        });
+    });
+
+    it("categorizeSlip uses overridden thresholds when supplied", () => {
+        const strict: SlipThresholds = { negligibleDays: 0, minorDays: 1, majorDays: 5 };
+        expect(categorizeSlip(0, strict).magnitude).toBe("negligible");
+        expect(categorizeSlip(1, strict).magnitude).toBe("minor");
+        expect(categorizeSlip(5, strict).magnitude).toBe("major");
+        expect(categorizeSlip(6, strict).magnitude).toBe("critical");
+        // Same days under defaults categorize differently
+        expect(categorizeSlip(1).magnitude).toBe("negligible");
+        expect(categorizeSlip(5).magnitude).toBe("minor");
+    });
+
+    it("computeSlip threads thresholds through to categorization", () => {
+        const lenient: SlipThresholds = { negligibleDays: 10, minorDays: 30, majorDays: 90 };
+        const baselineEnd = new Date("2026-02-01");
+        const forecastEnd = new Date("2026-02-09"); // 8-day slip
+        // Default: 8d → major
+        expect(computeSlip(baselineEnd, forecastEnd)!.magnitude).toBe("major");
+        // Lenient: 8d → negligible
+        expect(computeSlip(baselineEnd, forecastEnd, lenient)!.magnitude).toBe("negligible");
+        expect(computeSlip(baselineEnd, forecastEnd, lenient)!.direction).toBe("on-track");
+    });
+
+    it("deriveState forwards thresholds to slip computation", () => {
+        const strict: SlipThresholds = { negligibleDays: 0, minorDays: 1, majorDays: 5 };
+        const today = new Date("2026-02-15");
+        const activity = mkActivity({ name: "s", index: 0,
+            baselineEnd: new Date("2026-02-01"),
+            end: new Date("2026-02-03") }); // 2d slip
+        // Default thresholds: 2d → negligible
+        expect(deriveState(activity, today).slip!.magnitude).toBe("negligible");
+        // Strict thresholds: 2d → minor (above negligibleDays=0 + 1)
+        expect(deriveState(activity, today, strict).slip!.magnitude).toBe("major");
     });
 });

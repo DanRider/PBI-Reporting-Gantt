@@ -3,7 +3,13 @@
 import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
 import { Activity } from "../../../viewmodel";
-import { computeSlip, SlipResult, SlipDirection } from "../../../model/activityState";
+import {
+    computeSlip,
+    SlipResult,
+    SlipDirection,
+    SlipThresholds,
+    DEFAULT_SLIP_THRESHOLDS,
+} from "../../../model/activityState";
 
 // INF-3787 Phase 2-3 — glide-path layer #3: slip-chevron.
 //
@@ -64,11 +70,12 @@ export function renderSlipChevrons(
     // colors arg accepted for signature uniformity with other glide verbs;
     // chevron color is semantic (computed per slip magnitude), not
     // derived from lane palette.
-    _colors: unknown
+    _colors: unknown,
+    thresholds: SlipThresholds = DEFAULT_SLIP_THRESHOLDS
 ): Selection<SVGPathElement, ChevronDatum, SVGGElement, unknown> {
     const eligible: ChevronDatum[] = [];
     for (const a of activities) {
-        const slip = computeSlip(a.baselineEnd, a.end);
+        const slip = computeSlip(a.baselineEnd, a.end, thresholds);
         if (slip == null) continue;                       // no baseline → no chevron
         if (slip.direction === "on-track") continue;      // negligible magnitude → no chevron
         const baseAnchorX = xScale(a.end);

@@ -1103,6 +1103,33 @@
                 }
             }
         },
+        "glidePath": {
+            "displayName": "Glide Path",
+            "description": "Slip-magnitude thresholds (days) for the glide-path slip-chevron indicator. Defaults: <=2 negligible (no chevron renders), <=7 minor (yellow), <=30 major (orange), >30 critical (red). Override these to match your portfolio's drift tolerance — e.g. tighter thresholds for a development-stage program, looser for an exploratory roadmap.",
+            "properties": {
+                "slipNegligibleDays": {
+                    "displayName": "Negligible threshold (days)",
+                    "description": "Absolute slip days at or below which an activity is considered on-track (no chevron renders).",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "slipMinorDays": {
+                    "displayName": "Minor threshold (days)",
+                    "description": "Absolute slip days at or below which slip is classified minor (yellow chevron).",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "slipMajorDays": {
+                    "displayName": "Major threshold (days)",
+                    "description": "Absolute slip days at or below which slip is classified major (orange chevron). Beyond this is critical (red).",
+                    "type": {
+                        "numeric": true
+                    }
+                }
+            }
+        },
         "timeAxis": {
             "displayName": "Time Axis",
             "description": "Three hierarchy levels \u2014 Year, Quarter, Month. Each level can be toggled on/off. Quarter and Month tick boundaries can also render vertical gridlines through the chart body with their own color, opacity, and line style.",

@@ -620,6 +620,29 @@ export class FilterPanelLayoutCard extends SimpleCard {
     ];
 }
 
+// INF-3787 Phase 4 — Glide Path slip-threshold card (Decision #3).
+//
+// Surfaces the 3 slip-magnitude thresholds (in days) as Format-pane
+// numeric inputs. Defaults match DEFAULT_SLIP_THRESHOLDS in
+// src/model/activityState.ts; visual.ts reads these values and builds a
+// SlipThresholds object passed to renderGlidePath in Phase 5.
+class GlidePathCard extends SimpleCard {
+    slipNegligibleDays = new formattingSettings.NumUpDown({
+        name: "slipNegligibleDays", displayName: "Negligible threshold (days)", value: 2,
+    });
+    slipMinorDays = new formattingSettings.NumUpDown({
+        name: "slipMinorDays", displayName: "Minor threshold (days)", value: 7,
+    });
+    slipMajorDays = new formattingSettings.NumUpDown({
+        name: "slipMajorDays", displayName: "Major threshold (days)", value: 30,
+    });
+    name: string = "glidePath";
+    displayName: string = "Glide Path";
+    slices: FormattingSettingsSlice[] = [
+        this.slipNegligibleDays, this.slipMinorDays, this.slipMajorDays,
+    ];
+}
+
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     title = new TitleCard();
     chartTitle = new ChartTitleCard();
@@ -629,6 +652,7 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     activityHealthIcons = new ActivityHealthIconsCard();
     activityLabels = new ActivityLabelsCard();
     swimlanes = new SwimlanesCard();
+    glidePath = new GlidePathCard();
     timeAxis = new TimeAxisCard();
     tooltip = new TooltipCard();
     filterSlots = new FilterSlotsCard();
@@ -643,6 +667,7 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
         this.activityHealthIcons,
         this.milestones,
         this.milestoneHealthColors,
+        this.glidePath,
         this.timeAxis,
         this.tooltip,
         this.filterSlots,

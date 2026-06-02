@@ -8,6 +8,7 @@ import { renderBars } from "./bars";
 import { renderBaselineBars } from "./glide/baselineBar";
 import { renderActualSegments } from "./glide/actualSegment";
 import { renderSlipChevrons } from "./glide/slipChevron";
+import { SlipThresholds } from "../../model/activityState";
 
 // INF-3787 Phase 3 — glide-path render orchestrator.
 //
@@ -58,15 +59,21 @@ export function ensureGlidePathLayers(
     };
 }
 
+export interface GlidePathOptions {
+    /** Format-pane override; omit to use DEFAULT_SLIP_THRESHOLDS. */
+    slipThresholds?: SlipThresholds;
+}
+
 export function renderGlidePath(
     layers: GlidePathLayers,
     activities: Activity[],
     xScale: ScaleTime<number, number>,
     rowHeight: number,
-    colors: ColorContext
+    colors: ColorContext,
+    options: GlidePathOptions = {}
 ): void {
     renderBaselineBars(layers.baseline,    activities, xScale, rowHeight, colors);
     renderBars(layers.forecast,            activities, xScale, rowHeight, colors);
     renderActualSegments(layers.actual,    activities, xScale, rowHeight, colors);
-    renderSlipChevrons(layers.chevron,     activities, xScale, rowHeight, colors);
+    renderSlipChevrons(layers.chevron,     activities, xScale, rowHeight, colors, options.slipThresholds);
 }
