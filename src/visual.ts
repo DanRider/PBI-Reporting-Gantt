@@ -152,6 +152,25 @@ interface TooltipConfig {
     // role sees "Workstream" (not "Activity") as the tooltip row label.
     areaLabel: string;
     activityLabel: string;
+    // INF-3787 — slip thresholds for the variance narrative in
+    // activity tooltips. Same thresholds as the bullet escalation +
+    // I-beam render, so the viewer sees consistent magnitude wording.
+    slipThresholds: SlipThresholds;
+}
+
+// INF-3787 — signed days between two dates (later - earlier).
+// Positive = later is after earlier (e.g. forecast after baseline = slipping).
+function dayDelta(later: Date, earlier: Date): number {
+    return Math.round((later.getTime() - earlier.getTime()) / 86_400_000);
+}
+
+function formatSlipNarrative(slipDays: number, magnitude: string): string {
+    const sign = slipDays > 0 ? "+" : "";
+    const direction =
+        magnitude === "negligible" ? "on-track" :
+        slipDays > 0              ? `${magnitude} slip` :
+                                    `${magnitude} pulled in`;
+    return `${sign}${slipDays} days (${direction})`;
 }
 
 function makeActivityTooltip(cfg: TooltipConfig): (a: Activity) => VisualTooltipDataItem[] {
@@ -162,6 +181,21 @@ function makeActivityTooltip(cfg: TooltipConfig): (a: Activity) => VisualTooltip
             { displayName: "Start",       value: fmtDate(a.start) },
             { displayName: "End",         value: fmtDate(a.end) },
         ];
+        // INF-3787 — variance narrative when baseline/actual bindings present.
+        if (a.baselineEnd != null) {
+            items.push({ displayName: "Baseline End", value: fmtDate(a.baselineEnd) });
+            const slip = computeSlip(a.baselineEnd, a.end, cfg.slipThresholds);
+            if (slip != null) {
+                items.push({ displayName: "Slip",
+                    value: formatSlipNarrative(slip.days, slip.magnitude) });
+            }
+        }
+        if (a.actualStart != null) {
+            items.push({ displayName: "Actual Start", value: fmtDate(a.actualStart) });
+        }
+        if (a.actualEnd != null) {
+            items.push({ displayName: "Actual End", value: fmtDate(a.actualEnd) });
+        }
         if (cfg.showNote) {
             const hasNote = a.note != null && a.note.trim().length > 0;
             if (hasNote) {
@@ -182,6 +216,16 @@ function makeMilestoneTooltip(cfg: TooltipConfig): (m: Milestone) => VisualToolt
             { displayName: cfg.activityLabel,  value: m.activity },
             { displayName: "Date",             value: fmtDate(m.date) },
         ];
+        // INF-3787 — milestone baseline date narrative when bound.
+        if (m.baselineDate != null) {
+            items.push({ displayName: "Baseline Date", value: fmtDate(m.baselineDate) });
+            const shiftDays = dayDelta(m.date, m.baselineDate);
+            if (shiftDays !== 0) {
+                const sign = shiftDays > 0 ? "+" : "";
+                items.push({ displayName: "Shift",
+                    value: `${sign}${shiftDays} days (${shiftDays > 0 ? "delayed" : "pulled in"})` });
+            }
+        }
         if (cfg.showNote) {
             const hasNote = m.note != null && m.note.trim().length > 0;
             if (hasNote) {
@@ -1637,6 +1681,9 @@ export class Visual implements IVisual {
                 : "(no note recorded)",
             areaLabel:     bindingDisplayName("area",     dataView, "Swim Lane"),
             activityLabel: bindingDisplayName("activity", dataView, "Activity"),
+            // INF-3787 — slip thresholds threaded so tooltip narrative uses
+            // the same magnitude bands as the bullet + I-beam render path.
+            slipThresholds,
         };
         this.tooltipService.addTooltip(barsSel, makeActivityTooltip(tooltipCfg));
         this.tooltipService.addTooltip(starsSel, makeMilestoneTooltip(tooltipCfg));
