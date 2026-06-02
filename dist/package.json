@@ -1,5 +1,5 @@
 {
-		"version": "2.1.0.0",
+		"version": "2.2.0.3",
 		"author": {"name":"Daniel Rider","email":"daniel.rider@hotmail.com"},
 		"resources": [
 			{
@@ -8,7 +8,7 @@
 				"file": "resources/reportingGantt7C9F3E5A1B2D4F8E6A0C3B5D7E9F1A2C.pbiviz.json"
 			}
 		],
-		"visual": {"name":"reportingGantt","displayName":"Reporting Roadmap","guid":"reportingGantt7C9F3E5A1B2D4F8E6A0C3B5D7E9F1A2C","visualClassName":"Visual","version":"2.1.0.0","description":"Reporting Roadmap — generic timeline visual for Power BI. Activity swim lanes, chevron time axis, milestone markers with conditional left/right labels, optional per-row Notes shown on hover for activities and milestones. Data-driven: any swim-lane names, any milestone-type names (cap 2 types / 8 lanes). Per-value color overrides via Format pane, per-type symbol/size/color/visibility controls, customizable Title card, full font controls on every text element, structured tooltips with header + dates + note section.","supportUrl":"https://github.com/DanRider/PBI-Reporting-Gantt/issues","gitHubUrl":"https://github.com/DanRider/PBI-Reporting-Gantt"},
+		"visual": {"name":"reportingGantt","displayName":"Reporting Roadmap","guid":"reportingGantt7C9F3E5A1B2D4F8E6A0C3B5D7E9F1A2C","visualClassName":"Visual","version":"2.2.0.3","description":"Reporting Roadmap — generic timeline visual for Power BI. Activity swim lanes, chevron time axis, milestone markers with conditional left/right labels, optional per-row Notes shown on hover for activities and milestones. Data-driven: any swim-lane names, any milestone-type names (cap 2 types / 8 lanes). Per-value color overrides via Format pane, per-type symbol/size/color/visibility controls, customizable Title card, full font controls on every text element, structured tooltips with header + dates + note section.","supportUrl":"https://github.com/DanRider/PBI-Reporting-Gantt/issues","gitHubUrl":"https://github.com/DanRider/PBI-Reporting-Gantt"},
 		"metadata": {
 			"pbivizjson": {
 				"resourceId": "rId0"

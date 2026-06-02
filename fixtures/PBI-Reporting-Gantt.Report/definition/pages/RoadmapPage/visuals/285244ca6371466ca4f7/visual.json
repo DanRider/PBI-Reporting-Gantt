@@ -257,6 +257,62 @@
               },
               "queryRef": "Activities.Priority",
               "nativeQueryRef": "Priority"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Activities"
+                    }
+                  },
+                  "Property": "Area"
+                }
+              },
+              "queryRef": "Activities.Area",
+              "nativeQueryRef": "Area"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Activities"
+                    }
+                  },
+                  "Property": "Activity Health"
+                }
+              },
+              "queryRef": "Activities.Activity Health",
+              "nativeQueryRef": "Activity Health"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Milestones"
+                    }
+                  },
+                  "Property": "Milestone Type"
+                }
+              },
+              "queryRef": "Milestones.Milestone Type",
+              "nativeQueryRef": "Milestone Type"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Activities"
+                    }
+                  },
+                  "Property": "Activity"
+                }
+              },
+              "queryRef": "Activities.Activity",
+              "nativeQueryRef": "Activity"
             }
           ]
         }
@@ -432,6 +488,41 @@
                   "Value": "true"
                 }
               }
+            },
+            "slot1Widget": {
+              "expr": {
+                "Literal": {
+                  "Value": "'dropdown-multi'"
+                }
+              }
+            },
+            "slot2Pinned": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "slot2Widget": {
+              "expr": {
+                "Literal": {
+                  "Value": "'pills-multi'"
+                }
+              }
+            },
+            "slot3Pinned": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "slot3Widget": {
+              "expr": {
+                "Literal": {
+                  "Value": "'pills-multi'"
+                }
+              }
             }
           }
         }
@@ -456,7 +547,7 @@
             "windowJson": {
               "expr": {
                 "Literal": {
-                  "Value": "'{\"kind\":\"range\",\"startOffset\":-3,\"endOffset\":10}'"
+                  "Value": "'{\"kind\":\"all\"}'"
                 }
               }
             }
