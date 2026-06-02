@@ -84,6 +84,10 @@ export interface Milestone {
     status:      string | null;
     externalUrl: string | null;
     health:      string | null;
+    // v2.3 INF-3787 — when bound, the original committed milestone date.
+    // Renders as a hollow outline marker + connector line to the current
+    // solid marker (MS Project Tracking Gantt convention).
+    baselineDate?: Date;
 }
 
 export interface AreaGroup {
@@ -201,6 +205,7 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
                 typeSeen.add(mType);
                 typeFirstSeen.push(mType);
             }
+            const mBaselineDate = dateAt(row, idx.milestoneBaselineDate);
             milestonesRaw.push({
                 activity: mAct,
                 date: mDate,
@@ -215,6 +220,7 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
                 id: `m${milestoneCounter++}`,
                 parentRowIndex: -1,
                 note: strAt(row, idx.milestoneNote),
+                baselineDate: mBaselineDate ?? undefined,
             });
         }
     }

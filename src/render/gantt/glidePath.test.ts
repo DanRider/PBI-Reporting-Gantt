@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { select, Selection } from "d3-selection";
 import { scaleTime, ScaleTime } from "d3-scale";
-import { renderSlipWhiskerLayer, clearSlipWhiskerLayer } from "./glidePath";
+import { renderActivityBaselineTickLayer } from "./glidePath";
 import { renderBars } from "./bars";
 import { Activity } from "../../viewmodel";
 import { buildColorContext, ColorContext } from "../../utils/colors";
@@ -22,16 +22,14 @@ function mkActivity(over: Partial<Activity> & { name: string; index: number }): 
     };
 }
 
-describe("glidePath orchestrator — slip-whisker layer integration", () => {
+describe("glidePath orchestrator — activity baseline-tick layer", () => {
     let bodyG: Selection<SVGGElement, unknown, null, undefined>;
     let xScale: ScaleTime<number, number>;
     let colors: ColorContext;
     const activities = [
-        mkActivity({ name: "on-track", index: 0 }),
-        mkActivity({ name: "minor-slip", index: 1,
-            baselineEnd: new Date("2026-02-01"), end: new Date("2026-02-06") }), // +5d
-        mkActivity({ name: "major-slip", index: 2,
-            baselineEnd: new Date("2026-02-01"), end: new Date("2026-02-20") }), // +19d
+        mkActivity({ name: "no-base", index: 0 }),
+        mkActivity({ name: "with-base", index: 1, baselineEnd: new Date("2026-02-15") }),
+        mkActivity({ name: "with-base-2", index: 2, baselineEnd: new Date("2026-03-15") }),
     ];
 
     beforeEach(() => {
@@ -42,53 +40,40 @@ describe("glidePath orchestrator — slip-whisker layer integration", () => {
         colors = buildColorContext({ L: "#3366cc" }, {});
     });
 
-    it("preserves existing forecast bars when whisker layer renders", () => {
+    it("preserves existing forecast bars when tick layer renders", () => {
         const barsSel = renderBars(bodyG, activities, xScale, 30, colors);
-        renderSlipWhiskerLayer(bodyG, activities, xScale, 30);
+        renderActivityBaselineTickLayer(bodyG, activities, xScale, 30);
         expect(barsSel.nodes()).toHaveLength(3);
         expect(barsSel.nodes().every(n => n.classList.contains("activity-bar"))).toBe(true);
     });
 
-    it("whisker layer is appended as a SIBLING of bodyG content (not nested)", () => {
+    it("tick layer is a SIBLING of bodyG content (not nested)", () => {
         renderBars(bodyG, activities, xScale, 30, colors);
-        renderSlipWhiskerLayer(bodyG, activities, xScale, 30);
-        const layer = bodyG.select<SVGGElement>("g.glide-whisker-layer");
+        renderActivityBaselineTickLayer(bodyG, activities, xScale, 30);
+        const layer = bodyG.select<SVGGElement>("g.glide-baseline-tick-layer");
         expect(layer.empty()).toBe(false);
         expect(layer.node()!.parentElement).toBe(bodyG.node());
     });
 
-    it("whisker layer raises to LAST child across re-renders (top of z-stack)", () => {
-        renderBars(bodyG, activities, xScale, 30, colors);
-        renderSlipWhiskerLayer(bodyG, activities, xScale, 30);
-        // Simulate a later renderBars call appending more children
-        renderBars(bodyG, activities, xScale, 30, colors);
-        renderSlipWhiskerLayer(bodyG, activities, xScale, 30);
-        const kids = bodyG.node()!.children;
-        expect(kids[kids.length - 1].classList.contains("glide-whisker-layer")).toBe(true);
+    it("emits one tick per eligible activity (those with baselineEnd bound)", () => {
+        renderActivityBaselineTickLayer(bodyG, activities, xScale, 30);
+        // 1 no-base + 2 with-base → 2 ticks
+        expect(bodyG.selectAll("line.activity-baseline-tick").nodes()).toHaveLength(2);
     });
 
     it("idempotent — re-renders don't duplicate the layer", () => {
-        renderSlipWhiskerLayer(bodyG, activities, xScale, 30);
-        renderSlipWhiskerLayer(bodyG, activities, xScale, 30);
-        renderSlipWhiskerLayer(bodyG, activities, xScale, 30);
-        expect(bodyG.selectAll("g.glide-whisker-layer").nodes()).toHaveLength(1);
+        renderActivityBaselineTickLayer(bodyG, activities, xScale, 30);
+        renderActivityBaselineTickLayer(bodyG, activities, xScale, 30);
+        renderActivityBaselineTickLayer(bodyG, activities, xScale, 30);
+        expect(bodyG.selectAll("g.glide-baseline-tick-layer").nodes()).toHaveLength(1);
     });
 
-    it("only emits whisker lines for activities with non-negligible slip", () => {
-        renderSlipWhiskerLayer(bodyG, activities, xScale, 30);
-        // 1 on-track (no baseline) + 2 slipping → 2 whiskers
-        expect(bodyG.selectAll("line.slip-whisker").nodes()).toHaveLength(2);
-    });
-
-    it("clearSlipWhiskerLayer removes the layer entirely (toggle-OFF support)", () => {
-        renderSlipWhiskerLayer(bodyG, activities, xScale, 30);
-        expect(bodyG.select("g.glide-whisker-layer").empty()).toBe(false);
-        clearSlipWhiskerLayer(bodyG);
-        expect(bodyG.select("g.glide-whisker-layer").empty()).toBe(true);
-    });
-
-    it("clearSlipWhiskerLayer is a no-op when layer doesn't exist", () => {
-        clearSlipWhiskerLayer(bodyG);
-        expect(bodyG.select("g.glide-whisker-layer").empty()).toBe(true);
+    it("tick layer raises to LAST child across re-renders so subsequent renderBars don't occlude it", () => {
+        renderBars(bodyG, activities, xScale, 30, colors);
+        renderActivityBaselineTickLayer(bodyG, activities, xScale, 30);
+        renderBars(bodyG, activities, xScale, 30, colors);
+        renderActivityBaselineTickLayer(bodyG, activities, xScale, 30);
+        const kids = bodyG.node()!.children;
+        expect(kids[kids.length - 1].classList.contains("glide-baseline-tick-layer")).toBe(true);
     });
 });

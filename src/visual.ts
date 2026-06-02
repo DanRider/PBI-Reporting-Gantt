@@ -33,7 +33,8 @@ import { renderTimeAxis, computeAxisLayout, AxisLayoutInfo, ChevronStyle } from 
 import { renderBars } from "./render/gantt/bars";
 import { renderMilestones, renderMilestoneLabels, computeVisibleLabels } from "./render/gantt/milestones";
 import { renderSwimlanes } from "./render/gantt/swimlanes";
-import { renderSlipWhiskerLayer, clearSlipWhiskerLayer } from "./render/gantt/glidePath";
+import { renderActivityBaselineTickLayer } from "./render/gantt/glidePath";
+import { renderMilestoneBaselineGhosts } from "./render/gantt/glide/milestoneBaselineGhost";
 import { SlipThresholds, slipToHealthColor, computeSlip } from "./model/activityState";
 import {
     renderActivityLabels,
@@ -1514,19 +1515,22 @@ export class Visual implements IVisual {
             font: labelFont,
             overflowBehavior: labelOverflow,
         });
-        // INF-3787 Phase 5 re-spec — slip whisker is opt-in chrome
-        // (EARNED principle). Render only when the Glide Path card has
-        // "Show slip whisker" toggled ON; otherwise clear any stale
-        // layer from a prior render with the toggle ON. Bullet color
-        // already tells the slip story on every row (built above into
-        // slipBulletColorByActivity); the whisker adds magnitude detail
-        // for operators who opt in.
-        if (glidePathCard.showSlipWhisker.value) {
-            renderSlipWhiskerLayer(this.bodyG, vm.activities, xScale, rowHeight,
-                { slipThresholds, healthPalette: slipBulletPalette });
-        } else {
-            clearSlipWhiskerLayer(this.bodyG);
-        }
+        // INF-3787 Phase 5 re-spec — activity baseline-end tick layer
+        // + milestone baseline ghost + connector. Industry conventions:
+        // Smartsheet/Tufte for the activity tick, MS Project Tracking
+        // Gantt for the milestone hollow-diamond pattern. Both fire
+        // automatically when their bindings are present; both hide
+        // invisibly when baseline matches current. No toggles. Bullet
+        // escalation (slipBulletColorByActivity) already wired above
+        // handles per-row variance status via the existing health
+        // vocabulary.
+        renderActivityBaselineTickLayer(this.bodyG, vm.activities, xScale, rowHeight);
+        // Milestone ghosts render into bodyG as siblings of the current
+        // milestone markers. Connectors paint underneath; current solid
+        // markers (already rendered by renderMilestones above) paint
+        // over the connector endpoint at the current x-position, which
+        // is the intended visual.
+        renderMilestoneBaselineGhosts(this.bodyG, vm.milestones, xScale, rowHeight, colors);
 
         // INF-3736 — invisible column-boundary drag handles. Two 8px-wide
         // <rect> overlays spanning the full body height, positioned in the

@@ -34,6 +34,11 @@ export const ROLE = {
     baselineEnd:          "baselineEnd",
     actualStart:          "actualStart",
     actualEnd:            "actualEnd",
+    // v2.3 INF-3787 — milestone baseline date (MS Project Tracking
+    // Gantt convention). When bound, the milestone-ghost render verb
+    // emits a hollow outline marker at the baseline x-position plus a
+    // thin connector line to the current solid marker.
+    milestoneBaselineDate: "milestoneBaselineDate",
 } as const;
 
 export type RoleName = typeof ROLE[keyof typeof ROLE];

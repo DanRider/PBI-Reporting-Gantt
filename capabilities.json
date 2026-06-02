@@ -61,6 +61,12 @@
             "description": "When the milestone marker is placed on its parent bar."
         },
         {
+            "name": "milestoneBaselineDate",
+            "displayName": "Milestone Baseline Date",
+            "kind": "Grouping",
+            "description": "(Optional) The originally-committed date for this milestone. When bound, the milestone renders with an additional hollow outline marker at the baseline x-position plus a thin connector line to the current solid marker (MS Project Tracking Gantt convention). Hides invisibly when baseline matches current date."
+        },
+        {
             "name": "milestoneType",
             "displayName": "Milestone Type",
             "kind": "Grouping",
@@ -1105,15 +1111,8 @@
         },
         "glidePath": {
             "displayName": "Glide Path",
-            "description": "Variance escalation controls. Default behavior: when a baseline date is bound, the activity bullet color escalates based on slip magnitude (Green pulled-in / Yellow minor / Red major-or-critical), reusing the Milestone Health palette. Opt in to the slip whisker for a thin dashed segment showing the delta between forecast-end and baseline-end on shifted rows. Slip-magnitude thresholds (days) drive both bullet escalation and whisker eligibility — override these to match your portfolio's drift tolerance.",
+            "description": "Variance escalation thresholds. When a baseline date is bound, the activity bullet color derives from slip magnitude (Green pulled-in / Yellow minor / Red major-or-critical) and a thin grey reference tick renders below the bar at the baseline-end date (Smartsheet + Tufte convention). Slip-magnitude thresholds (days) drive bullet color categorization — override these to match your portfolio's drift tolerance.",
             "properties": {
-                "showSlipWhisker": {
-                    "displayName": "Show slip whisker",
-                    "description": "When ON, a thin dashed line renders between each shifted activity's forecast-end and baseline-end (color = same Milestone Health palette as the bullet). Default OFF — bullet escalation alone keeps the portfolio view uncluttered; turn on when reviewing a single program or comparing drift magnitudes inline.",
-                    "type": {
-                        "bool": true
-                    }
-                },
                 "slipNegligibleDays": {
                     "displayName": "Negligible threshold (days)",
                     "description": "Absolute slip days at or below which an activity is considered on-track (no chevron renders).",
@@ -1457,6 +1456,9 @@
                     "milestoneDate": {
                         "max": 1
                     },
+                    "milestoneBaselineDate": {
+                        "max": 1
+                    },
                     "milestoneType": {
                         "max": 1
                     },
@@ -1528,6 +1530,11 @@
                         {
                             "for": {
                                 "in": "milestoneDate"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "milestoneBaselineDate"
                             }
                         },
                         {

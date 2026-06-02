@@ -622,19 +622,18 @@ export class FilterPanelLayoutCard extends SimpleCard {
 
 // INF-3787 Glide Path card (Phase 4 + Phase 5 re-spec).
 //
-// Default render path uses the EARNED-escalation principle: slip
-// escalation lives in the activity-label bullet (via the existing
-// Milestone Health palette), no glide chrome by default. This card
-// surfaces:
-//   - showSlipWhisker (default OFF) — opt-in thin dashed delta segment
-//     from forecast-end to baseline-end for shifted activities
-//   - slip thresholds (defaults 2/7/30 days) — override the magnitude
-//     band cut-points used by both bullet escalation and whisker
-//     eligibility
+// Default render now ships two automatic glide treatments (no toggles):
+//   - Activity bullet escalation (slip-derived color when explicit
+//     Activity Health is unbound) — wired in visual.ts via
+//     slipBulletColorByActivity
+//   - Activity baseline-end tick (industry-convention thin grey
+//     reference marker below the forecast bar at xScale(baselineEnd))
+// Both hide invisibly when their bindings are absent or unchanged.
+//
+// This card surfaces only the slip-magnitude thresholds, which drive
+// both the bullet color escalation and the future milestone-ghost
+// connector. Operators retune them per portfolio.
 class GlidePathCard extends SimpleCard {
-    showSlipWhisker = new formattingSettings.ToggleSwitch({
-        name: "showSlipWhisker", displayName: "Show slip whisker", value: false,
-    });
     slipNegligibleDays = new formattingSettings.NumUpDown({
         name: "slipNegligibleDays", displayName: "Negligible threshold (days)", value: 2,
     });
@@ -647,7 +646,6 @@ class GlidePathCard extends SimpleCard {
     name: string = "glidePath";
     displayName: string = "Glide Path";
     slices: FormattingSettingsSlice[] = [
-        this.showSlipWhisker,
         this.slipNegligibleDays, this.slipMinorDays, this.slipMajorDays,
     ];
 }
