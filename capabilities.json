@@ -25,6 +25,30 @@
             "description": "When the bar ends. Date column."
         },
         {
+            "name": "baselineStart",
+            "displayName": "Baseline Start",
+            "kind": "Grouping",
+            "description": "(Optional) The activity's committed (baseline) start date — what was originally planned. When bound alongside Baseline End, the glide-path layer renders a dashed baseline-bar outline on the activity row. Unbound = single-bar render unchanged from v2.2."
+        },
+        {
+            "name": "baselineEnd",
+            "displayName": "Baseline End",
+            "kind": "Grouping",
+            "description": "(Optional) The activity's committed (baseline) end date. When bound, drives slip computation (current End minus Baseline End) and renders the baseline-bar layer + slip-chevron indicator showing drift direction and magnitude."
+        },
+        {
+            "name": "actualStart",
+            "displayName": "Actual Start",
+            "kind": "Grouping",
+            "description": "(Optional) The activity's actual (recorded) start date — when real work began. When bound alongside Actual End, the glide-path layer renders a solid actual-segment showing real completed work."
+        },
+        {
+            "name": "actualEnd",
+            "displayName": "Actual End",
+            "kind": "Grouping",
+            "description": "(Optional) The activity's actual (recorded) end date — typically the report-as-of date for in-progress work, or the true completion date for finished work. When bound, defines the actual-segment endpoint."
+        },
+        {
             "name": "milestoneActivity",
             "displayName": "Milestone Activity",
             "kind": "Grouping",
@@ -1381,6 +1405,18 @@
                     "endDate": {
                         "max": 1
                     },
+                    "baselineStart": {
+                        "max": 1
+                    },
+                    "baselineEnd": {
+                        "max": 1
+                    },
+                    "actualStart": {
+                        "max": 1
+                    },
+                    "actualEnd": {
+                        "max": 1
+                    },
                     "milestoneActivity": {
                         "max": 1
                     },
@@ -1428,6 +1464,26 @@
                         {
                             "for": {
                                 "in": "endDate"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "baselineStart"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "baselineEnd"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "actualStart"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "actualEnd"
                             }
                         },
                         {

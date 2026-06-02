@@ -25,6 +25,15 @@ export const ROLE = {
     // at the start of the activity label row (left dot). When unbound,
     // bullet falls back to the swim-lane color.
     activityHealth:       "activityHealth",
+    // v2.3 INF-3787 — glide-path columns (all optional). Activity gains
+    // committed-baseline + recorded-actual dates alongside the existing
+    // start/end (which carry the current forecast). When bound, the
+    // glide-path render verbs in src/render/gantt/glide/ layer additional
+    // states onto each activity row.
+    baselineStart:        "baselineStart",
+    baselineEnd:          "baselineEnd",
+    actualStart:          "actualStart",
+    actualEnd:            "actualEnd",
 } as const;
 
 export type RoleName = typeof ROLE[keyof typeof ROLE];

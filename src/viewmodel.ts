@@ -56,6 +56,16 @@ export interface Activity {
     // Recognizes literal "Green"/"Yellow"/"Red" AND semantic values like
     // "On Track" / "At Risk" / "Off Track" / "Blocked" / "Complete".
     health: string | null;
+    // v2.3 INF-3787 — glide-path optional dates. `start`/`end` carry the
+    // CURRENT forecast (existing semantic). When the corresponding role is
+    // bound, baselineStart/End = committed plan dates, actualStart/End =
+    // recorded real dates. Glide-path render verbs layer these as
+    // additional states on the activity row. Absent = render unchanged
+    // from v2.2 (graceful degradation).
+    baselineStart?: Date;
+    baselineEnd?:   Date;
+    actualStart?:   Date;
+    actualEnd?:     Date;
 }
 
 export interface Milestone {
@@ -159,6 +169,14 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
                     healthSeen.add(aHealth);
                     healthFirstSeen.push(aHealth);
                 }
+                // v2.3 INF-3787 — read optional glide-path dates. Each
+                // defaults to undefined when role unbound or value null;
+                // render path treats undefined as "no baseline/actual
+                // layer for this row" and degrades to existing single-bar.
+                const bStart = dateAt(row, idx.baselineStart);
+                const bEnd   = dateAt(row, idx.baselineEnd);
+                const aStart = dateAt(row, idx.actualStart);
+                const aEnd   = dateAt(row, idx.actualEnd);
                 activityMap.set(aName, {
                     name: aName,
                     area,
@@ -167,6 +185,10 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
                     index: activityMap.size,
                     note: strAt(row, idx.activityNote),
                     health: aHealth,
+                    baselineStart: bStart ?? undefined,
+                    baselineEnd:   bEnd   ?? undefined,
+                    actualStart:   aStart ?? undefined,
+                    actualEnd:     aEnd   ?? undefined,
                 });
             }
         }

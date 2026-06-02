@@ -1,0 +1,14 @@
+# INF-3787 / Wave 1 (v2.3.0.0) — glide-path render verbs land here in Phase 2.
+#
+# Substrate slot reserved per Option A (compose-only path, audit comment #1).
+# Three render verbs will populate this directory:
+#   baselineBar.ts    — dashed-outline baseline (committed) bar
+#   actualSegment.ts  — solid-fill actual (recorded) segment, bounded to today
+#   slipChevron.ts    — drift indicator (chevron pointing forecast direction)
+#
+# All verbs match the existing d3-lifecycle signature:
+#   (g, items[], xScale, rowHeight, colors) -> Selection
+#
+# Orchestrated by src/render/gantt/glidePath.ts (Phase 3, sibling not in
+# this dir — orchestrator stays at gantt/ level alongside other top-level
+# renderers like swimlanes.ts).
