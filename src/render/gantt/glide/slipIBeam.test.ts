@@ -90,7 +90,11 @@ describe("renderSlipIBeams (INF-3787 — vertical I-beam at baseline-end date)",
         expect(nums[9]).toBe(nums[7]);
     });
 
-    it("vertical span extends slightly beyond the bar zone (overhang for visibility)", () => {
+    it("vertical span matches the ORIGINAL (un-shrunken) bar zone exactly", () => {
+        // I-beam yTop = padding, yBottom = padding + barH at the row.
+        // This means with a shifted (shrunken) bar, the I-beam's top
+        // cap sits where the bar's top USED to be, filling the freed
+        // top space; bottom cap aligns with the shrunken bar's bottom.
         const rowHeight = 30;
         renderSlipIBeams(g, [
             mkActivity({ name: "row-1", index: 1,
@@ -100,11 +104,11 @@ describe("renderSlipIBeams (INF-3787 — vertical I-beam at baseline-end date)",
         const nums = beams()[0].getAttribute("d")!.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
         const yTop = nums[1];
         const yBottom = nums[7];
-        const rowTop = 1 * rowHeight;
-        const rowBottom = rowTop + rowHeight;
-        // Overhang: yTop < (rowTop + padding) and yBottom > (rowTop + padding + barH)
-        expect(yTop).toBeLessThan(rowTop + 7);   // padding≈3 + overhang(3) buffer
-        expect(yBottom).toBeGreaterThan(rowBottom - 7);
+        // barH = max(8, floor(30*0.78)) = 23; padding = (30-23)/2 = 3.5
+        const expectedTop = 1 * rowHeight + 3.5;
+        const expectedBot = expectedTop + 23;
+        expect(yTop).toBeCloseTo(expectedTop);
+        expect(yBottom).toBeCloseTo(expectedBot);
     });
 
     it("emits neutral grey stroke (no semantic color signal)", () => {

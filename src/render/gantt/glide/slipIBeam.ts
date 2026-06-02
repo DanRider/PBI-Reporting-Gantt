@@ -33,7 +33,6 @@ import { barHeightFor } from "../bars";
 const IBEAM_STROKE = "#444444";
 const IBEAM_STROKE_WIDTH = 1.8;
 const IBEAM_CAP_HALF_WIDTH = 4;        // horizontal extent of each cap (half-width)
-const IBEAM_VERTICAL_OVERHANG_PX = 3;  // how far the I extends above/below the bar zone
 
 interface IBeamDatum {
     activity: Activity;
@@ -51,6 +50,13 @@ export function renderSlipIBeams(
 ): Selection<SVGPathElement, IBeamDatum, SVGGElement, unknown> {
     const barH = barHeightFor(rowHeight);
     const padding = (rowHeight - barH) / 2;
+    // I-beam fits the ORIGINAL (un-shrunken) bar zone. When the bar
+    // shrinks to 70% anchored at the bottom, the I-beam's top cap
+    // sits at the top of the freed 30% (where the bar used to extend
+    // to) and the I-beam's bottom cap sits at the bottom of the bar.
+    // Reads as: "originally the bar's top was HERE." The shrunken bar
+    // visually "lost" its top portion; the I-beam pins where that
+    // lost top USED to be at the baseline-end x.
 
     const eligible: IBeamDatum[] = [];
     for (const a of activities) {
@@ -61,8 +67,8 @@ export function renderSlipIBeams(
         eligible.push({
             activity: a,
             x: xScale(a.baselineEnd),
-            yTop: rowTop + padding - IBEAM_VERTICAL_OVERHANG_PX,
-            yBottom: rowTop + padding + barH + IBEAM_VERTICAL_OVERHANG_PX,
+            yTop: rowTop + padding,
+            yBottom: rowTop + padding + barH,
         });
     }
 

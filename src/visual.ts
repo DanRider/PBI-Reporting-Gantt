@@ -1498,9 +1498,13 @@ export class Visual implements IVisual {
             fallback: "#888888",
         };
         const slipBulletColorByActivity = new Map<string, string>();
+        const shiftedActivityNames = new Set<string>();
         for (const a of vm.activities) {
-            if (a.health != null && a.health.trim().length > 0) continue; // explicit binding wins
             const slip = computeSlip(a.baselineEnd, a.end, slipThresholds);
+            if (slip != null && slip.direction !== "on-track") {
+                shiftedActivityNames.add(a.name);
+            }
+            if (a.health != null && a.health.trim().length > 0) continue;
             const color = slipToHealthColor(slip, slipBulletPalette);
             if (color != null) slipBulletColorByActivity.set(a.name, color);
         }
@@ -1549,7 +1553,11 @@ export class Visual implements IVisual {
         this.labelBgG.selectAll("*").remove();
 
         this.bodyG.attr("transform", `translate(0, ${bodyY})`);
-        const barsSel = renderBars(this.bodyG, vm.activities, xScale, rowHeight, colors);
+        // INF-3787 — shifted activities render with 30%-shrunk bar
+        // anchored at row bottom; vertical I-beam at xScale(baselineEnd)
+        // fills the freed top + bisects the shrunken bar. Together they
+        // read as "originally the bar's top was at the I-beam height".
+        const barsSel = renderBars(this.bodyG, vm.activities, xScale, rowHeight, colors, shiftedActivityNames);
         const starsSel = renderMilestones(
             this.bodyG, vm.milestones, xScale, rowHeight, colors,
             milestoneCard.hoverExpansion.value
