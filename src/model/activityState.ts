@@ -1,6 +1,7 @@
 "use strict";
 
 import { Activity } from "../viewmodel";
+import { HealthColorPalette } from "../utils/healthColor";
 
 // INF-3787 Phase 3 — glide-path model layer.
 //
@@ -129,4 +130,34 @@ export function deriveState(
     const hasActual = activity.actualStart != null && activity.actualEnd != null;
     const slip = computeSlip(activity.baselineEnd, activity.end, thresholds);
     return { base: activity, hasBaseline, hasActual, slip };
+}
+
+/**
+ * INF-3787 Phase 5 re-spec — "EARNED escalation" principle.
+ *
+ * Maps a SlipResult to a color from the Milestone Health palette, so
+ * slip-driven bullet escalation reuses the SAME vocabulary the viewer
+ * already reads from explicit health bindings. Negligible slip and null
+ * slip both return null (no escalation; bullet falls through to its
+ * normal lane-color path).
+ *
+ *   pulled-in (any magnitude) → green   (ahead of schedule)
+ *   minor slipping             → yellow  (warning)
+ *   major slipping             → red     (off-track territory)
+ *   critical slipping          → red     (palette has 3 colors; major+critical share)
+ *   on-track / null            → null    (no escalation)
+ *
+ * Render-side caller composes this AFTER explicit-health resolution so
+ * an operator's bound activityHealth value always wins over slip-derived
+ * color. Pure function; safe to call per-row in render-hot paths.
+ */
+export function slipToHealthColor(
+    slip: SlipResult | null,
+    palette: HealthColorPalette,
+): string | null {
+    if (slip == null) return null;
+    if (slip.direction === "on-track") return null;
+    if (slip.direction === "pulled-in") return palette.green;
+    if (slip.magnitude === "minor") return palette.yellow;
+    return palette.red; // major + critical both escalate to red
 }

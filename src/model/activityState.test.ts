@@ -4,12 +4,14 @@ import {
     computeSlip,
     categorizeSlip,
     deriveState,
+    slipToHealthColor,
     SLIP_NEGLIGIBLE_DAYS,
     SLIP_MINOR_DAYS,
     SLIP_MAJOR_DAYS,
     DEFAULT_SLIP_THRESHOLDS,
     SlipThresholds,
 } from "./activityState";
+import { DEFAULT_HEALTH_PALETTE } from "../utils/healthColor";
 
 function mkActivity(over: Partial<Activity> & { name: string; index: number }): Activity {
     return {
@@ -189,5 +191,47 @@ describe("SlipThresholds — Format-pane override (Decision #3)", () => {
         expect(deriveState(activity, today).slip!.magnitude).toBe("negligible");
         // Strict thresholds: 2d → minor (above negligibleDays=0 + 1)
         expect(deriveState(activity, today, strict).slip!.magnitude).toBe("major");
+    });
+});
+
+describe("slipToHealthColor — EARNED escalation mapping", () => {
+    const P = DEFAULT_HEALTH_PALETTE;
+
+    it("returns null for null slip (no baseline → no escalation)", () => {
+        expect(slipToHealthColor(null, P)).toBeNull();
+    });
+
+    it("returns null for on-track direction (negligible magnitude)", () => {
+        expect(slipToHealthColor(categorizeSlip(0), P)).toBeNull();
+        expect(slipToHealthColor(categorizeSlip(1), P)).toBeNull();
+        expect(slipToHealthColor(categorizeSlip(-2), P)).toBeNull();
+    });
+
+    it("returns green for any pulled-in magnitude (ahead of schedule)", () => {
+        expect(slipToHealthColor(categorizeSlip(-5),   P)).toBe(P.green);  // minor pulled-in
+        expect(slipToHealthColor(categorizeSlip(-20),  P)).toBe(P.green);  // major pulled-in
+        expect(slipToHealthColor(categorizeSlip(-100), P)).toBe(P.green);  // critical pulled-in
+    });
+
+    it("returns yellow for minor slipping", () => {
+        expect(slipToHealthColor(categorizeSlip(5), P)).toBe(P.yellow);
+        expect(slipToHealthColor(categorizeSlip(7), P)).toBe(P.yellow);
+    });
+
+    it("returns red for major slipping", () => {
+        expect(slipToHealthColor(categorizeSlip(15), P)).toBe(P.red);
+        expect(slipToHealthColor(categorizeSlip(30), P)).toBe(P.red);
+    });
+
+    it("returns red for critical slipping (3-color palette collapses major+critical)", () => {
+        expect(slipToHealthColor(categorizeSlip(60),  P)).toBe(P.red);
+        expect(slipToHealthColor(categorizeSlip(365), P)).toBe(P.red);
+    });
+
+    it("uses the caller-supplied palette (operator-customized colors)", () => {
+        const custom = { green: "#0f0", yellow: "#ff0", red: "#f00", fallback: "#888" };
+        expect(slipToHealthColor(categorizeSlip(-10), custom)).toBe("#0f0");
+        expect(slipToHealthColor(categorizeSlip(5),   custom)).toBe("#ff0");
+        expect(slipToHealthColor(categorizeSlip(50),  custom)).toBe("#f00");
     });
 });
