@@ -1498,16 +1498,9 @@ export class Visual implements IVisual {
             fallback: "#888888",
         };
         const slipBulletColorByActivity = new Map<string, string>();
-        // INF-3787 — also track the set of shifted activities so renderBars
-        // can shrink their height to 70%, freeing top-of-row space for the
-        // I-beam layer.
-        const shiftedActivityNames = new Set<string>();
         for (const a of vm.activities) {
-            const slip = computeSlip(a.baselineEnd, a.end, slipThresholds);
-            if (slip != null && slip.direction !== "on-track") {
-                shiftedActivityNames.add(a.name);
-            }
             if (a.health != null && a.health.trim().length > 0) continue; // explicit binding wins
+            const slip = computeSlip(a.baselineEnd, a.end, slipThresholds);
             const color = slipToHealthColor(slip, slipBulletPalette);
             if (color != null) slipBulletColorByActivity.set(a.name, color);
         }
@@ -1556,10 +1549,7 @@ export class Visual implements IVisual {
         this.labelBgG.selectAll("*").remove();
 
         this.bodyG.attr("transform", `translate(0, ${bodyY})`);
-        // INF-3787 — shifted activities render with 30%-shrunk bars
-        // anchored at the row bottom, freeing the top of the row for
-        // the slip I-beam layer rendered below.
-        const barsSel = renderBars(this.bodyG, vm.activities, xScale, rowHeight, colors, shiftedActivityNames);
+        const barsSel = renderBars(this.bodyG, vm.activities, xScale, rowHeight, colors);
         const starsSel = renderMilestones(
             this.bodyG, vm.milestones, xScale, rowHeight, colors,
             milestoneCard.hoverExpansion.value

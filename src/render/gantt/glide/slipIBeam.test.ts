@@ -20,7 +20,7 @@ function mkActivity(over: Partial<Activity> & { name: string; index: number }): 
     };
 }
 
-describe("renderSlipIBeams (INF-3787 — I-beam in freed top space)", () => {
+describe("renderSlipIBeams (INF-3787 — vertical I-beam at baseline-end date)", () => {
     let g: Selection<SVGGElement, unknown, null, undefined>;
     let xScale: ScaleTime<number, number>;
 
@@ -38,7 +38,7 @@ describe("renderSlipIBeams (INF-3787 — I-beam in freed top space)", () => {
         expect(beams()).toHaveLength(0);
     });
 
-    it("skips on-track activities (negligible slip)", () => {
+    it("skips on-track activities (slip <= negligible threshold)", () => {
         const baselineEnd = new Date("2026-02-01");
         renderSlipIBeams(g, [
             mkActivity({ name: "exact", index: 0, end: baselineEnd, baselineEnd }),
@@ -47,58 +47,67 @@ describe("renderSlipIBeams (INF-3787 — I-beam in freed top space)", () => {
         expect(beams()).toHaveLength(0);
     });
 
-    it("emits I-beam path with 3 subpaths (left cap + connector + right cap)", () => {
+    it("emits I-beam path with 3 subpaths (top cap + vertical stem + bottom cap)", () => {
         const baselineEnd = new Date("2026-02-01");
         renderSlipIBeams(g, [
-            mkActivity({ name: "slip", index: 0, end: new Date("2026-02-15"), baselineEnd }),
+            mkActivity({ name: "S", index: 0, end: new Date("2026-02-15"), baselineEnd }),
         ], xScale, 30);
         const beam = beams()[0];
         const d = beam.getAttribute("d")!;
-        // 3 M's = 3 subpath starts (left cap, connector, right cap)
-        expect((d.match(/M/g) || []).length).toBe(3);
+        expect((d.match(/M/g) || []).length).toBe(3); // 3 subpaths
         expect((d.match(/L/g) || []).length).toBe(3);
     });
 
-    it("orders caps by chronology (x1 = earlier of baselineEnd/forecastEnd)", () => {
+    it("vertical stem is centered at xScale(baselineEnd) — not at forecast end", () => {
         const baselineEnd = new Date("2026-02-01");
-        // Slipping case: end is LATER → cap1 at baseline, cap2 at end
+        const forecastEnd = new Date("2026-04-01");
         renderSlipIBeams(g, [
-            mkActivity({ name: "slipping", index: 0, end: new Date("2026-02-15"), baselineEnd }),
+            mkActivity({ name: "A", index: 0, end: forecastEnd, baselineEnd }),
         ], xScale, 30);
-        const slipNums = beams()[0].getAttribute("d")!.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
-        // First cap at xScale(baselineEnd), second at xScale(end). Slipping → baseline < end.
-        expect(slipNums[0]).toBeLessThan(slipNums[8]); // cap1.x < cap2.x
-
-        // Pulled-in case: end is EARLIER → cap1 at end, cap2 at baseline
-        document.body.replaceChildren();
-        const svg2 = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        document.body.appendChild(svg2);
-        const g2 = select(svg2).append<SVGGElement>("g");
-        renderSlipIBeams(g2, [
-            mkActivity({ name: "pulled", index: 0,
-                end: new Date("2026-01-15"), baselineEnd: new Date("2026-02-15") }),
-        ], xScale, 30);
-        const pullNums = g2.selectAll<SVGPathElement, unknown>("path.slip-ibeam").node()!.getAttribute("d")!.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
-        expect(pullNums[0]).toBeLessThan(pullNums[8]); // still chronologically ordered
+        const nums = beams()[0].getAttribute("d")!.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+        // Subpath 2 is M(x, yTop) L(x, yBottom) → nums[4] and nums[6] are both stem x
+        expect(nums[4]).toBeCloseTo(xScale(baselineEnd));
+        expect(nums[6]).toBeCloseTo(xScale(baselineEnd));
+        // Stem x must NOT equal forecast end x
+        expect(nums[4]).not.toBeCloseTo(xScale(forecastEnd));
     });
 
-    it("positions I-beam at TOP of row (in freed space when bar shrinks)", () => {
+    it("top and bottom caps span symmetrically around the baseline x (cap half-width = 4px)", () => {
+        const baselineEnd = new Date("2026-02-01");
+        renderSlipIBeams(g, [
+            mkActivity({ name: "C", index: 0, end: new Date("2026-02-15"), baselineEnd }),
+        ], xScale, 30);
+        const nums = beams()[0].getAttribute("d")!.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+        const x = xScale(baselineEnd);
+        // Subpath 1 (top cap):    M(x-4, yTop)    L(x+4, yTop)
+        // Subpath 3 (bottom cap): M(x-4, yBottom) L(x+4, yBottom)
+        expect(nums[0]).toBeCloseTo(x - 4);
+        expect(nums[2]).toBeCloseTo(x + 4);
+        expect(nums[8]).toBeCloseTo(x - 4);
+        expect(nums[10]).toBeCloseTo(x + 4);
+        // Top cap y === stem yTop; bottom cap y === stem yBottom
+        expect(nums[1]).toBe(nums[5]);
+        expect(nums[9]).toBe(nums[7]);
+    });
+
+    it("vertical span extends slightly beyond the bar zone (overhang for visibility)", () => {
         const rowHeight = 30;
         renderSlipIBeams(g, [
-            mkActivity({ name: "row-2", index: 2,
+            mkActivity({ name: "row-1", index: 1,
                 end: new Date("2026-02-15"),
                 baselineEnd: new Date("2026-02-01") }),
         ], xScale, rowHeight);
-        const beam = beams()[0];
-        const nums = beam.getAttribute("d")!.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
-        // First cap is M(x1, yTop) → nums[1] is yTop
+        const nums = beams()[0].getAttribute("d")!.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
         const yTop = nums[1];
-        // Row 2's top is at 60 (2 * 30); I-beam should be near there, not at row middle
-        expect(yTop).toBeGreaterThanOrEqual(60);
-        expect(yTop).toBeLessThan(60 + rowHeight / 2);
+        const yBottom = nums[7];
+        const rowTop = 1 * rowHeight;
+        const rowBottom = rowTop + rowHeight;
+        // Overhang: yTop < (rowTop + padding) and yBottom > (rowTop + padding + barH)
+        expect(yTop).toBeLessThan(rowTop + 7);   // padding≈3 + overhang(3) buffer
+        expect(yBottom).toBeGreaterThan(rowBottom - 7);
     });
 
-    it("emits neutral grey stroke (no semantic color)", () => {
+    it("emits neutral grey stroke (no semantic color signal)", () => {
         renderSlipIBeams(g, [
             mkActivity({ name: "s", index: 0,
                 end: new Date("2026-02-15"), baselineEnd: new Date("2026-02-01") }),
@@ -106,12 +115,12 @@ describe("renderSlipIBeams (INF-3787 — I-beam in freed top space)", () => {
         const beam = beams()[0];
         expect(beam.getAttribute("stroke")).toBe("#444444");
         expect(beam.getAttribute("fill")).toBe("none");
+        expect(beam.getAttribute("stroke-width")).toBe("1.8");
         expect(beam.getAttribute("pointer-events")).toBe("none");
     });
 
     it("forwards thresholds override to slip computation", () => {
         const baselineEnd = new Date("2026-02-01");
-        // 3-day slip — default: minor (emits); strict negligibleDays=5: negligible (skipped)
         renderSlipIBeams(g, [
             mkActivity({ name: "x", index: 0, end: new Date("2026-02-04"), baselineEnd }),
         ], xScale, 30, { negligibleDays: 5, minorDays: 10, majorDays: 30 });

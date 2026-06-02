@@ -8,41 +8,38 @@ import {
     SlipThresholds,
     DEFAULT_SLIP_THRESHOLDS,
 } from "../../../model/activityState";
-import { barHeightFor, shiftedBarHeightFor } from "../bars";
+import { barHeightFor } from "../bars";
 
-// INF-3787 Phase 5 re-spec — slip I-beam in the freed top-of-row
-// space of shifted activities.
+// INF-3787 Phase 5 re-spec — vertical I-beam BISECTING the baseline-end date.
 //
-// Visual idiom: classic bar-and-whisker I-beam. Vertical caps at
-// xScale(baselineEnd) AND xScale(forecastEnd); thin horizontal
-// connector running between them. Length of the connector = slip
-// magnitude visually (longer connector = bigger slip). Neutral dark
-// grey (#444) — magnitude is encoded in I-beam LENGTH, no semantic
-// color needed.
+// Visual idiom: a vertical "I" stands AT xScale(baselineEnd) — the
+// date the activity was originally planned to end. The bar renders at
+// its current forecast position; the I-beam pins where it WAS planned
+// for. Reads as "originally we said this ends HERE." Acts like a mini
+// per-activity TODAY-line, but for the historical baseline.
 //
-// Renders ONLY for shifted activities (those passed in shiftedSet via
-// renderBars + verified non-negligible slip via computeSlip). For
-// every non-shifted row, no I-beam emitted — bars render at full
-// height, viewer sees a clean row.
+// Shape: vertical stem with horizontal caps at top + bottom (I shape).
+// Spans slightly taller than the bar so the caps clear the bar
+// rounded corners and the eye anchors on the marker, not the bar.
 //
-// The "shifted bar shrunk 30%" + "I-beam in freed top space" combine
-// to communicate "this activity has moved from plan" without color,
-// without alarm, and without per-row chrome on healthy rows. Tooltip
-// (extended separately) carries the narrative on hover.
+// Color: neutral dark grey (#444). No semantic color — magnitude of
+// slip is visually evident from the I-beam's horizontal offset
+// relative to the bar's right edge.
+//
+// Renders ONLY when there's a non-negligible slip. On-track activities
+// (baseline matches forecast) render no I-beam (it would overlap with
+// the bar end and add noise).
 
 const IBEAM_STROKE = "#444444";
-const IBEAM_CAP_STROKE_WIDTH = 1.8;
-const IBEAM_CONNECTOR_STROKE_WIDTH = 1.2;
-const IBEAM_CAP_HEIGHT_PX = 7;
-const IBEAM_TOP_INSET_PX = 1; // gap from row's top to I-beam top
+const IBEAM_STROKE_WIDTH = 1.8;
+const IBEAM_CAP_HALF_WIDTH = 4;        // horizontal extent of each cap (half-width)
+const IBEAM_VERTICAL_OVERHANG_PX = 3;  // how far the I extends above/below the bar zone
 
 interface IBeamDatum {
     activity: Activity;
-    x1: number;       // earlier of (baselineEnd, forecastEnd)
-    x2: number;       // later of the two
+    x: number;
     yTop: number;
     yBottom: number;
-    yMid: number;
 }
 
 export function renderSlipIBeams(
@@ -54,30 +51,18 @@ export function renderSlipIBeams(
 ): Selection<SVGPathElement, IBeamDatum, SVGGElement, unknown> {
     const barH = barHeightFor(rowHeight);
     const padding = (rowHeight - barH) / 2;
-    // I-beam sits in the freed top space of the shifted bar zone:
-    // y range = [padding + IBEAM_TOP_INSET, padding + IBEAM_TOP_INSET + IBEAM_CAP_HEIGHT_PX].
-    // Verify the I-beam stays inside the row by clamping its height
-    // to the freed space (barH - shrunkBarH) minus the inset.
-    const shrunkBarH = shiftedBarHeightFor(rowHeight);
-    const freedTopH = barH - shrunkBarH;
-    const capH = Math.max(3, Math.min(IBEAM_CAP_HEIGHT_PX, freedTopH - IBEAM_TOP_INSET_PX));
 
     const eligible: IBeamDatum[] = [];
     for (const a of activities) {
         if (a.baselineEnd == null) continue;
         const slip = computeSlip(a.baselineEnd, a.end, thresholds);
         if (slip == null || slip.direction === "on-track") continue;
-        const xBaseline = xScale(a.baselineEnd);
-        const xForecast = xScale(a.end);
-        const yTop = a.index * rowHeight + padding + IBEAM_TOP_INSET_PX;
-        const yBottom = yTop + capH;
+        const rowTop = a.index * rowHeight;
         eligible.push({
             activity: a,
-            x1: Math.min(xBaseline, xForecast),
-            x2: Math.max(xBaseline, xForecast),
-            yTop,
-            yBottom,
-            yMid: yTop + capH / 2,
+            x: xScale(a.baselineEnd),
+            yTop: rowTop + padding - IBEAM_VERTICAL_OVERHANG_PX,
+            yBottom: rowTop + padding + barH + IBEAM_VERTICAL_OVERHANG_PX,
         });
     }
 
@@ -86,18 +71,18 @@ export function renderSlipIBeams(
         .join("path")
         .attr("class", "slip-ibeam")
         .attr("data-activity", d => d.activity.name)
-        // Single path with 3 subpaths:
-        //   left vertical cap   M(x1, yTop) L(x1, yBottom)
-        //   horizontal connector M(x1, yMid) L(x2, yMid)
-        //   right vertical cap  M(x2, yTop) L(x2, yBottom)
+        // Single path with 3 subpaths forming the I:
+        //   top cap     M(x-cap, yTop)    L(x+cap, yTop)
+        //   vertical    M(x,     yTop)    L(x,     yBottom)
+        //   bottom cap  M(x-cap, yBottom) L(x+cap, yBottom)
         .attr("d", d =>
-            `M${d.x1},${d.yTop} L${d.x1},${d.yBottom} ` +
-            `M${d.x1},${d.yMid} L${d.x2},${d.yMid} ` +
-            `M${d.x2},${d.yTop} L${d.x2},${d.yBottom}`
+            `M${d.x - IBEAM_CAP_HALF_WIDTH},${d.yTop} L${d.x + IBEAM_CAP_HALF_WIDTH},${d.yTop} ` +
+            `M${d.x},${d.yTop} L${d.x},${d.yBottom} ` +
+            `M${d.x - IBEAM_CAP_HALF_WIDTH},${d.yBottom} L${d.x + IBEAM_CAP_HALF_WIDTH},${d.yBottom}`
         )
         .attr("fill", "none")
         .attr("stroke", IBEAM_STROKE)
-        .attr("stroke-width", IBEAM_CAP_STROKE_WIDTH)
+        .attr("stroke-width", IBEAM_STROKE_WIDTH)
         .attr("stroke-linecap", "round")
         .attr("pointer-events", "none");
 }
