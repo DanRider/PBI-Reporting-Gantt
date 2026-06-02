@@ -1,0 +1,47 @@
+{
+    "privileges": [
+        {
+            "name": "AADAuthentication",
+            "parameters": {
+                "COM": "https://graph.microsoft.com"
+            }
+        },
+        {
+            "name": "WebAccess",
+            "parameters": [
+                "https://graph.microsoft.com"
+            ]
+        }
+    ],
+    "dataRoles": [],
+    "objects": {
+        "config": {
+            "displayName": "Writeback Target",
+            "properties": {
+                "siteUrl": {
+                    "displayName": "SharePoint List URL",
+                    "description": "Paste the URL of your SharePoint list (e.g., https://contoso.sharepoint.com/sites/finance/Lists/WritebackTest). The visual figures out the Graph IDs itself.",
+                    "type": {
+                        "text": true
+                    }
+                },
+                "titleField": {
+                    "displayName": "Title field value",
+                    "description": "Value to write into the SharePoint list's Title column. Default: 'Probe test row'.",
+                    "type": {
+                        "text": true
+                    }
+                },
+                "alternateAudience": {
+                    "displayName": "Alternate AAD audience (fallback)",
+                    "description": "Optional. If Graph audience fails, try this URI (e.g., your ISV-registered Entra app URI). Leave blank to use Graph default.",
+                    "type": {
+                        "text": true
+                    }
+                }
+            }
+        }
+    },
+    "supportsHighlight": false,
+    "supportsLandingPage": true
+}

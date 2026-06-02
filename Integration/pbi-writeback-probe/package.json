@@ -1,0 +1,24 @@
+{
+    "name": "pbi-writeback-probe",
+    "description": "Minimal Power BI custom visual probing the Graph API direct writeback path against SharePoint Lists. Diagnostic UI; not for production.",
+    "version": "0.1.0",
+    "author": {
+        "name": "Author",
+        "email": "author@example.com"
+    },
+    "license": "MIT",
+    "private": true,
+    "scripts": {
+        "pbiviz": "pbiviz",
+        "start": "pbiviz start",
+        "package": "pbiviz package"
+    },
+    "dependencies": {
+        "powerbi-visuals-api": "5.11.0",
+        "powerbi-visuals-utils-formattingmodel": "6.0.4"
+    },
+    "devDependencies": {
+        "powerbi-visuals-tools": "^6.2.0",
+        "typescript": "5.5.4"
+    }
+}

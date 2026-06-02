@@ -1,0 +1,26 @@
+{
+    "visual": {
+        "name": "pbiWritebackProbe",
+        "displayName": "Writeback Probe — SharePoint Test",
+        "guid": "pbiWritebackProbe9F3E5A1B2D4F8E6A0C3B5D7E9F1A2C3D",
+        "visualClassName": "WritebackProbe",
+        "version": "0.2.0.0",
+        "description": "Diagnostic visual probing the Graph API direct writeback path against SharePoint Lists. Self-diagnoses token acquisition, scope grants, CORS, and HTTP response. Not for production.",
+        "supportUrl": "https://example.com/issues",
+        "gitHubUrl": ""
+    },
+    "apiVersion": "5.11.0",
+    "author": {
+        "name": "Author",
+        "email": "author@example.com"
+    },
+    "assets": {
+        "icon": "assets/icon.png"
+    },
+    "externalJS": null,
+    "style": "style/visual.less",
+    "capabilities": "capabilities.json",
+    "dependencies": null,
+    "stringResources": [],
+    "version": "0.2.0.0"
+}

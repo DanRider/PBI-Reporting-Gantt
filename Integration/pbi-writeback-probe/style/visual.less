@@ -1,0 +1,123 @@
+.writeback-probe {
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #222;
+    padding: 16px;
+    box-sizing: border-box;
+    height: 100%;
+    overflow: auto;
+
+    .wp-wrap {
+        max-width: 720px;
+        margin: 0 auto;
+    }
+
+    .wp-title {
+        margin: 0 0 4px 0;
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .wp-sub {
+        margin: 0 0 16px 0;
+        font-size: 12px;
+        color: #666;
+    }
+
+    .wp-config-summary {
+        background: #f7f7f7;
+        border-left: 3px solid #888;
+        padding: 8px 12px;
+        margin-bottom: 12px;
+        font-size: 11px;
+        font-family: "Consolas", "Courier New", monospace;
+
+        .wp-cfg-row {
+            margin-bottom: 2px;
+            i { color: #999; }
+        }
+    }
+
+    .wp-button {
+        background: #0078d4;
+        color: #fff;
+        border: 0;
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        border-radius: 2px;
+        margin-bottom: 16px;
+
+        &:hover {
+            background: #106ebe;
+        }
+
+        &:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    }
+
+    .wp-label {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #666;
+        margin-bottom: 4px;
+    }
+
+    .wp-statusbox, .wp-responsebox {
+        margin-bottom: 12px;
+    }
+
+    .wp-status {
+        padding: 8px 12px;
+        font-size: 13px;
+        border-radius: 2px;
+        font-family: "Consolas", "Courier New", monospace;
+
+        &.wp-good {
+            background: #dff6dd;
+            color: #107c10;
+            border-left: 3px solid #107c10;
+        }
+        &.wp-warn {
+            background: #fff4ce;
+            color: #8a6914;
+            border-left: 3px solid #f7b500;
+        }
+        &.wp-bad {
+            background: #fde7e9;
+            color: #a4262c;
+            border-left: 3px solid #a4262c;
+        }
+        &.wp-neutral {
+            background: #f7f7f7;
+            color: #555;
+            border-left: 3px solid #999;
+        }
+    }
+
+    .wp-response {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        font-family: "Consolas", "Courier New", monospace;
+        font-size: 11px;
+        padding: 12px;
+        border-radius: 2px;
+        max-height: 320px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    .wp-footer {
+        margin-top: 16px;
+        font-size: 10px;
+        color: #888;
+
+        .wp-good { color: #107c10; font-weight: 600; }
+        .wp-warn { color: #8a6914; font-weight: 600; }
+        .wp-bad  { color: #a4262c; font-weight: 600; }
+    }
+}
