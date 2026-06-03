@@ -33,12 +33,8 @@ import { renderTimeAxis, computeAxisLayout, AxisLayoutInfo, ChevronStyle } from 
 import { renderBars } from "./render/gantt/bars";
 import { renderMilestones, renderMilestoneLabels, computeVisibleLabels } from "./render/gantt/milestones";
 import { renderSwimlanes } from "./render/gantt/swimlanes";
-import { renderSlipIBeamLayer } from "./render/gantt/glidePath";
+import { renderBaselineMarkLayer } from "./render/gantt/glidePath";
 import { renderMilestoneBaselineGhosts } from "./render/gantt/glide/milestoneBaselineGhost";
-import {
-    renderBarExtensionHatches,
-    ensureBarHatchPattern,
-} from "./render/gantt/glide/barExtensionHatch";
 import { SlipThresholds, slipToHealthColor, computeSlip } from "./model/activityState";
 import {
     renderActivityLabels,
@@ -1502,13 +1498,9 @@ export class Visual implements IVisual {
             fallback: "#888888",
         };
         const slipBulletColorByActivity = new Map<string, string>();
-        const shiftedActivityNames = new Set<string>();
         for (const a of vm.activities) {
-            const slip = computeSlip(a.baselineEnd, a.end, slipThresholds);
-            if (slip != null && slip.direction !== "on-track") {
-                shiftedActivityNames.add(a.name);
-            }
             if (a.health != null && a.health.trim().length > 0) continue;
+            const slip = computeSlip(a.baselineEnd, a.end, slipThresholds);
             const color = slipToHealthColor(slip, slipBulletPalette);
             if (color != null) slipBulletColorByActivity.set(a.name, color);
         }
@@ -1557,16 +1549,7 @@ export class Visual implements IVisual {
         this.labelBgG.selectAll("*").remove();
 
         this.bodyG.attr("transform", `translate(0, ${bodyY})`);
-        // INF-3787 — three layered variance encodings:
-        //   1. Shifted-bar height shrink (renderBars + shiftedActivityNames)
-        //   2. Hatched-pattern overlay on the variance region (renderBar
-        //      ExtensionHatches — depends on the <pattern> defs being
-        //      mounted on the svg root before render)
-        //   3. Vertical I-beam at the baseline-end x (renderSlipIBeamLayer
-        //      below — last so it draws on top)
-        ensureBarHatchPattern(this.svg);
-        const barsSel = renderBars(this.bodyG, vm.activities, xScale, rowHeight, colors, shiftedActivityNames);
-        renderBarExtensionHatches(this.bodyG, vm.activities, xScale, rowHeight, slipThresholds);
+        const barsSel = renderBars(this.bodyG, vm.activities, xScale, rowHeight, colors);
         const starsSel = renderMilestones(
             this.bodyG, vm.milestones, xScale, rowHeight, colors,
             milestoneCard.hoverExpansion.value
@@ -1576,20 +1559,17 @@ export class Visual implements IVisual {
             font: labelFont,
             overflowBehavior: labelOverflow,
         });
-        // INF-3787 Phase 5 re-spec — slip I-beam layer (bar-and-whisker
-        // pattern in the freed top space of shifted activity bars) +
-        // milestone baseline ghost + connector (MS Project Tracking
-        // Gantt convention). Both fire automatically when their
-        // bindings are present; both hide invisibly when baseline
-        // matches current. No toggles. Bullet escalation (already
-        // wired above via slipBulletColorByActivity) handles per-row
-        // variance status via the existing health vocabulary.
-        renderSlipIBeamLayer(this.bodyG, vm.activities, xScale, rowHeight, { slipThresholds });
-        // Milestone ghosts render into bodyG as siblings of the current
-        // milestone markers. Connectors paint underneath; current solid
-        // markers (already rendered by renderMilestones above) paint
-        // over the connector endpoint at the current x-position, which
-        // is the intended visual.
+        // INF-3787 — bullet-chart variance vocabulary: single dark
+        // vertical tick at xScale(baselineEnd) inside each shifted bar.
+        // Position relative to bar's right edge encodes magnitude +
+        // direction implicitly. Fires automatically for non-negligible
+        // slip; bullet escalation (already wired) handles the per-row
+        // status story through the existing health palette.
+        renderBaselineMarkLayer(this.bodyG, vm.activities, xScale, rowHeight, { slipThresholds });
+        // Milestone ghosts: hollow outline + connector at baseline
+        // date when milestoneBaselineDate is bound. Separate visual
+        // concern (point markers, not bars). MS Project Tracking
+        // Gantt convention.
         renderMilestoneBaselineGhosts(this.bodyG, vm.milestones, xScale, rowHeight, colors);
 
         // INF-3736 — invisible column-boundary drag handles. Two 8px-wide

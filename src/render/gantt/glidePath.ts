@@ -4,38 +4,36 @@ import { Selection } from "d3-selection";
 import { ScaleTime } from "d3-scale";
 import { Activity } from "../../viewmodel";
 import { SlipThresholds } from "../../model/activityState";
-import { renderSlipIBeams } from "./glide/slipIBeam";
+import { renderBaselineMarks } from "./glide/baselineMark";
 
-// INF-3787 Phase 5 re-spec — slip I-beam layer orchestrator.
+// INF-3787 — baseline-mark layer orchestrator (bullet-chart vocabulary).
 //
-// Per the EARNED-escalation principle + the bar-shrink convention,
-// default render now ships:
+// Default render layers shipping with v2.3:
 //   1. Bullet escalation (lives in activityLabels.ts via the
 //      slipBulletColorByActivity opt — already wired)
-//   2. Shifted-bar 30% height shrink (lives in bars.ts via the
-//      shiftedSet arg — wired in visual.ts before this orchestrator)
-//   3. Slip I-beam in the freed top space (this orchestrator's
-//      sole job — neutral dark grey, length = slip magnitude)
+//   2. Baseline mark inside the bar (this orchestrator's sole job —
+//      single dark vertical tick at xScale(baselineEnd) for each
+//      activity with non-negligible slip)
 //
-// The I-beam layer is appended as the LAST child of the parent so it
-// draws above the (already-shrunken) forecast bar in z-order. Idempotent
-// across re-renders.
-
-const IBEAM_LAYER_CLASS = "glide-ibeam-layer";
+// The mark layer is appended as the LAST child of the parent so it
+// draws over the forecast bar (the tick is INSIDE the bar visually).
+// Idempotent across re-renders.
 
 export interface GlidePathOptions {
     slipThresholds?: SlipThresholds;
 }
 
-export function renderSlipIBeamLayer(
+const MARK_LAYER_CLASS = "glide-baseline-mark-layer";
+
+export function renderBaselineMarkLayer(
     parent: Selection<SVGGElement, unknown, null, undefined>,
     activities: Activity[],
     xScale: ScaleTime<number, number>,
     rowHeight: number,
     options: GlidePathOptions = {},
 ): void {
-    const layer = ensureSiblingLayer(parent, IBEAM_LAYER_CLASS);
-    renderSlipIBeams(layer, activities, xScale, rowHeight, options.slipThresholds);
+    const layer = ensureSiblingLayer(parent, MARK_LAYER_CLASS);
+    renderBaselineMarks(layer, activities, xScale, rowHeight, options.slipThresholds);
 }
 
 function ensureSiblingLayer(
