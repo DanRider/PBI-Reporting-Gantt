@@ -90,11 +90,10 @@ describe("renderSlipIBeams (INF-3787 — vertical I-beam at baseline-end date)",
         expect(nums[9]).toBe(nums[7]);
     });
 
-    it("vertical span matches the ORIGINAL (un-shrunken) bar zone exactly", () => {
-        // I-beam yTop = padding, yBottom = padding + barH at the row.
-        // This means with a shifted (shrunken) bar, the I-beam's top
-        // cap sits where the bar's top USED to be, filling the freed
-        // top space; bottom cap aligns with the shrunken bar's bottom.
+    it("vertical span matches the SHRUNKEN bar's rendered y range (caps on bar edges)", () => {
+        // Bullet-chart convention: the comparative tick lives ON the
+        // featured measure. I-beam yTop = bar top edge, yBottom = bar
+        // bottom edge, stem bisects the shrunken bar at baseline-end x.
         const rowHeight = 30;
         renderSlipIBeams(g, [
             mkActivity({ name: "row-1", index: 1,
@@ -104,9 +103,14 @@ describe("renderSlipIBeams (INF-3787 — vertical I-beam at baseline-end date)",
         const nums = beams()[0].getAttribute("d")!.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
         const yTop = nums[1];
         const yBottom = nums[7];
-        // barH = max(8, floor(30*0.78)) = 23; padding = (30-23)/2 = 3.5
-        const expectedTop = 1 * rowHeight + 3.5;
-        const expectedBot = expectedTop + 23;
+        // barH(30) = max(8, floor(30*0.78)) = 23
+        // shrunkBarH(30) = max(8, floor(23*0.7)) = 16
+        // padding = (30-23)/2 = 3.5
+        // shiftedYOffset = 3.5 + (23 - 16) = 10.5
+        // I-beam yTop = 1*30 + 10.5 = 40.5
+        // I-beam yBottom = 40.5 + 16 = 56.5
+        const expectedTop = 1 * 30 + 10.5;
+        const expectedBot = expectedTop + 16;
         expect(yTop).toBeCloseTo(expectedTop);
         expect(yBottom).toBeCloseTo(expectedBot);
     });

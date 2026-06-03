@@ -8,7 +8,7 @@ import {
     SlipThresholds,
     DEFAULT_SLIP_THRESHOLDS,
 } from "../../../model/activityState";
-import { barHeightFor } from "../bars";
+import { barHeightFor, shiftedBarHeightFor } from "../bars";
 
 // INF-3787 Phase 5 re-spec — vertical I-beam BISECTING the baseline-end date.
 //
@@ -49,14 +49,16 @@ export function renderSlipIBeams(
     thresholds: SlipThresholds = DEFAULT_SLIP_THRESHOLDS,
 ): Selection<SVGPathElement, IBeamDatum, SVGGElement, unknown> {
     const barH = barHeightFor(rowHeight);
+    const shrunkBarH = shiftedBarHeightFor(rowHeight);
     const padding = (rowHeight - barH) / 2;
-    // I-beam fits the ORIGINAL (un-shrunken) bar zone. When the bar
-    // shrinks to 70% anchored at the bottom, the I-beam's top cap
-    // sits at the top of the freed 30% (where the bar used to extend
-    // to) and the I-beam's bottom cap sits at the bottom of the bar.
-    // Reads as: "originally the bar's top was HERE." The shrunken bar
-    // visually "lost" its top portion; the I-beam pins where that
-    // lost top USED to be at the baseline-end x.
+    // I-beam matches the SHRUNKEN bar's vertical extent — bullet-chart
+    // convention: the comparative tick lives ON the featured measure,
+    // not floating above it. Since the I-beam only renders for slipped
+    // activities (which always render with the shrunken bar), the
+    // I-beam's y range always aligns with the shrunken bar's y range.
+    // Caps sit exactly at the bar's top + bottom edges; stem bisects
+    // the bar at the baseline-end x-position.
+    const shiftedYOffset = padding + (barH - shrunkBarH);
 
     const eligible: IBeamDatum[] = [];
     for (const a of activities) {
@@ -67,8 +69,8 @@ export function renderSlipIBeams(
         eligible.push({
             activity: a,
             x: xScale(a.baselineEnd),
-            yTop: rowTop + padding,
-            yBottom: rowTop + padding + barH,
+            yTop: rowTop + shiftedYOffset,
+            yBottom: rowTop + shiftedYOffset + shrunkBarH,
         });
     }
 
