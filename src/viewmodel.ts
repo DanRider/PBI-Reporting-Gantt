@@ -66,6 +66,11 @@ export interface Activity {
     baselineEnd?:   Date;
     actualStart?:   Date;
     actualEnd?:     Date;
+    // INF-3815 — optional operator-bound completion percentage (0-100).
+    // When present, the Activity Inspector's slide-out bar can read this
+    // instead of computing elapsed-time / total-time (gated on the
+    // activityInspector.progressBarSource Format Pane setting).
+    percentComplete?: number;
 }
 
 export interface Milestone {
@@ -181,6 +186,10 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
                 const bEnd   = dateAt(row, idx.baselineEnd);
                 const aStart = dateAt(row, idx.actualStart);
                 const aEnd   = dateAt(row, idx.actualEnd);
+                // INF-3815 — optional per-activity percentComplete numeric.
+                // First-row wins (mirrors activityNote / activityHealth).
+                const pctRaw = numAt(row, idx.percentComplete);
+                const pctClamped = pctRaw == null ? undefined : Math.max(0, Math.min(100, pctRaw));
                 activityMap.set(aName, {
                     name: aName,
                     area,
@@ -193,6 +202,7 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
                     baselineEnd:   bEnd   ?? undefined,
                     actualStart:   aStart ?? undefined,
                     actualEnd:     aEnd   ?? undefined,
+                    percentComplete: pctClamped,
                 });
             }
         }
@@ -348,6 +358,18 @@ function dateAt(row: DataViewTableRow, i: number): Date | null {
     if (v instanceof Date) return v;
     const d = new Date(String(v));
     return isNaN(d.getTime()) ? null : d;
+}
+
+// INF-3815 — read a numeric value from a column. Returns null when:
+// - role unbound (i < 0)
+// - cell empty/null
+// - value can't be parsed as a finite number
+function numAt(row: DataViewTableRow, i: number): number | null {
+    if (i < 0) return null;
+    const v = row[i];
+    if (v == null) return null;
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n) ? n : null;
 }
 
 export { indexMap };

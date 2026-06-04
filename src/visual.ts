@@ -68,7 +68,7 @@ import { mountControlsPanel, ControlsPanelHandle } from "./render/controlsPanel"
 // has collapse-gantt / reset / collapse-table buttons. Each side has a
 // minimum height so the user always sees enough of the collapsed region
 // to remember it exists (1 row of content + the splitter bar).
-import { mountSplitterBar, SplitterHandle } from "./render/splitterBar";
+import { mountSplitterBar, SplitterHandle, HiddenMode } from "./render/splitterBar";
 
 // v2.1 audit-fix — top-right hover-revealed controls to fully hide either
 // region. Self-recall — same buttons toggle hide/show.
@@ -368,6 +368,11 @@ export class Visual implements IVisual {
     // Absence from the map = "visible" (Map is sparse, only non-default).
     private milestoneTypeState: Map<string, "transparent" | "hidden"> = new Map();
     private lastOptions: VisualUpdateOptions | null = null;
+    // INF-3819 — flips true after the first update() applies any persisted
+    // splitter hiddenMode to the in-memory splitter. Subsequent updates trust
+    // the splitter's in-session state (kept in sync with metadata.objects via
+    // persistHiddenMode in the onToggleHidden handler).
+    private initialHiddenApplied = false;
     // Chrome transition state — tracks the slicer strip's visibility
     // (= pinnedCount > 0) across update() ticks so we can detect the 0↔1
     // boundary and wrap that one DOM mutation in startViewTransition().
@@ -563,6 +568,12 @@ export class Visual implements IVisual {
                                 onSelect,
                                 this.lastActivityColors,
                                 this.lastTypeColors,
+                                // INF-3815 — pass Activity Inspector format settings so
+                                // the slide-out honors showProgressBar + progressBarSource.
+                                {
+                                    showProgressBar: this.settings.activityInspector.showProgressBar.value,
+                                    progressBarSource: this.settings.activityInspector.progressBarSource.value.value as "auto" | "userField",
+                                },
                             ));
                             break;
                         case "milestone":
@@ -645,6 +656,10 @@ export class Visual implements IVisual {
             onToggleHidden: (region) => {
                 const next = this.splitter.hiddenMode() === region ? "none" : region;
                 this.splitter.setHidden(next);
+                // INF-3819 — persist the splitter choice so toggle-off survives
+                // reload + publish. Mirrors the slider/column-width persist
+                // pattern further down this file.
+                this.persistHiddenMode(next);
                 this.topRight.refresh();
             },
             onToggleFilter: () => {
@@ -700,6 +715,22 @@ export class Visual implements IVisual {
             VisualFormattingSettingsModel,
             dataView
         );
+
+        // INF-3819 — on first update, honor any previously-persisted splitter
+        // hiddenMode. The splitter's in-memory default is "none"; the persisted
+        // value lives in dataView.metadata.objects.ganttLayout.hiddenMode and
+        // is populated into settings.ganttLayout.hiddenMode by the line above.
+        // Apply ONLY on first update — subsequent updates trust the splitter's
+        // in-session state (which the persist call inside onToggleHidden keeps
+        // in sync with metadata for the next reload).
+        if (!this.initialHiddenApplied) {
+            const persistedHidden = this.settings.layout.hiddenMode.value.value as HiddenMode;
+            if (persistedHidden !== this.splitter.hiddenMode()) {
+                this.splitter.setHidden(persistedHidden);
+                this.topRight.refresh();
+            }
+            this.initialHiddenApplied = true;
+        }
 
         // v2.2 INF-3739 — drive both filter panels off the same FilterState.
         // Returns the active filter map; visual.ts uses it to narrow the vm
@@ -1461,6 +1492,8 @@ export class Visual implements IVisual {
             // removed since wrap is required for drag-to-resize to produce
             // useful sizing as the column narrows.
             wrapText: true,
+            // INF-3821 — operator-set truncation; 0 = off (preserves prior behavior).
+            labelMaxChars: this.settings.swimlanes.labelMaxChars.value,
             useAreaColor: this.settings.swimlanes.useAreaColor.value,
             labelColor: this.settings.swimlanes.labelColor.value.value,
             railAlignment: this.settings.swimlanes.railAlignment.value.value as "left" | "center" | "right",
@@ -1823,6 +1856,20 @@ export class Visual implements IVisual {
                 objectName: "masterTimeSlider",
                 selector: undefined as unknown as powerbi.data.Selector,
                 properties: { filtersGantt: scope.filtersGantt, filtersTable: scope.filtersTable },
+            }],
+        });
+    }
+
+    // INF-3819 — persist the splitter hidden-mode so the upper-right Roadmap/Table
+    // toggle survives reload + publish. Before this fix, splitter.setHidden()
+    // mutated in-memory state only; on PBI Service reload the splitter snapped
+    // back to "none" and operators who hid the Table region saw it reappear.
+    private persistHiddenMode(mode: HiddenMode): void {
+        this.host.persistProperties({
+            merge: [{
+                objectName: "ganttLayout",
+                selector: undefined as unknown as powerbi.data.Selector,
+                properties: { hiddenMode: mode },
             }],
         });
     }

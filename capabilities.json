@@ -130,7 +130,13 @@
             "name": "filterDimensions",
             "displayName": "Filter Dimensions",
             "kind": "Grouping",
-            "description": "Bind columns here to surface them as in-visual filters. Up to 8 dimensions. Each binding occupies one slot (1..8) in the Filter Slots card — set its tier (Featured tab strip / Comprehensive sidebar / Both / Hidden), selection mode, and optional label override."
+            "description": "Bind columns here to surface them as in-visual filters. Up to 8 dimensions. Each binding occupies one slot (1..8) in the Filter Slots card — set its tier (Featured tab strip / Comprehensive sidebar / Both / Hidden), selection mode, and optional label override. INF-3817: this 8-cap is enforced at controller.ts:347-348; bindings 9+ are dropped with an in-panel warning chip."
+        },
+        {
+            "name": "percentComplete",
+            "displayName": "Percent Complete",
+            "kind": "Measure",
+            "description": "INF-3815 — (Optional) Operator-supplied 0-100 percent completion per activity. When bound AND the Activity Inspector's progress-bar source is set to 'User field', the slide-out drawer's % complete bar reads this column instead of computing elapsed-time / total-time. Unbound = the auto elapsed-time behavior is preserved."
         }
     ],
     "objects": {
@@ -977,6 +983,13 @@
                         "bool": true
                     }
                 },
+                "labelMaxChars": {
+                    "displayName": "Truncate label at",
+                    "description": "INF-3821 — max characters before truncation + ellipsis on swim-lane names. 0 disables. Codepoint-safe (no truncation mid-emoji). Hover the truncated label to see the full original name via SVG <title>.",
+                    "type": {
+                        "integer": true
+                    }
+                },
                 "labelColor": {
                     "displayName": "Label color (default = swim lane color)",
                     "type": {
@@ -1391,6 +1404,27 @@
                 }
             }
         },
+        "activityInspector": {
+            "displayName": "Activity Inspector",
+            "description": "INF-3815 — controls the Activities slide-out drawer. Lets the operator hide the % complete bar entirely OR switch its source from auto elapsed-time to a user-bound `percentComplete` column.",
+            "properties": {
+                "showProgressBar": {
+                    "displayName": "Show % complete bar",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "progressBarSource": {
+                    "displayName": "% complete source",
+                    "type": {
+                        "enumeration": [
+                            { "value": "auto", "displayName": "Auto (elapsed time)" },
+                            { "value": "userField", "displayName": "User field (Percent Complete column)" }
+                        ]
+                    }
+                }
+            }
+        },
         "ganttLayout": {
             "displayName": "Roadmap Layout",
             "description": "Outer margins around the Roadmap chart region. Percentages of viewport.",
@@ -1417,6 +1451,17 @@
                     "displayName": "Right margin (%)",
                     "type": {
                         "numeric": true
+                    }
+                },
+                "hiddenMode": {
+                    "displayName": "Hidden region",
+                    "description": "Which region of the composed Roadmap+Table layout starts collapsed on report load. Mirrors the upper-right chrome Roadmap/Table toggles; INF-3819 wires those toggles through host.persistProperties so the operator's choice survives reload + publish.",
+                    "type": {
+                        "enumeration": [
+                            { "value": "none", "displayName": "Show both" },
+                            { "value": "gantt", "displayName": "Hide Roadmap" },
+                            { "value": "table", "displayName": "Hide Table" }
+                        ]
                     }
                 }
             }
@@ -1476,6 +1521,9 @@
                     },
                     "filterDimensions": {
                         "max": 8
+                    },
+                    "percentComplete": {
+                        "max": 1
                     }
                 }
             ],
@@ -1585,6 +1633,11 @@
                         {
                             "for": {
                                 "in": "activityHealth"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "percentComplete"
                             }
                         },
                         {

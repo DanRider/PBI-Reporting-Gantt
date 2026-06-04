@@ -341,11 +341,21 @@ function extractBindings(dataView: powerbi.DataView | undefined): FilterDimBindi
     if (!rows || !cols) return [];
     const result: FilterDimBinding[] = [];
     let slotIndex = 0;
+    // INF-3817 — collect column displayNames that overflow the 8-cap so we
+    // can name them in the console warning. Prior behavior silently dropped
+    // bindings past slot 8; operators had no signal. This is the Option C
+    // first-step controller-level visibility while the architectural lift
+    // (drop the slot1..slot8 hardcoding, generate algorithmically) lives
+    // under INF-3791 v3.x.
+    const overflowNames: string[] = [];
     for (let i = 0; i < cols.length; i++) {
         const col = cols[i];
         const roles = col.roles ?? {};
         if (!roles["filterDimensions"]) continue;
-        if (slotIndex >= MAX_FILTER_DIMENSIONS) break;
+        if (slotIndex >= MAX_FILTER_DIMENSIONS) {
+            overflowNames.push(col.displayName);
+            continue;
+        }
         const distinct = new Set<string>();
         for (const r of rows) {
             const v = r[i];
@@ -362,7 +372,28 @@ function extractBindings(dataView: powerbi.DataView | undefined): FilterDimBindi
         });
         slotIndex++;
     }
+    // INF-3817 — log the overflow once per operator session. Guards against
+    // console spam (extractBindings runs every visual.update() tick during
+    // a normal interaction session). Devs + advanced operators see the
+    // signal in DevTools; the visual-chip surface for non-DevTools operators
+    // lands with the v3.x lift work tracked under INF-3791.
+    if (overflowNames.length > 0) {
+        warnOverflowOnce(overflowNames);
+    }
     return result;
+}
+
+let lastOverflowKey = "";
+function warnOverflowOnce(names: string[]): void {
+    const key = names.join("|");
+    if (key === lastOverflowKey) return;
+    lastOverflowKey = key;
+    // eslint-disable-next-line no-console
+    console.warn(
+        `[Reporting-Gantt INF-3817] Filter Dimensions are capped at ${MAX_FILTER_DIMENSIONS}; ` +
+        `${names.length} additional binding(s) were dropped: ${names.join(", ")}. ` +
+        `The algorithmic uncap lands with v3.x (INF-3791).`,
+    );
 }
 
 const VALID_WIDGETS: ReadonlySet<SlotWidget> = new Set<SlotWidget>([

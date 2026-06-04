@@ -248,6 +248,12 @@ export class SwimlanesCard extends CompositeCard {
         ],
         value: { value: "right", displayName: "Right of label" },
     });
+    // INF-3821 — operator-set max characters before truncating swim-lane
+    // names + appending Unicode ellipsis. 0 disables. Replaces the
+    // source-data-shortening workaround the dogfood operator was performing.
+    labelMaxChars = new formattingSettings.NumUpDown({
+        name: "labelMaxChars", displayName: "Truncate label at (0 = off)", value: 0,
+    });
     // INF-3736 — explicit "Wrap labels" toggle removed. Swim-lane labels
     // always wrap when they don't fit (auto-wrap), since wrap is required
     // for the new drag-to-resize behavior to produce useful sizing.
@@ -275,7 +281,7 @@ export class SwimlanesCard extends CompositeCard {
 
     layoutGroup = new Group({
         name: "swLayoutGroup", displayName: "Layout",
-        slices: [this.show, this.swimLaneWidthPercent, this.railAlignment],
+        slices: [this.show, this.swimLaneWidthPercent, this.railAlignment, this.labelMaxChars],
     });
     labelGroup = new Group({
         name: "swLabelGroup", displayName: "Label styling",
@@ -290,16 +296,27 @@ export class SwimlanesCard extends CompositeCard {
     groups: Group[] = [this.layoutGroup, this.labelGroup, this.colorsGroup];
 }
 
-// ── Layout (just 4 margins) ───────────────────────────────────────────────
+// ── Layout (4 margins + persisted splitter hiddenMode INF-3819) ──────────
 class LayoutCard extends SimpleCard {
     topMarginPercent = new formattingSettings.NumUpDown({ name: "topMarginPercent", displayName: "Top margin (%)", value: 1 });
     bottomMarginPercent = new formattingSettings.NumUpDown({ name: "bottomMarginPercent", displayName: "Bottom margin (%)", value: 1 });
     leftMarginPercent = new formattingSettings.NumUpDown({ name: "leftMarginPercent", displayName: "Left margin (%)", value: 1 });
     rightMarginPercent = new formattingSettings.NumUpDown({ name: "rightMarginPercent", displayName: "Right margin (%)", value: 1 });
+    hiddenMode = new formattingSettings.ItemDropdown({
+        name: "hiddenMode",
+        displayName: "Hidden region",
+        items: [
+            { value: "none",  displayName: "Show both" },
+            { value: "gantt", displayName: "Hide Roadmap" },
+            { value: "table", displayName: "Hide Table" },
+        ],
+        value: { value: "none", displayName: "Show both" },
+    });
     name: string = "ganttLayout";
     displayName: string = "Roadmap Layout";
     slices: Array<FormattingSettingsSlice> = [
         this.topMarginPercent, this.bottomMarginPercent, this.leftMarginPercent, this.rightMarginPercent,
+        this.hiddenMode,
     ];
 }
 
@@ -650,6 +667,28 @@ class GlidePathCard extends SimpleCard {
     ];
 }
 
+// ── Activity Inspector (INF-3815) ────────────────────────────────────────
+// Controls the Activities slide-out drawer. Operator can hide the % bar
+// entirely OR switch its source from auto elapsed-time to a user-bound
+// `percentComplete` data role.
+class ActivityInspectorCard extends SimpleCard {
+    showProgressBar = new formattingSettings.ToggleSwitch({
+        name: "showProgressBar", displayName: "Show % complete bar", value: true,
+    });
+    progressBarSource = new formattingSettings.ItemDropdown({
+        name: "progressBarSource",
+        displayName: "% complete source",
+        items: [
+            { value: "auto",      displayName: "Auto (elapsed time)" },
+            { value: "userField", displayName: "User field (Percent Complete column)" },
+        ],
+        value: { value: "auto", displayName: "Auto (elapsed time)" },
+    });
+    name: string = "activityInspector";
+    displayName: string = "Activity Inspector";
+    slices: Array<FormattingSettingsSlice> = [this.showProgressBar, this.progressBarSource];
+}
+
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     title = new TitleCard();
     chartTitle = new ChartTitleCard();
@@ -658,6 +697,7 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     milestoneHealthColors = new MilestoneHealthColorsCard();
     activityHealthIcons = new ActivityHealthIconsCard();
     activityLabels = new ActivityLabelsCard();
+    activityInspector = new ActivityInspectorCard();
     swimlanes = new SwimlanesCard();
     glidePath = new GlidePathCard();
     timeAxis = new TimeAxisCard();
@@ -672,6 +712,7 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
         this.swimlanes,
         this.activityLabels,
         this.activityHealthIcons,
+        this.activityInspector,
         this.milestones,
         this.milestoneHealthColors,
         this.glidePath,

@@ -157,7 +157,21 @@ export function partitionMilestones(
     return { mostRecent, next };
 }
 
-export function activityProgressPct(activity: Activity, today: Date): number {
+// INF-3815 — progress-bar source mode. "auto" = elapsed-time / total-time
+// (the original behavior). "userField" = read the operator-bound
+// percentComplete column from Activity.percentComplete (clamped 0-100 at
+// viewmodel construction). When source = userField AND the role is not
+// bound for this row, gracefully degrades back to auto.
+export type ProgressBarSource = "auto" | "userField";
+
+export function activityProgressPct(
+    activity: Activity,
+    today: Date,
+    source: ProgressBarSource = "auto",
+): number {
+    if (source === "userField" && activity.percentComplete != null) {
+        return Math.round(activity.percentComplete);
+    }
     const span = activity.end.getTime() - activity.start.getTime();
     if (span <= 0) return today >= activity.end ? 100 : 0;
     const elapsed = today.getTime() - activity.start.getTime();

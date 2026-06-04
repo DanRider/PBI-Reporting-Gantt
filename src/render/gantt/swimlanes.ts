@@ -33,11 +33,27 @@ export interface SwimlaneOptions {
     labelColor: string;
     railAlignment: RailAlignment;
     font: FontStyle;
+    /** INF-3821 — max characters before truncating swim-lane name + appending
+     *  Unicode ellipsis. 0 disables. Codepoint-safe (operates on grapheme-ish
+     *  array splitting so emoji aren't split). When truncation fires, an SVG
+     *  `<title>` child is appended for native hover reveal of the full name. */
+    labelMaxChars?: number;
     /** v2.1 W1.5b/audit-fix — optional click handler called when the user
      *  clicks a swim-lane label text. Replaces the post-render d3 selectAll
      *  approach which was unreliable when SVG text elements' default
      *  pointer-events:visiblePainted didn't catch clicks between glyphs. */
     onSelectLane?: (laneName: string) => void;
+}
+
+// INF-3821 — codepoint-safe truncation. `Array.from(str)` splits by Unicode
+// code points (not UTF-16 code units), so a 4-byte emoji counts as 1 char and
+// won't be sliced mid-codepoint. Returns the truncated form + a flag the
+// renderer uses to decide whether to attach a hover-tooltip `<title>`.
+function truncateLabel(s: string, max: number): { displayed: string; full: string; didTruncate: boolean } {
+    if (max <= 0) return { displayed: s, full: s, didTruncate: false };
+    const chars = Array.from(s);
+    if (chars.length <= max) return { displayed: s, full: s, didTruncate: false };
+    return { displayed: chars.slice(0, max).join("") + "\u2026", full: s, didTruncate: true };
 }
 
 export function renderSwimlanes(
@@ -86,23 +102,56 @@ export function renderSwimlanes(
         labelBandWidth = (railLineX - 8) - LABEL_BAND_LEFT_PADDING;
     }
 
-    for (const group of areaGroups) {
+    // INF-3820 — per-render salt so per-lane <clipPath> IDs don't collide
+    // when multiple visual instances render into the same document. d3 .remove()
+    // at the top of this function clears prior defs so no leak across re-renders.
+    // Uses crypto.getRandomValues per powerbi-visuals/insecure-random eslint rule;
+    // the salt isn't security-sensitive (just an SVG id) but the rule applies
+    // visual-wide and crypto.getRandomValues is uniformly available in browsers.
+    const renderId = (() => {
+        const buf = new Uint32Array(1);
+        window.crypto.getRandomValues(buf);
+        return buf[0].toString(36);
+    })();
+    const defs = g.append("defs");
+
+    const labelMaxChars = opts.labelMaxChars ?? 0;
+
+    for (let laneIdx = 0; laneIdx < areaGroups.length; laneIdx++) {
+        const group = areaGroups[laneIdx];
         const railColor = areaColor(group.area, colors);
         const labelFill = opts.useAreaColor ? railColor : opts.labelColor;
         const yTop = group.startRowIndex * rowHeight + rowHeight / 2;
         const yBottom = group.endRowIndex * rowHeight + rowHeight / 2;
         const yCenter = (yTop + yBottom) / 2;
 
+        // INF-3821 — truncate first, THEN wrap. The wrap decision (and width
+        // measurement) operates on the displayed text so a labelMaxChars=15
+        // limit doesn't get bypassed by a multi-word original name wrapping
+        // word-by-word past the cap.
+        const t = truncateLabel(group.area, labelMaxChars);
+
         // INF-3736 — auto-wrap: split into one-word-per-line ONLY when the
         // full text exceeds the available band. Previously always split when
         // wrapText was true, so multi-word labels could never un-wrap as the
         // column widened. With the new drag-to-resize handle, that broke the
         // "drag wider to fit" UX. Now width-driven.
-        const lines = opts.wrapText && measureWidth(group.area, opts.font) > labelBandWidth
-            ? group.area.split(/\s+/).filter(w => w.length > 0)
-            : [group.area];
+        const lines = opts.wrapText && measureWidth(t.displayed, opts.font) > labelBandWidth
+            ? t.displayed.split(/\s+/).filter(w => w.length > 0)
+            : [t.displayed];
         const totalH = lines.length * lineHeight;
         const startY = yCenter - totalH / 2 + lineHeight / 2;
+
+        // INF-3820 — per-lane clipPath bounded by yTop..yBottom. Multi-line
+        // labels in narrow lanes used to bleed into neighboring lanes; the
+        // operator workaround was shortening source data to <=15 chars.
+        // Now the labels get clipped at the lane boundary.
+        const clipId = `sw-clip-${renderId}-${laneIdx}`;
+        defs.append("clipPath").attr("id", clipId)
+            .append("rect")
+            .attr("x", 0).attr("y", yTop)
+            .attr("width", railWidth)
+            .attr("height", yBottom - yTop);
 
         // For "center" alignment, BREAK the rail line above + below the text block
         // (with a small padding) — much cleaner than slashing through the label.
@@ -148,13 +197,18 @@ export function renderSwimlanes(
             .attr("r", CIRCLE_RADIUS)
             .attr("fill", railColor);
 
+        // INF-3820 — label group is clipped to lane bounds via the per-lane
+        // clipPath above. Rails + cap circles are appended to the unclipped
+        // parent g (they're positioned at yTop/yBottom and could otherwise
+        // get cropped at the boundary).
+        const labelG = g.append("g").attr("clip-path", `url(#${clipId})`);
         for (let i = 0; i < lines.length; i++) {
             // v2.1 W1.5b/audit-fix — attach click DIRECTLY at element creation
             // (callback pattern, not d3-selectAll-after-render). Add
             // pointer-events:bounding-box so the click hits anywhere in the
             // text's bounding rect, not just on painted glyph pixels (the
             // default visiblePainted was unreliable for thin text).
-            const textSel = g.append("text")
+            const textSel = labelG.append("text")
                 .attr("class", "swimlane-label")
                 .attr("data-area", group.area)
                 .attr("x", textX)
@@ -166,6 +220,12 @@ export function renderSwimlanes(
                 .style("pointer-events", "bounding-box")
                 .text(lines[i]);
             applyFont(textSel, opts.font);
+            // INF-3821 — when truncation fires, attach SVG <title> for hover
+            // tooltip revealing the full original name. The browser renders
+            // <title> as a native tooltip on hover; no JS required.
+            if (t.didTruncate) {
+                textSel.append("title").text(t.full);
+            }
             if (opts.onSelectLane) {
                 textSel.on("click", (e: MouseEvent) => {
                     e.stopPropagation();

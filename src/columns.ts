@@ -39,6 +39,12 @@ export const ROLE = {
     // emits a hollow outline marker at the baseline x-position plus a
     // thin connector line to the current solid marker.
     milestoneBaselineDate: "milestoneBaselineDate",
+    // INF-3815 — optional per-activity completion percentage (0-100). When
+    // bound AND activityInspector.progressBarSource = "userField", the
+    // Activities slide-out reads the row's value instead of computing
+    // elapsed-time / total-time. Unbound = current behavior (time-elapsed
+    // auto-calc). Clamped at the render boundary.
+    percentComplete:       "percentComplete",
 } as const;
 
 export type RoleName = typeof ROLE[keyof typeof ROLE];

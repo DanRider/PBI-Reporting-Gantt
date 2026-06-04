@@ -15,7 +15,16 @@ import {
     fmtDate, fmtRelative, makeH3, makeP,
     activityProgressPct, INSPECTOR_FONT,
     makeBreadcrumb, OnSelect, makeColorBubble,
+    type ProgressBarSource,
 } from "./shared";
+
+// INF-3815 — operator-controlled slide-out progress bar behavior. Both
+// fields default to current behavior when the caller doesn't supply opts
+// (showProgressBar=true, progressBarSource="auto").
+export interface ActivityInspectorRenderOptions {
+    showProgressBar?: boolean;
+    progressBarSource?: ProgressBarSource;
+}
 
 // v2.1 audit-fix #20 — time slicer REMOVED from activity Inspector
 // (orchestrator: "i ONLY want it at the swim lane level"). The gallery
@@ -27,6 +36,7 @@ export function renderActivityDetail(
     onSelect?: OnSelect,
     activityColors?: Record<string, string>,
     typeColors?: Record<string, string>,
+    inspectorOpts?: ActivityInspectorRenderOptions,
 ): HTMLElement {
     const root = document.createElement("div");
     root.className = "inspector-activity";
@@ -62,21 +72,35 @@ export function renderActivityDetail(
         { muted: true, small: true },
     ));
 
+    // INF-3815 — operator can hide the progress bar entirely OR switch its
+    // source from auto elapsed-time to the user-bound percentComplete column.
+    // Defaults preserve the v2.2.0.3 behavior when inspectorOpts is omitted.
+    // `today` is hoisted out of the conditional because later code below the
+    // progress-bar block (relative-date labels on milestone tiles) reads it.
+    const showProgressBar = inspectorOpts?.showProgressBar ?? true;
+    const progressBarSource = inspectorOpts?.progressBarSource ?? "auto";
     const today = new Date();
-    const pct = activityProgressPct(activity, today);
+    if (showProgressBar) {
+        const pct = activityProgressPct(activity, today, progressBarSource);
 
-    // Progress bar — visual indicator above the numeric percentage.
-    const barOuter = document.createElement("div");
-    barOuter.style.cssText = "background:#eee;height:6px;border-radius:3px;overflow:hidden;margin:8px 0 4px 0;";
-    const barInner = document.createElement("div");
-    barInner.style.cssText = `background:#4a90e2;height:100%;width:${pct}%;transition:width 200ms ease;`;
-    barOuter.appendChild(barInner);
-    root.appendChild(barOuter);
+        // Progress bar — visual indicator above the numeric percentage.
+        const barOuter = document.createElement("div");
+        barOuter.style.cssText = "background:#eee;height:6px;border-radius:3px;overflow:hidden;margin:8px 0 4px 0;";
+        const barInner = document.createElement("div");
+        barInner.style.cssText = `background:#4a90e2;height:100%;width:${pct}%;transition:width 200ms ease;`;
+        barOuter.appendChild(barInner);
+        root.appendChild(barOuter);
 
-    const progressLabel = document.createElement("div");
-    progressLabel.style.cssText = "font-size:11px;color:#666;margin-bottom:12px;";
-    progressLabel.textContent = `Progress: ${pct}% (today: ${fmtDate(today)})`;
-    root.appendChild(progressLabel);
+        // Label shows the source — "user field" reveal helps operators sanity
+        // check that their bound column is reaching the slide-out.
+        const sourceTag = progressBarSource === "userField" && activity.percentComplete != null
+            ? "user field"
+            : "elapsed time";
+        const progressLabel = document.createElement("div");
+        progressLabel.style.cssText = "font-size:11px;color:#666;margin-bottom:12px;";
+        progressLabel.textContent = `Progress: ${pct}% (${sourceTag}; today: ${fmtDate(today)})`;
+        root.appendChild(progressLabel);
+    }
 
     if (activity.note) {
         const noteP = makeP(activity.note);

@@ -229,8 +229,12 @@ export function mountTopRightControls(
     container.addEventListener("pointerdown", (e) => { e.stopPropagation(); });
 
     const filterBtn = buildFilterButton();
-    const ganttToggle = buildToggle("Roadmap", "Toggle Roadmap visibility");
-    const tableToggle = buildToggle("Table", "Toggle Table visibility");
+    // INF-3816 — operator-facing label clarification. The prior labels
+    // ("Roadmap" / "Table") were nouns; operators couldn't tell the toggle
+    // controlled show/hide vs filtering/sizing. Action-verb prefix + a
+    // descriptive title attribute resolve the confusion. Behavior unchanged.
+    const ganttToggle = buildToggle("Show Roadmap", "Hide or show the Roadmap chart region. Off = chart collapses to 0 height; the Table region expands to fill. Setting persists across save + publish (INF-3819).");
+    const tableToggle = buildToggle("Show Table", "Hide or show the Table region below the chart. Off = table collapses to 0 height; the Roadmap chart expands to fill. Setting persists across save + publish (INF-3819).");
 
     function applyToggleState(toggle: Toggle, hidden: boolean): void {
         toggle.track.style.background = hidden ? TRACK_BG_OFF : TRACK_BG_ON;
