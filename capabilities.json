@@ -137,6 +137,12 @@
             "displayName": "Percent Complete",
             "kind": "Measure",
             "description": "INF-3815 — (Optional) Operator-supplied 0-100 percent completion per activity. When bound AND the Activity Inspector's progress-bar source is set to 'User field', the slide-out drawer's % complete bar reads this column instead of computing elapsed-time / total-time. Unbound = the auto elapsed-time behavior is preserved."
+        },
+        {
+            "name": "areaColor",
+            "displayName": "Swim Lane Color",
+            "kind": "Grouping",
+            "description": "INF-3823 — (Optional) Hex color string per row (format '#RRGGBB'). When bound, overrides the Format Pane slot colors and the INF-3782 hash-wrap fallback for the swim-lane's bars/glyphs. First non-null hex per area wins. Invalid hex values silently drop and fall through to the existing slot/hash resolution. Use this to drive brand or category colors from a dimension column (or a DAX CASE expression) — scales to any cardinality, no Format Pane edits required."
         }
     ],
     "objects": {
@@ -1524,6 +1530,9 @@
                     },
                     "percentComplete": {
                         "max": 1
+                    },
+                    "areaColor": {
+                        "max": 1
                     }
                 }
             ],
@@ -1638,6 +1647,11 @@
                         {
                             "for": {
                                 "in": "percentComplete"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "areaColor"
                             }
                         },
                         {

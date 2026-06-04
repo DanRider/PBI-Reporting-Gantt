@@ -156,24 +156,6 @@
             }
           ]
         },
-        "area": {
-          "projections": [
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Activities"
-                    }
-                  },
-                  "Property": "Area"
-                }
-              },
-              "queryRef": "Activities.Area",
-              "nativeQueryRef": "Area"
-            }
-          ]
-        },
         "activityNote": {
           "projections": [
             {
@@ -313,6 +295,96 @@
               },
               "queryRef": "Activities.Activity",
               "nativeQueryRef": "Activity"
+            }
+          ]
+        },
+        "baselineStart": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Activities"
+                    }
+                  },
+                  "Property": "Start Date"
+                }
+              },
+              "queryRef": "Activities.Start Date",
+              "nativeQueryRef": "Start Date"
+            }
+          ]
+        },
+        "baselineEnd": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Activities"
+                    }
+                  },
+                  "Property": "Baseline End"
+                }
+              },
+              "queryRef": "Activities.Baseline End",
+              "nativeQueryRef": "Baseline End"
+            }
+          ]
+        },
+        "actualStart": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Activities"
+                    }
+                  },
+                  "Property": "Start Date"
+                }
+              },
+              "queryRef": "Activities.Start Date",
+              "nativeQueryRef": "Start Date"
+            }
+          ]
+        },
+        "actualEnd": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Activities"
+                    }
+                  },
+                  "Property": "Actual End"
+                }
+              },
+              "queryRef": "Activities.Actual End",
+              "nativeQueryRef": "Actual End"
+            }
+          ]
+        },
+        "area": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Activities"
+                    }
+                  },
+                  "Property": "Area"
+                }
+              },
+              "queryRef": "Activities.Area",
+              "nativeQueryRef": "Area"
             }
           ]
         }
@@ -686,20 +758,6 @@
         "type": "Categorical"
       },
       {
-        "name": "962f432092831489eec6",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "Activities"
-              }
-            },
-            "Property": "Area"
-          }
-        },
-        "type": "Categorical"
-      },
-      {
         "name": "f8e2a9510d5c4b1e9e7a",
         "field": {
           "Column": {
@@ -723,6 +781,90 @@
               }
             },
             "Property": "Milestone Note"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "3abb0abf660c4d73ad9c",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Activities"
+              }
+            },
+            "Property": "Activity Health"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "9a1613cb345cedb57876",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Activities"
+              }
+            },
+            "Property": "Phase"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "037859e37a898bc37195",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Activities"
+              }
+            },
+            "Property": "Priority"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "97867a4b44be6cc87339",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Activities"
+              }
+            },
+            "Property": "Baseline End"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "dd226b3a93637e9e0ac3",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Activities"
+              }
+            },
+            "Property": "Actual End"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "2c26ac63c4a608196cc1",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Activities"
+              }
+            },
+            "Property": "Area"
           }
         },
         "type": "Categorical"

@@ -71,6 +71,8 @@ export interface Activity {
     // instead of computing elapsed-time / total-time (gated on the
     // activityInspector.progressBarSource Format Pane setting).
     percentComplete?: number;
+    // INF-3823 — optional per-row hex from `areaColor` role; invalid drops to undefined.
+    areaColor?: string;
 }
 
 export interface Milestone {
@@ -112,6 +114,8 @@ export interface RoadmapViewModel {
     areaBindings: AreaBinding[];           // first 8 areas bound to slots 0..7 (cap-8)
     healthBindings: HealthBinding[];       // v2.2 INF-3738 — first 5 health values bound to slots 0..4
     dateExtent: [Date, Date];
+    // INF-3823 — area→data-bound hex; first-row-wins; {} when role unbound.
+    perAreaColor: Record<string, string>;
 }
 
 export const EMPTY_VIEWMODEL: RoadmapViewModel = {
@@ -125,6 +129,7 @@ export const EMPTY_VIEWMODEL: RoadmapViewModel = {
     areaBindings: [],
     healthBindings: [],
     dateExtent: [new Date(), new Date()],
+    perAreaColor: {},
 };
 
 function computeAreaGroups(activities: Activity[]): AreaGroup[] {
@@ -156,10 +161,19 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
     // v2.2 INF-3738 — collect distinct activity-health values for slot binding.
     const healthFirstSeen: string[] = [];
     const healthSeen = new Set<string>();
+    // INF-3823 — first-row-wins per-area hex; invalid drops via isHexLike.
+    const perAreaColor: Record<string, string> = {};
     const milestonesRaw: Milestone[] = [];
     let milestoneCounter = 0;
 
     for (const row of table.rows) {
+        // INF-3823 — per-area first-row-wins hex rollup (runs every row).
+        const rowArea = strAt(row, idx.area);
+        if (rowArea && perAreaColor[rowArea] === undefined) {
+            const rowColor = strAt(row, idx.areaColor);
+            if (isHexLike(rowColor)) perAreaColor[rowArea] = rowColor;
+        }
+
         const aName = strAt(row, idx.activity);
         if (aName && !activityMap.has(aName)) {
             const start = dateAt(row, idx.startDate);
@@ -190,6 +204,9 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
                 // First-row wins (mirrors activityNote / activityHealth).
                 const pctRaw = numAt(row, idx.percentComplete);
                 const pctClamped = pctRaw == null ? undefined : Math.max(0, Math.min(100, pctRaw));
+                // INF-3823 — per-Activity hex (per-area rollup runs above).
+                const colorRaw = strAt(row, idx.areaColor);
+                const colorValid = isHexLike(colorRaw) ? colorRaw : undefined;
                 activityMap.set(aName, {
                     name: aName,
                     area,
@@ -203,6 +220,7 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
                     actualStart:   aStart ?? undefined,
                     actualEnd:     aEnd   ?? undefined,
                     percentComplete: pctClamped,
+                    areaColor:     colorValid,
                 });
             }
         }
@@ -314,6 +332,7 @@ export function convertDataView(dataView: DataView | undefined): RoadmapViewMode
         areaBindings,
         healthBindings,
         dateExtent,
+        perAreaColor,
     };
 }
 
@@ -370,6 +389,11 @@ function numAt(row: DataViewTableRow, i: number): number | null {
     if (v == null) return null;
     const n = typeof v === "number" ? v : Number(v);
     return Number.isFinite(n) ? n : null;
+}
+
+// INF-3823 — local hex gate (mirrors colors.ts:isValidHex; circular-import avoidance).
+function isHexLike(s: string | null | undefined): s is string {
+    return typeof s === "string" && /^#[0-9A-Fa-f]{6}$/.test(s);
 }
 
 export { indexMap };

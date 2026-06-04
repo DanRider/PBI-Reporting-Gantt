@@ -20,6 +20,12 @@ export interface ColorContext {
      *  "lane") to give each activity within the lane a distinct palette
      *  color so the user can visually correlate bar ↔ label ↔ table row. */
     activityColors?: Record<string, string>;
+    /** INF-3823 — when set, data-bound per-area hex color from the
+     *  optional `areaColor` data role. Takes precedence over both the
+     *  Format Pane slot binding (areaColors) and the INF-3782 hash-wrap
+     *  fallback inside areaColor(). Keys are area names; values are
+     *  validated hex strings (`/^#[0-9A-Fa-f]{6}$/`). */
+    perAreaColor?: Record<string, string>;
 }
 
 const FALLBACK_COLOR = "#888888";
@@ -89,11 +95,29 @@ export function buildColorContext(
     areaColors: Record<string, string>,
     milestoneConfig: Record<string, MilestoneTypeConfig>,
     activityColors?: Record<string, string>,
+    perAreaColor?: Record<string, string>,
 ): ColorContext {
-    return { areaColors, milestoneConfig, activityColors };
+    return { areaColors, milestoneConfig, activityColors, perAreaColor };
+}
+
+/** INF-3823 — validates a 6-digit hex color string (`#RRGGBB`, case-insensitive).
+ *  Used as the gate at the viewmodel boundary and at the resolution boundary
+ *  in areaColor() so malformed values silently drop and fall through to the
+ *  existing slot/hash resolution rather than rendering a broken color. */
+export function isValidHex(s: string | undefined | null): s is string {
+    return typeof s === "string" && /^#[0-9A-Fa-f]{6}$/.test(s);
 }
 
 export function areaColor(area: string, ctx: ColorContext): string {
+    // INF-3823 — data-bound override (NEW). When the operator binds the
+    // optional `areaColor` data role AND the row's hex is well-formed, it
+    // takes precedence over BOTH the Format Pane slot color AND the
+    // INF-3782 hash-wrap fallback. Colors travel with the dimensional data
+    // model; scales to any cardinality, no Format Pane edits required.
+    if (ctx.perAreaColor) {
+        const bound = ctx.perAreaColor[area];
+        if (isValidHex(bound)) return bound;
+    }
     const exact = ctx.areaColors[area];
     if (exact !== undefined) return exact;
     // INF-3782 — areaBindings caps at 8 swim-lane slots (slot1Color..slot8Color

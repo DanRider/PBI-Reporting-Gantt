@@ -116,64 +116,86 @@ table Activities
 		mode: import
 		source =
 				let
-				    /*
-				     * DEMO DATA — embedded inline so the visual renders on any clone
-				     * with zero setup (no file path, no internet dependency).
-				     *
-				     * To switch this query to an Excel workbook (so you can edit the
-				     * data in Excel instead of editing M code here), comment out the
-				     * `Source = #table(...)` step below and uncomment the EXCEL SOURCE
-				     * block. Update YOUR_FILE_PATH to your local xlsx.
-				     */
-				    Source = #table(
-				        type table [Activity = text, Area = text, Start Date = date, End Date = date, SortOrder = number, Activity Note = nullable text, Phase = text, Priority = text, Activity Health = text],
-				        {
-				            {"Line 3 Automation", "Production", #date(2026, 1, 1), #date(2026, 9, 30), 0, null, "Build", "High", "On Track"},
-				            {"Plant 2 Expansion", "Production", #date(2025, 10, 1), #date(2026, 12, 31), 1, "Permits cleared; foundation contractor confirmed for May start.", "Build", "Critical", "At Risk"},
-				            {"MES Pipeline Refresh", "Production", #date(2026, 1, 1), #date(2027, 3, 31), 2, null, "Build", "Critical", "On Track"},
-				            {"Mobile Operator Console", "Production", #date(2026, 4, 1), #date(2027, 6, 30), 3, "Pilot floor adoption running ahead of target — 38 of 40 operators trained.", "Launch", "High", "On Track"},
-				            {"Vision Inspection Rollout", "Production", #date(2026, 7, 1), #date(2027, 3, 31), 4, null, "Launch", "Medium", "At Risk"},
-				            {"Sensor Telemetry Rollout", "Production", #date(2025, 10, 1), #date(2026, 9, 30), 5, null, "Build", "High", "Complete"},
-				            {"Edge Compute Buildout", "Production", #date(2026, 4, 1), #date(2026, 12, 31), 6, null, "Build", "Medium", "Off Track"},
-				            {"Robotics Cell Network", "Production", #date(2026, 7, 1), #date(2027, 12, 31), 7, "Vendor SLA renegotiation may push final cell migration into Q1 2028.", "Launch", "High", "At Risk"},
-				            {"Plant Historian Migration", "Production", #date(2026, 1, 1), #date(2027, 9, 30), 8, null, "Build", "Medium", "On Track"},
-				            {"Compact Series Redesign", "Product Development", #date(2026, 1, 1), #date(2026, 6, 30), 9, null, "Build", "High", "Complete"},
-				            {"Heavy-Duty Variant Launch", "Product Development", #date(2026, 4, 1), #date(2026, 9, 30), 10, null, "Build", "Critical", "On Track"},
-				            {"Sustainable Materials Program", "Product Development", #date(2026, 4, 1), #date(2027, 3, 31), 11, "Material spec frozen after 3 rounds with engineering and procurement.", "Build", "Medium", "On Track"},
-				            {"CAD System Migration", "Product Development", #date(2026, 10, 1), #date(2027, 6, 30), 12, null, "Launch", "Medium", "At Risk"},
-				            {"ISO 9001 Recertification", "Supply Chain", #date(2026, 1, 1), #date(2026, 12, 31), 13, "External auditor confirmed for Aug 1–4; evidence binders 80% ready.", "Build", "Critical", "On Track"},
-				            {"Supplier Consolidation", "Supply Chain", #date(2026, 4, 1), #date(2027, 3, 31), 14, null, "Build", "High", "At Risk"},
-				            {"Warehouse Move", "Supply Chain", #date(2026, 7, 1), #date(2027, 3, 31), 15, null, "Launch", "Medium", "Blocked"},
-				            {"Fleet Refresh", "Supply Chain", #date(2026, 10, 1), #date(2027, 6, 30), 16, null, "Launch", "Low", "On Track"},
-				            {"Procurement Workflow", "Supply Chain", #date(2026, 1, 1), #date(2026, 12, 31), 17, "Pilot site (Plant 1) live and stable; org-wide rollout cleared for Nov.", "Build", "Medium", "On Track"},
-				            {"Safety Training Refresh", "Supply Chain", #date(2025, 10, 1), #date(2026, 6, 30), 18, null, "Discovery", "Low", "Complete"},
-				            {"Business Continuity Program", "Supply Chain", #date(2026, 4, 1), #date(2027, 3, 31), 19, "Tabletop exercise revealed gap in supplier-escalation path; remediation in v1.1.", "Build", "High", "At Risk"},
-				            {"Plant Incident Response", "Supply Chain", #date(2026, 7, 1), #date(2027, 3, 31), 20, null, "Launch", "High", "On Track"},
-				            {"OT Network Segmentation", "Supply Chain", #date(2026, 1, 1), #date(2027, 12, 31), 21, "Pentest scope expanded to include the new robotics cell network.", "Build", "Critical", "Off Track"},
-				            {"3PL Renegotiation", "Supply Chain", #date(2026, 10, 1), #date(2027, 6, 30), 22, null, "Launch", "Medium", "On Track"},
-				            {"Inventory Audit Cycle", "Supply Chain", #date(2025, 10, 1), #date(2026, 3, 31), 23, null, "Discovery", "Low", "Complete"}
-				        }
-				    )
+								    /*
+								     * DEMO DATA — embedded inline so the visual renders on any clone
+								     * with zero setup (no file path, no internet dependency).
+								     *
+								     * To switch this query to an Excel workbook (so you can edit the
+								     * data in Excel instead of editing M code here), comment out the
+								     * `Source = #table(...)` step below and uncomment the EXCEL SOURCE
+								     * block. Update YOUR_FILE_PATH to your local xlsx.
+								     */
+								    Source = #table(
+								        type table [Activity = text, Area = text, Start Date = date, End Date = date, SortOrder = number, Activity Note = nullable text, Phase = text, Priority = text, Activity Health = text],
+								        {
+								            {"Line 3 Automation", "Production", #date(2026, 1, 1), #date(2026, 9, 30), 0, null, "Build", "High", "On Track"},
+								            {"Plant 2 Expansion", "Production", #date(2025, 10, 1), #date(2026, 12, 31), 1, "Permits cleared; foundation contractor confirmed for May start.", "Build", "Critical", "At Risk"},
+								            {"MES Pipeline Refresh", "Production", #date(2026, 1, 1), #date(2027, 3, 31), 2, null, "Build", "Critical", "On Track"},
+								            {"Mobile Operator Console", "Production", #date(2026, 4, 1), #date(2027, 6, 30), 3, "Pilot floor adoption running ahead of target — 38 of 40 operators trained.", "Launch", "High", "On Track"},
+								            {"Vision Inspection Rollout", "Production", #date(2026, 7, 1), #date(2027, 3, 31), 4, null, "Launch", "Medium", "At Risk"},
+								            {"Sensor Telemetry Rollout", "Production", #date(2025, 10, 1), #date(2026, 9, 30), 5, null, "Build", "High", "Complete"},
+								            {"Edge Compute Buildout", "Production", #date(2026, 4, 1), #date(2026, 12, 31), 6, null, "Build", "Medium", "Off Track"},
+								            {"Robotics Cell Network", "Production", #date(2026, 7, 1), #date(2027, 12, 31), 7, "Vendor SLA renegotiation may push final cell migration into Q1 2028.", "Launch", "High", "At Risk"},
+								            {"Plant Historian Migration", "Production", #date(2026, 1, 1), #date(2027, 9, 30), 8, null, "Build", "Medium", "On Track"},
+								            {"Compact Series Redesign", "Product Development", #date(2026, 1, 1), #date(2026, 6, 30), 9, null, "Build", "High", "Complete"},
+								            {"Heavy-Duty Variant Launch", "Product Development", #date(2026, 4, 1), #date(2026, 9, 30), 10, null, "Build", "Critical", "On Track"},
+								            {"Sustainable Materials Program", "Product Development", #date(2026, 4, 1), #date(2027, 3, 31), 11, "Material spec frozen after 3 rounds with engineering and procurement.", "Build", "Medium", "On Track"},
+								            {"CAD System Migration", "Product Development", #date(2026, 10, 1), #date(2027, 6, 30), 12, null, "Launch", "Medium", "At Risk"},
+								            {"ISO 9001 Recertification", "Supply Chain", #date(2026, 1, 1), #date(2026, 12, 31), 13, "External auditor confirmed for Aug 1–4; evidence binders 80% ready.", "Build", "Critical", "On Track"},
+								            {"Supplier Consolidation", "Supply Chain", #date(2026, 4, 1), #date(2027, 3, 31), 14, null, "Build", "High", "At Risk"},
+								            {"Warehouse Move", "Supply Chain", #date(2026, 7, 1), #date(2027, 3, 31), 15, null, "Launch", "Medium", "Blocked"},
+								            {"Fleet Refresh", "Supply Chain", #date(2026, 10, 1), #date(2027, 6, 30), 16, null, "Launch", "Low", "On Track"},
+								            {"Procurement Workflow", "Supply Chain", #date(2026, 1, 1), #date(2026, 12, 31), 17, "Pilot site (Plant 1) live and stable; org-wide rollout cleared for Nov.", "Build", "Medium", "On Track"},
+								            {"Safety Training Refresh", "Supply Chain", #date(2025, 10, 1), #date(2026, 6, 30), 18, null, "Discovery", "Low", "Complete"},
+								            {"Business Continuity Program", "Supply Chain", #date(2026, 4, 1), #date(2027, 3, 31), 19, "Tabletop exercise revealed gap in supplier-escalation path; remediation in v1.1.", "Build", "High", "At Risk"},
+								            {"Plant Incident Response", "Supply Chain", #date(2026, 7, 1), #date(2027, 3, 31), 20, null, "Launch", "High", "On Track"},
+								            {"OT Network Segmentation", "Supply Chain", #date(2026, 1, 1), #date(2027, 12, 31), 21, "Pentest scope expanded to include the new robotics cell network.", "Build", "Critical", "Off Track"},
+								            {"3PL Renegotiation", "Supply Chain", #date(2026, 10, 1), #date(2027, 6, 30), 22, null, "Launch", "Medium", "On Track"},
+								            {"Inventory Audit Cycle", "Supply Chain", #date(2025, 10, 1), #date(2026, 3, 31), 23, null, "Discovery", "Low", "Complete"},
+				                            {"Engineering Initiative", "Engineering", #date(2026, 1, 1), #date(2026, 6, 28), 24, "INF-3818 stress fixture lane 25 (extension).", "Discovery", "Low", "On Track"},
+				                            {"Operations Initiative", "Operations", #date(2026, 2, 1), #date(2026, 7, 28), 25, "INF-3818 stress fixture lane 26 (extension).", "Build", "Medium", "At Risk"},
+				                            {"Finance Initiative", "Finance", #date(2026, 3, 1), #date(2026, 8, 28), 26, "INF-3818 stress fixture lane 27 (extension).", "Launch", "High", "Off Track"},
+				                            {"Marketing Initiative", "Marketing", #date(2026, 4, 1), #date(2026, 9, 28), 27, "INF-3818 stress fixture lane 28 (extension).", "Discovery", "Critical", "Complete"},
+				                            {"Sales Initiative", "Sales", #date(2026, 5, 1), #date(2026, 10, 28), 28, "INF-3818 stress fixture lane 29 (extension).", "Build", "Low", "Blocked"},
+				                            {"Quality Assurance Initiative", "Quality Assurance", #date(2026, 6, 1), #date(2026, 11, 28), 29, "INF-3818 stress fixture lane 30 (extension).", "Launch", "Medium", "On Track"},
+				                            {"Logistics Initiative", "Logistics", #date(2026, 7, 1), #date(2026, 12, 28), 30, "INF-3818 stress fixture lane 31 (extension).", "Discovery", "High", "At Risk"},
+				                            {"Customer Success Initiative", "Customer Success", #date(2026, 8, 1), #date(2027, 1, 28), 31, "INF-3818 stress fixture lane 32 (extension).", "Build", "Critical", "Off Track"},
+				                            {"HR Initiative", "HR", #date(2026, 9, 1), #date(2027, 2, 28), 32, "INF-3818 stress fixture lane 33 (extension).", "Launch", "Low", "Complete"},
+				                            {"Procurement Initiative", "Procurement", #date(2026, 10, 1), #date(2027, 3, 28), 33, "INF-3818 stress fixture lane 34 (extension).", "Discovery", "Medium", "Blocked"},
+				                            {"IT Infrastructure Initiative", "IT Infrastructure", #date(2026, 11, 1), #date(2027, 4, 28), 34, "INF-3818 stress fixture lane 35 (extension).", "Build", "High", "On Track"},
+				                            {"Compliance Initiative", "Compliance", #date(2026, 12, 1), #date(2027, 5, 28), 35, "INF-3818 stress fixture lane 36 (extension).", "Launch", "Critical", "At Risk"},
+				                            {"Research Initiative", "Research", #date(2027, 1, 1), #date(2027, 6, 28), 36, "INF-3818 stress fixture lane 37 (extension).", "Discovery", "Low", "Off Track"},
+				                            {"Field Services Initiative", "Field Services", #date(2027, 2, 1), #date(2027, 7, 28), 37, "INF-3818 stress fixture lane 38 (extension).", "Build", "Medium", "Complete"},
+				                            {"Training Initiative", "Training", #date(2027, 3, 1), #date(2027, 8, 28), 38, "INF-3818 stress fixture lane 39 (extension).", "Launch", "High", "Blocked"},
+				                            {"Facilities Initiative", "Facilities", #date(2027, 4, 1), #date(2027, 9, 28), 39, "INF-3818 stress fixture lane 40 (extension).", "Discovery", "Critical", "On Track"},
+				                            {"Security Initiative", "Security", #date(2027, 5, 1), #date(2027, 10, 28), 40, "INF-3818 stress fixture lane 41 (extension).", "Build", "Low", "At Risk"},
+				                            {"Legal Initiative", "Legal", #date(2027, 6, 1), #date(2027, 11, 28), 41, "INF-3818 stress fixture lane 42 (extension).", "Launch", "Medium", "Off Track"},
+				                            {"Risk Management Initiative", "Risk Management", #date(2027, 7, 1), #date(2027, 12, 28), 42, "INF-3818 stress fixture lane 43 (extension).", "Discovery", "High", "Complete"},
+				                            {"Analytics Initiative", "Analytics", #date(2027, 8, 1), #date(2028, 1, 28), 43, "INF-3818 stress fixture lane 44 (extension).", "Build", "Critical", "Blocked"},
+				                            {"Strategy Initiative", "Strategy", #date(2027, 9, 1), #date(2028, 2, 28), 44, "INF-3818 stress fixture lane 45 (extension).", "Launch", "Low", "On Track"},
+				                            {"Innovation Initiative", "Innovation", #date(2027, 10, 1), #date(2028, 3, 28), 45, "INF-3818 stress fixture lane 46 (extension).", "Discovery", "Medium", "At Risk"}
+								        }
+								    )
 				
-				    /*
-				     * EXCEL SOURCE — uncomment to load from your own xlsx instead.
-				     * Both Activities and Milestones sheets must follow the column
-				     * schema documented in README.md.
-				     *
-				     *     RawSource = Excel.Workbook(File.Contents("YOUR_FILE_PATH\\Demo-Roadmap-Source.xlsx"), null, true),
-				     *     Sheet = RawSource{[Item="Activities",Kind="Sheet"]}[Data],
-				     *     PromotedHeaders = Table.PromoteHeaders(Sheet, [PromoteAllScalars=true]),
-				     *     Source = Table.TransformColumnTypes(PromotedHeaders,{
-				     *         {"Activity", type text},
-				     *         {"Area", type text},
-				     *         {"Start Date", type date},
-				     *         {"End Date", type date},
-				     *         {"SortOrder", Int64.Type},
-				     *         {"Activity Note", type text}
-				     *     })
-				     */
-				in
-				    Source
+								    /*
+								     * EXCEL SOURCE — uncomment to load from your own xlsx instead.
+								     * Both Activities and Milestones sheets must follow the column
+								     * schema documented in README.md.
+								     *
+								     *     RawSource = Excel.Workbook(File.Contents("YOUR_FILE_PATH\\Demo-Roadmap-Source.xlsx"), null, true),
+								     *     Sheet = RawSource{[Item="Activities",Kind="Sheet"]}[Data],
+								     *     PromotedHeaders = Table.PromoteHeaders(Sheet, [PromoteAllScalars=true]),
+								     *     Source = Table.TransformColumnTypes(PromotedHeaders,{
+								     *         {"Activity", type text},
+								     *         {"Area", type text},
+								     *         {"Start Date", type date},
+								     *         {"End Date", type date},
+								     *         {"SortOrder", Int64.Type},
+								     *         {"Activity Note", type text}
+								     *     })
+								     */
+								in
+								    Source
 
 	annotation PBI_ResultType = Table
 

@@ -1014,7 +1014,10 @@ export class Visual implements IVisual {
         // built once per render from healthBindings × static slot settings.
         // Matches swim-lane / milestone-type buildXMap shape.
         const healthIconMap = buildHealthIconMap(vm.healthBindings, this.settings.activityHealthIcons);
-        const colors: ColorContext = buildColorContext(areaColorMap, milestoneConfig, activityColors);
+        // INF-3823 — pass vm.perAreaColor (data-bound `areaColor` role,
+        // first-row-wins per area) as the 4th arg. Empty record when the
+        // role is unbound → existing slot+hash behavior preserved.
+        const colors: ColorContext = buildColorContext(areaColorMap, milestoneConfig, activityColors, vm.perAreaColor);
 
         // v2.1 audit-fix #17 — milestone-type color map for the activity
         // Inspector's milestone gallery tiles. Cached so the subscriber's

@@ -45,6 +45,12 @@ export const ROLE = {
     // elapsed-time / total-time. Unbound = current behavior (time-elapsed
     // auto-calc). Clamped at the render boundary.
     percentComplete:       "percentComplete",
+    // INF-3823 — optional per-row hex color string ("#RRGGBB"). When bound,
+    // overrides the Format Pane slot color and the INF-3782 hash-wrap
+    // fallback at render time. First non-null hex per area wins (mirrors
+    // activityHealth / activityNote first-row-wins rollup). Invalid hex
+    // values silently drop to undefined at the viewmodel boundary.
+    areaColor:             "areaColor",
 } as const;
 
 export type RoleName = typeof ROLE[keyof typeof ROLE];
