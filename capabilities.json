@@ -130,19 +130,19 @@
             "name": "filterDimensions",
             "displayName": "Filter Dimensions",
             "kind": "Grouping",
-            "description": "Bind columns here to surface them as in-visual filters. Up to 8 dimensions. Each binding occupies one slot (1..8) in the Filter Slots card — set its tier (Featured tab strip / Comprehensive sidebar / Both / Hidden), selection mode, and optional label override. INF-3817: this 8-cap is enforced at controller.ts:347-348; bindings 9+ are dropped with an in-panel warning chip."
+            "description": "Bind columns here to surface them as in-visual filters. Up to 8 dimensions. Each binding occupies one slot (1..8) in the Filter Slots card — set its tier (Featured tab strip / Comprehensive sidebar / Both / Hidden), selection mode, and optional label override. Bindings beyond 8 are dropped with an in-panel warning chip."
         },
         {
             "name": "percentComplete",
             "displayName": "Percent Complete",
             "kind": "Measure",
-            "description": "INF-3815 — (Optional) Operator-supplied 0-100 percent completion per activity. When bound AND the Activity Inspector's progress-bar source is set to 'User field', the slide-out drawer's % complete bar reads this column instead of computing elapsed-time / total-time. Unbound = the auto elapsed-time behavior is preserved."
+            "description": "(Optional) Operator-supplied 0-100 percent completion per activity. When bound AND the Activity Inspector's progress-bar source is set to 'User field', the slide-out drawer's % complete bar reads this column instead of computing elapsed-time / total-time. Unbound = the auto elapsed-time behavior is preserved."
         },
         {
             "name": "areaColor",
             "displayName": "Swim Lane Color",
             "kind": "Grouping",
-            "description": "INF-3823 — (Optional) Hex color string per row (format '#RRGGBB'). When bound, overrides the Format Pane slot colors and the INF-3782 hash-wrap fallback for the swim-lane's bars/glyphs. First non-null hex per area wins. Invalid hex values silently drop and fall through to the existing slot/hash resolution. Use this to drive brand or category colors from a dimension column (or a DAX CASE expression) — scales to any cardinality, no Format Pane edits required."
+            "description": "(Optional) Hex color string per row (format '#RRGGBB'). When bound, overrides the Format Pane slot colors and the hash-wrap fallback for the swim-lane's bars/glyphs. First non-null hex per area wins. Invalid hex values silently drop and fall through to the existing slot/hash resolution. Use this to drive brand or category colors from a dimension column (or a DAX CASE expression) — scales to any cardinality, no Format Pane edits required."
         }
     ],
     "objects": {
@@ -991,7 +991,7 @@
                 },
                 "labelMaxChars": {
                     "displayName": "Truncate label at",
-                    "description": "INF-3821 — max characters before truncation + ellipsis on swim-lane names. 0 disables. Codepoint-safe (no truncation mid-emoji). Hover the truncated label to see the full original name via SVG <title>.",
+                    "description": "Max characters before truncation + ellipsis on swim-lane names. 0 disables. Codepoint-safe (no truncation mid-emoji). Hover the truncated label to see the full original name via SVG <title>.",
                     "type": {
                         "integer": true
                     }
@@ -1412,7 +1412,7 @@
         },
         "activityInspector": {
             "displayName": "Activity Inspector",
-            "description": "INF-3815 — controls the Activities slide-out drawer. Lets the operator hide the % complete bar entirely OR switch its source from auto elapsed-time to a user-bound `percentComplete` column.",
+            "description": "Controls the Activities slide-out drawer. Lets the operator hide the % complete bar entirely OR switch its source from auto elapsed-time to a user-bound `percentComplete` column.",
             "properties": {
                 "showProgressBar": {
                     "displayName": "Show % complete bar",
@@ -1461,7 +1461,7 @@
                 },
                 "hiddenMode": {
                     "displayName": "Hidden region",
-                    "description": "Which region of the composed Roadmap+Table layout starts collapsed on report load. Mirrors the upper-right chrome Roadmap/Table toggles; INF-3819 wires those toggles through host.persistProperties so the operator's choice survives reload + publish.",
+                    "description": "Which region of the composed Roadmap+Table layout starts collapsed on report load. Mirrors the upper-right chrome Roadmap/Table toggles; the toggle state is wired through host.persistProperties so the operator's choice survives reload + publish.",
                     "type": {
                         "enumeration": [
                             { "value": "none", "displayName": "Show both" },

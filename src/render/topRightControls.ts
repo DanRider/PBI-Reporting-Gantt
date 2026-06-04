@@ -229,12 +229,13 @@ export function mountTopRightControls(
     container.addEventListener("pointerdown", (e) => { e.stopPropagation(); });
 
     const filterBtn = buildFilterButton();
-    // INF-3816 — operator-facing label clarification. The prior labels
-    // ("Roadmap" / "Table") were nouns; operators couldn't tell the toggle
-    // controlled show/hide vs filtering/sizing. Action-verb prefix + a
-    // descriptive title attribute resolve the confusion. Behavior unchanged.
-    const ganttToggle = buildToggle("Show Roadmap", "Hide or show the Roadmap chart region. Off = chart collapses to 0 height; the Table region expands to fill. Setting persists across save + publish (INF-3819).");
-    const tableToggle = buildToggle("Show Table", "Hide or show the Table region below the chart. Off = table collapses to 0 height; the Roadmap chart expands to fill. Setting persists across save + publish (INF-3819).");
+    // INF-3816 — short labels preserved so the chrome row stays inside the
+    // left:36px container without colliding with the side bar at typical
+    // panel widths. The clarification lives in the operator-prose `title`
+    // attribute (revealed on hover) — operators get the meaning without
+    // the layout regression.
+    const ganttToggle = buildToggle("Roadmap", "Hide or show the Roadmap chart region. Off = chart collapses to 0 height; the Table region expands to fill. Setting persists across save + publish.");
+    const tableToggle = buildToggle("Table", "Hide or show the Table region below the chart. Off = table collapses to 0 height; the Roadmap chart expands to fill. Setting persists across save + publish.");
 
     function applyToggleState(toggle: Toggle, hidden: boolean): void {
         toggle.track.style.background = hidden ? TRACK_BG_OFF : TRACK_BG_ON;

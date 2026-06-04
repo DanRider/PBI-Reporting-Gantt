@@ -296,7 +296,7 @@ export class SwimlanesCard extends CompositeCard {
     groups: Group[] = [this.layoutGroup, this.labelGroup, this.colorsGroup];
 }
 
-// ── Layout (4 margins + persisted splitter hiddenMode INF-3819) ──────────
+// ── Layout (4 margins + persisted splitter hiddenMode) ───────────────────
 class LayoutCard extends SimpleCard {
     topMarginPercent = new formattingSettings.NumUpDown({ name: "topMarginPercent", displayName: "Top margin (%)", value: 1 });
     bottomMarginPercent = new formattingSettings.NumUpDown({ name: "bottomMarginPercent", displayName: "Bottom margin (%)", value: 1 });

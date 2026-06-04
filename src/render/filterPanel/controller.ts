@@ -341,12 +341,11 @@ function extractBindings(dataView: powerbi.DataView | undefined): FilterDimBindi
     if (!rows || !cols) return [];
     const result: FilterDimBinding[] = [];
     let slotIndex = 0;
-    // INF-3817 — collect column displayNames that overflow the 8-cap so we
-    // can name them in the console warning. Prior behavior silently dropped
-    // bindings past slot 8; operators had no signal. This is the Option C
-    // first-step controller-level visibility while the architectural lift
-    // (drop the slot1..slot8 hardcoding, generate algorithmically) lives
-    // under INF-3791 v3.x.
+    // Collect column displayNames that overflow the 8-cap so we can name
+    // them in the console warning. Prior behavior silently dropped bindings
+    // past slot 8; operators had no signal. Controller-level visibility for
+    // the cap while the algorithmic uncap (drop slot1..slot8 hardcoding,
+    // generate algorithmically) is on the roadmap.
     const overflowNames: string[] = [];
     for (let i = 0; i < cols.length; i++) {
         const col = cols[i];
@@ -372,11 +371,11 @@ function extractBindings(dataView: powerbi.DataView | undefined): FilterDimBindi
         });
         slotIndex++;
     }
-    // INF-3817 — log the overflow once per operator session. Guards against
-    // console spam (extractBindings runs every visual.update() tick during
-    // a normal interaction session). Devs + advanced operators see the
-    // signal in DevTools; the visual-chip surface for non-DevTools operators
-    // lands with the v3.x lift work tracked under INF-3791.
+    // Log the overflow once per operator session. Guards against console
+    // spam (extractBindings runs every visual.update() tick during a normal
+    // interaction session). Devs + advanced operators see the signal in
+    // DevTools; the visual-chip surface for non-DevTools operators lands
+    // with the algorithmic uncap roadmap work.
     if (overflowNames.length > 0) {
         warnOverflowOnce(overflowNames);
     }
@@ -390,9 +389,8 @@ function warnOverflowOnce(names: string[]): void {
     lastOverflowKey = key;
     // eslint-disable-next-line no-console
     console.warn(
-        `[Reporting-Gantt INF-3817] Filter Dimensions are capped at ${MAX_FILTER_DIMENSIONS}; ` +
-        `${names.length} additional binding(s) were dropped: ${names.join(", ")}. ` +
-        `The algorithmic uncap lands with v3.x (INF-3791).`,
+        `[Reporting-Gantt] Filter Dimensions are capped at ${MAX_FILTER_DIMENSIONS}; ` +
+        `${names.length} additional binding(s) were dropped: ${names.join(", ")}.`,
     );
 }
 

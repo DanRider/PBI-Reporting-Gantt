@@ -96,7 +96,7 @@ import { renderActivityDetail } from "./render/inspector/activityDetail";
 import { renderMilestoneDetail } from "./render/inspector/milestoneDetail";
 import { bindingDisplayName, pluralize } from "./utils/bindingNames";
 
-// v2.2 INF-3739 — two-tier in-visual filter panel (Featured strip + Comprehensive sidebar).
+// v2.2 two-tier in-visual filter panel (Featured strip + Comprehensive sidebar).
 // Both surfaces mount on root and share one FilterState. Owned by FilterPanelController
 // which also handles applyJsonFilter pushback + host.persistProperties round-trip.
 import { mountFilterPanelController, FilterPanelController } from "./render/filterPanel/controller";
@@ -117,14 +117,14 @@ const MIN_GANTT_PX = 0;
 const MIN_MATRIX_PX = 0;
 
 const SWIM_LANE_MIN = 100;
-// INF-3736 — caps raised from 200/320 to give the new drag handles real
+// caps raised from 200/320 to give the new drag handles real
 // travel. The widthDrag percent clamps (swim-lane 3-70%, activity-label
 // 5-70% in update()) are the user-facing ceilings; these pixel caps are
 // the sanity bound for extreme viewports.
 const SWIM_LANE_MAX = 800;
 const ACTIVITY_LABEL_MIN = 100;
 const ACTIVITY_LABEL_MAX = 800;
-// INF-3736 — when activity labels will wrap at the current width, the
+// when activity labels will wrap at the current width, the
 // 2-line render (cy ± LINE_OFFSET_PX) needs ≥ this row height to clear
 // adjacent rows. Single-line keeps the original MIN_ROW_HEIGHT = 16.
 const MIN_ROW_HEIGHT_FOR_WRAP = 24;
@@ -152,13 +152,13 @@ interface TooltipConfig {
     // role sees "Workstream" (not "Activity") as the tooltip row label.
     areaLabel: string;
     activityLabel: string;
-    // INF-3787 — slip thresholds for the variance narrative in
+    // slip thresholds for the variance narrative in
     // activity tooltips. Same thresholds as the bullet escalation +
     // I-beam render, so the viewer sees consistent magnitude wording.
     slipThresholds: SlipThresholds;
 }
 
-// INF-3787 — signed days between two dates (later - earlier).
+// signed days between two dates (later - earlier).
 // Positive = later is after earlier (e.g. forecast after baseline = slipping).
 function dayDelta(later: Date, earlier: Date): number {
     return Math.round((later.getTime() - earlier.getTime()) / 86_400_000);
@@ -181,7 +181,7 @@ function makeActivityTooltip(cfg: TooltipConfig): (a: Activity) => VisualTooltip
             { displayName: "Start",       value: fmtDate(a.start) },
             { displayName: "End",         value: fmtDate(a.end) },
         ];
-        // INF-3787 — variance narrative when baseline/actual bindings present.
+        // variance narrative when baseline/actual bindings present.
         if (a.baselineEnd != null) {
             items.push({ displayName: "Baseline End", value: fmtDate(a.baselineEnd) });
             const slip = computeSlip(a.baselineEnd, a.end, cfg.slipThresholds);
@@ -216,7 +216,7 @@ function makeMilestoneTooltip(cfg: TooltipConfig): (m: Milestone) => VisualToolt
             { displayName: cfg.activityLabel,  value: m.activity },
             { displayName: "Date",             value: fmtDate(m.date) },
         ];
-        // INF-3787 — milestone baseline date narrative when bound.
+        // milestone baseline date narrative when bound.
         if (m.baselineDate != null) {
             items.push({ displayName: "Baseline Date", value: fmtDate(m.baselineDate) });
             const shiftDays = dayDelta(m.date, m.baselineDate);
@@ -301,7 +301,7 @@ export class Visual implements IVisual {
     private bodyG: d3Selection<SVGGElement, unknown, null, undefined>;
     private legendG: d3Selection<SVGGElement, unknown, null, undefined>;
     private chartTitleG: d3Selection<SVGGElement, unknown, null, undefined>;
-    // INF-3736 — rendered last so its invisible drag handles paint on top of
+    // rendered last so its invisible drag handles paint on top of
     // everything else in their X-range. Hosts the column-boundary resize rects.
     private dragHandlesG: d3Selection<SVGGElement, unknown, null, undefined>;
     private tooltipService: ITooltipServiceWrapper;
@@ -319,22 +319,22 @@ export class Visual implements IVisual {
     // Gantt/Table toggles). Drives the WHOLE chart's window. Inspector's
     // own slider stays independent — lane drill-down ignores master.
     private masterSlider: MasterTimeSliderHandle;
-    // v2.2 INF-3739 — filter panel controller (top Featured strip + right Comprehensive sidebar).
+    // v2.2 filter panel controller (top Featured strip + right Comprehensive sidebar).
     private filterPanel: FilterPanelController;
     // Last-known active filter map; visual.ts uses this to narrow vm before render.
     private activeFilters: ReadonlyMap<string, ReadonlySet<string>> = new Map();
     // v2.1 audit-fix #24 — master window state. Default: past 2Q + future
     // 6Q (forward-biased for roadmap use case). Clamped to envelope in
     // update() when data is delivered.
-    // INF-3736 — startOffset/endOffset are MONTHS (was: quarters). Default
+    // startOffset/endOffset are MONTHS (was: quarters). Default
     // -6/+18 ≈ 2 quarters back, 6 quarters forward (same span as the old default).
     private masterRange: SliderRange = { kind: "range", startOffset: -6, endOffset: 18 };
-    // INF-3736 — master slider scope flags. Default: both true (master filters
+    // master slider scope flags. Default: both true (master filters
     // gantt AND table — same effective behavior as v2.1 + the new table path).
     // Persisted on objects.masterTimeSlider.filtersGantt/filtersTable.
     private masterFiltersGantt: boolean = true;
     private masterFiltersTable: boolean = true;
-    // INF-3736 — transient column-width preview during drag (live reflow without
+    // transient column-width preview during drag (live reflow without
     // round-tripping through host.persistProperties on every pointermove). Cleared
     // on pointerup; the final value persists via persistColumnWidth().
     private transientActivityLabelPercent: number | null = null;
@@ -355,7 +355,7 @@ export class Visual implements IVisual {
     // black, etc.) cached for the activity Inspector's milestone gallery
     // tiles, which front each milestone with a type-colored ★.
     private lastTypeColors: Record<string, string> | undefined = undefined;
-    // INF-3736 — galleryRange (lane Inspector slider state) removed: master
+    // galleryRange (lane Inspector slider state) removed: master
     // slider with scope toggles now owns all filtering. mountTimeSlider stays
     // in the library; the Inspector no longer mounts it.
     // v2.1 audit-fix #11 — 3-state milestone-type cycle per legend entry.
@@ -368,7 +368,7 @@ export class Visual implements IVisual {
     // Absence from the map = "visible" (Map is sparse, only non-default).
     private milestoneTypeState: Map<string, "transparent" | "hidden"> = new Map();
     private lastOptions: VisualUpdateOptions | null = null;
-    // INF-3819 — flips true after the first update() applies any persisted
+    // flips true after the first update() applies any persisted
     // splitter hiddenMode to the in-memory splitter. Subsequent updates trust
     // the splitter's in-session state (kept in sync with metadata.objects via
     // persistHiddenMode in the onToggleHidden handler).
@@ -546,7 +546,7 @@ export class Visual implements IVisual {
                 if (this.lastViewmodel) {
                     switch (sel.kind) {
                         case "lane":
-                            // INF-3736 — lane Inspector no longer mounts its own slider
+                            // lane Inspector no longer mounts its own slider
                             // (master slider with scope toggles owns all filtering).
                             this.controls.setContent(renderLaneDetail(
                                 sel.laneName,
@@ -568,7 +568,7 @@ export class Visual implements IVisual {
                                 onSelect,
                                 this.lastActivityColors,
                                 this.lastTypeColors,
-                                // INF-3815 — pass Activity Inspector format settings so
+                                // pass Activity Inspector format settings so
                                 // the slide-out honors showProgressBar + progressBarSource.
                                 {
                                     showProgressBar: this.settings.activityInspector.showProgressBar.value,
@@ -637,7 +637,7 @@ export class Visual implements IVisual {
             onChange: () => this.requestRerender(),
         });
 
-        // v2.2 INF-3739 — filter panel controller mounted BEFORE topRight so the
+        // v2.2 filter panel controller mounted BEFORE topRight so the
         // filter-icon (leftmost in topRight) can read isOpen / activeCount at
         // construction. Selection-driven: starts closed; opens via icon click.
         this.filterPanel = mountFilterPanelController(this.root, {
@@ -649,14 +649,14 @@ export class Visual implements IVisual {
         });
 
         // v2.1 audit-fix — top-left cluster of Roadmap / Table toggle sliders.
-        // v2.2 INF-3739 — leads with a filter icon that toggles the filter
+        // v2.2 leads with a filter icon that toggles the filter
         // sidebar; badge surfaces active-filter count even when sidebar is closed.
         this.topRight = mountTopRightControls(this.root, {
             isHidden: (region) => this.splitter.hiddenMode() === region,
             onToggleHidden: (region) => {
                 const next = this.splitter.hiddenMode() === region ? "none" : region;
                 this.splitter.setHidden(next);
-                // INF-3819 — persist the splitter choice so toggle-off survives
+                // persist the splitter choice so toggle-off survives
                 // reload + publish. Mirrors the slider/column-width persist
                 // pattern further down this file.
                 this.persistHiddenMode(next);
@@ -680,7 +680,7 @@ export class Visual implements IVisual {
                 this.persistSliderRange("masterTimeSlider", next);
                 this.requestRerender();
             },
-            // INF-3736 — scope toggles. User picks which regions the filter applies to.
+            // scope toggles. User picks which regions the filter applies to.
             onScopeChange: (next: MasterScope) => {
                 this.masterFiltersGantt = next.filtersGantt;
                 this.masterFiltersTable = next.filtersTable;
@@ -697,7 +697,7 @@ export class Visual implements IVisual {
         this.bodyG = this.svg.append("g").attr("class", "body");
         this.legendG = this.svg.append("g").attr("class", "legend");
         this.chartTitleG = this.svg.append("g").attr("class", "chart-title");
-        // INF-3736 — appended LAST so invisible drag handles paint above all
+        // appended LAST so invisible drag handles paint above all
         // other layers in their narrow X-range, winning the hit-test.
         this.dragHandlesG = this.svg.append("g").attr("class", "drag-handles");
     }
@@ -716,7 +716,7 @@ export class Visual implements IVisual {
             dataView
         );
 
-        // INF-3819 — on first update, honor any previously-persisted splitter
+        // on first update, honor any previously-persisted splitter
         // hiddenMode. The splitter's in-memory default is "none"; the persisted
         // value lives in dataView.metadata.objects.ganttLayout.hiddenMode and
         // is populated into settings.ganttLayout.hiddenMode by the line above.
@@ -732,14 +732,14 @@ export class Visual implements IVisual {
             this.initialHiddenApplied = true;
         }
 
-        // v2.2 INF-3739 — drive both filter panels off the same FilterState.
+        // v2.2 drive both filter panels off the same FilterState.
         // Returns the active filter map; visual.ts uses it to narrow the vm
         // BEFORE rendering, in addition to PBI's cross-visual applyJsonFilter
         // pushback (which the controller fires on every state mutation).
         const filterResult = this.filterPanel.update(dataView, this.settings);
         this.activeFilters = filterResult.activeFilters;
 
-        // INF-3736 — drag-resize reconcile: once persisted settings catch up
+        // drag-resize reconcile: once persisted settings catch up
         // to the transient drag value, retire the transient. Bridges pointerup
         // → host.persistProperties round-trip without flicker.
         if (this.transientSwimLanePercent !== null &&
@@ -770,10 +770,10 @@ export class Visual implements IVisual {
         // 0, panelWidthPx is 0, and the v2.0 render is preserved byte-identical.
         const panelWidthPct = this.controls.widthPct();
         const panelWidthPx = options.viewport.width * (panelWidthPct / 100);
-        // INF-3736 — master slider now self-positions (top:6 right:6 anchor,
+        // master slider now self-positions (top:6 right:6 anchor,
         // expands leftward from a time-filter icon). No external sizing needed.
 
-        // v2.2 INF-3739 — comprehensive filter sidebar reserves N px on the right
+        // v2.2 comprehensive filter sidebar reserves N px on the right
         // FULL VERTICAL HEIGHT (top:0 to viewport.height). The master-slider
         // strip and chart and table all narrow to leave the sidebar's column
         // free. The top slicer strip mounts in its OWN dedicated container at
@@ -784,7 +784,7 @@ export class Visual implements IVisual {
 
         // === Chrome transition: pure CSS ===
         //
-        // INF-3751: simplified from View Transitions API to plain CSS
+        // simplified from View Transitions API to plain CSS
         // transitions on layout properties. Three motions are choreographed
         // by CSS in visual.less:
         //   - toggle row's `top` (6 ↔ 6+stripH)         — CSS transition
@@ -828,7 +828,7 @@ export class Visual implements IVisual {
             viewportWidth: options.viewport.width,
             viewportHeight: options.viewport.height,
         });
-        // INF-3751: on closing direction (unpin-last), the strip keeps its
+        // on closing direction (unpin-last), the strip keeps its
         // content + height for 1050ms so the clip-path wipe is visible.
         // During this window, slicerContainer.offsetHeight is still ~36
         // (strip min-height + padding-bottom). If we read offsetHeight
@@ -847,7 +847,7 @@ export class Visual implements IVisual {
         // EARLY so the layout coordinator (which calls renderSimpleTable for
         // the table region) can read the tint maps. Originally these lived
         // after the layout coordinator, but the table render needs them.
-        // v2.2 INF-3739 — narrow dataView UPSTREAM of convertDataView so both
+        // v2.2 narrow dataView UPSTREAM of convertDataView so both
         // the chart (vm) AND the table (renderSimpleTable, which reads dataView
         // directly) see the same filtered row set. In real reports,
         // host.applyJsonFilter pushback re-queries upstream and this narrow is
@@ -858,7 +858,7 @@ export class Visual implements IVisual {
         const effectiveDataView = narrowDataView(dataView, this.activeFilters);
         let vm: RoadmapViewModel = convertDataView(effectiveDataView);
 
-        // INF-3736 — restore persisted master slider state from PBI objects bag.
+        // restore persisted master slider state from PBI objects bag.
         // Null-safe through the whole optional chain; any missing layer OR
         // JSON.parse failure OR shape-mismatch falls back silently to the
         // existing in-memory defaults (no console noise). The window itself
@@ -880,7 +880,7 @@ export class Visual implements IVisual {
             this.masterFiltersTable = objs.masterTimeSlider.filtersTable;
         }
 
-        // INF-3736 — master slider envelope in MONTHS (was: quarters).
+        // master slider envelope in MONTHS (was: quarters).
         // pastMonths = today.idx − extentStart.idx; futureMonths = extentEnd.idx
         // − today.idx. Both clamped to ≥0 so an extent entirely in the future
         // doesn't create a negative-past slider. Stored range clamped to
@@ -903,7 +903,7 @@ export class Visual implements IVisual {
             this.masterRange,
             { filtersGantt: this.masterFiltersGantt, filtersTable: this.masterFiltersTable },
         );
-        // INF-3736 — hide the entire anchor (icon + strip) only when there's no
+        // hide the entire anchor (icon + strip) only when there's no
         // useful target region at all (both regions hidden). Otherwise the icon
         // stays visible so the user can always re-expand. Scope-based collapse
         // to icon is handled inside masterTimeSlider via applyAutoCollapse().
@@ -920,7 +920,7 @@ export class Visual implements IVisual {
         //  - Milestones outside window: dropped (no marker rendered).
         //  - vm.dateExtent overridden to window so xScale fits exactly.
         const masterWindow = rangeToWindow(this.masterRange, today);
-        // INF-3736 — apply window to chart vm only when scope includes Gantt.
+        // apply window to chart vm only when scope includes Gantt.
         if (masterWindow && this.masterFiltersGantt) {
             const fromMs = masterWindow.fromMs;
             const toMs = masterWindow.toMs;
@@ -1004,17 +1004,17 @@ export class Visual implements IVisual {
         this.lastViewmodel = vm;
         this.lastActivityColors = activityColors;
 
-        // INF-3736 — inspector slider removed; master slider's filtersTable
+        // inspector slider removed; master slider's filtersTable
         // scope now drives the table window. The table-filter wiring is
         // applied in the renderSimpleTable call below.
 
         const areaColorMap = buildAreaColorMap(vm.areaBindings, this.settings.swimlanes);
         const milestoneConfig = buildMilestoneConfigMap(vm.typeBindings, this.settings.milestones);
-        // v2.2 INF-3738 V3 — per-value health icon map. Loop-invariant;
+        // v2.2 V3 — per-value health icon map. Loop-invariant;
         // built once per render from healthBindings × static slot settings.
         // Matches swim-lane / milestone-type buildXMap shape.
         const healthIconMap = buildHealthIconMap(vm.healthBindings, this.settings.activityHealthIcons);
-        // INF-3823 — pass vm.perAreaColor (data-bound `areaColor` role,
+        // pass vm.perAreaColor (data-bound `areaColor` role,
         // first-row-wins per area) as the 4th arg. Empty record when the
         // role is unbound → existing slot+hash behavior preserved.
         const colors: ColorContext = buildColorContext(areaColorMap, milestoneConfig, activityColors, vm.perAreaColor);
@@ -1038,17 +1038,17 @@ export class Visual implements IVisual {
         // bar itself never overlaps either region's content.
         const tableRowsPresent = !!(dataView?.table?.rows?.length);
         this.splitter.setVisible(tableRowsPresent);
-        // INF-3768+3772: REVERSES the prior INF-3759 "matrix-stays-constant"
+        // +3772: REVERSES the prior "matrix-stays-constant"
         // architecture per operator's clarified UX intent: gantt + matrix
         // share the below-strip viewport and divide proportionally at the
         // splitter's userPct ratio. As the slicer strip grows, BOTH shrink
         // proportionally — matching operator's "same container, divide by
-        // percent" intent. Track A's vertical-stack rebuild (INF-3769) will
+        // percent" intent. Track A's vertical-stack rebuild will
         // refactor this surface; this surgical fix gets the behavior
         // correct in the meantime.
         // Sum invariant: topSlicer + gantt + bar + matrix === viewport.
         const splitterViewportHeight = Math.max(0, options.viewport.height - topSlicerHeightPx);
-        // INF-3768: bar height counted only when the table region is bound
+        // bar height counted only when the table region is bound
         // (otherwise the bar is hidden via setVisible(false) and reserves
         // no real estate — keeps the sum invariant exact at unbound state).
         const splitterBarHeightPx = tableRowsPresent ? this.splitter.barHeightPx() : 0;
@@ -1068,7 +1068,7 @@ export class Visual implements IVisual {
         this.lastComprehensiveWidthPx = comprehensiveWidthPx;
         this.lastTableRowsPresent = tableRowsPresent;
 
-        // INF-3779 — push the inspector / controls popout down below the
+        // push the inspector / controls popout down below the
         // slicer + chrome row; let it span from there to the viewport
         // bottom. Full left-rail surface covering gantt + splitter +
         // matrix regions — operator-aligned behavior; restores the
@@ -1096,7 +1096,7 @@ export class Visual implements IVisual {
             this.ganttHiddenHeader.style.display = "flex";
             this.ganttHiddenHeader.style.top = (topSlicerHeightPx + ganttHiddenChromePush) + "px";
             this.ganttHiddenHeader.style.left = panelWidthPx + "px";
-            // v2.2 INF-3739 — reserve comprehensive sidebar width on the right.
+            // v2.2 reserve comprehensive sidebar width on the right.
             this.ganttHiddenHeader.style.width = Math.max(0, options.viewport.width - panelWidthPx - comprehensiveWidthPx) + "px";
             this.ganttHiddenHeader.style.color = ct.show.value ? ct.fontColor.value.value : "#666";
             this.ganttHiddenHeader.style.fontSize = (ct.fontSize.value ?? 14) + "px";
@@ -1112,7 +1112,7 @@ export class Visual implements IVisual {
         }
 
         if (tableRowsPresent) {
-            // INF-3772: splitter bar sits AT y = topSlicer + ganttHeightPx —
+            // splitter bar sits AT y = topSlicer + ganttHeightPx —
             // directly between gantt-wrapper bottom and matrix top. Pre-fix
             // used `ganttHeightPx` alone, missing the topSlicer offset, so
             // the bar visually occluded the bottom topSlicer-px of gantt
@@ -1126,7 +1126,7 @@ export class Visual implements IVisual {
                 widthPx: options.viewport.width - panelWidthPx,
             });
             this.matrixDiv.style.display = "block";
-            // INF-3768 (followup) — anchor the matrix BOTTOM to viewport
+            // (followup) — anchor the matrix BOTTOM to viewport
             // bottom (bottom:0); height auto-derives from top+bottom in
             // position:absolute. Pre-fix used top + height — during a
             // splitter drag the height was recomputed every rAF tick,
@@ -1139,7 +1139,7 @@ export class Visual implements IVisual {
             this.matrixDiv.style.bottom = "0px";
             this.matrixDiv.style.height = "auto";
             this.matrixDiv.style.left = panelWidthPx + "px";
-            // v2.2 INF-3739 — reserve comprehensive sidebar width on the right.
+            // v2.2 reserve comprehensive sidebar width on the right.
             this.matrixDiv.style.width = Math.max(0, options.viewport.width - panelWidthPx - comprehensiveWidthPx) + "px";
             this.matrixDiv.style.background = "#ffffff";
             // The splitter bar's top/bottom borders replace the matrix
@@ -1180,7 +1180,7 @@ export class Visual implements IVisual {
                 highlightActivityName,
                 rowTintByActivity,
                 rowTintByArea,
-                // INF-3736 — master slider's filtersTable scope drives table window.
+                // master slider's filtersTable scope drives table window.
                 filterMilestoneDateMs: (masterWindow && this.masterFiltersTable) ? masterWindow : undefined,
             });
         } else {
@@ -1188,15 +1188,15 @@ export class Visual implements IVisual {
         }
 
         const viewport = options.viewport;
-        // v2.2 INF-3739 — width also reserves comprehensive sidebar on the right.
+        // v2.2 width also reserves comprehensive sidebar on the right.
         const width = Math.max(0, viewport.width - panelWidthPx - comprehensiveWidthPx);
         // v2.1 audit-fix #24c — wrapper starts BELOW the slider chrome so
         // when the SVG content scrolls vertically it gets clipped at the
         // chrome boundary (was: content scrolled up behind the transparent
         // slider strip). Only push when gantt is visible.
-        // v2.2 INF-3739 — additional push for any pinned top-slicer-strip rows.
+        // v2.2 additional push for any pinned top-slicer-strip rows.
         const wrapperChromeOffset = (ganttHeightPx > 0 ? MASTER_SLIDER_CHROME_PX : 0) + topSlicerHeightPx;
-        // INF-3759 fix: wrapper HEIGHT subtracts only the slider chrome,
+        // fix: wrapper HEIGHT subtracts only the slider chrome,
         // not topSlicer. topSlicer is already accounted for outside the
         // gantt region (it lives ABOVE the gantt region's top, not inside
         // it). Subtracting it from height too creates a topSlicer-sized
@@ -1253,7 +1253,7 @@ export class Visual implements IVisual {
         hideIfNoType("type1", slot1Type != null);
         hideIfNoType("type2", slot2Type != null);
 
-        // v2.2 INF-3738 V3 — Override ActivityHealthIconsCard slot
+        // v2.2 V3 — Override ActivityHealthIconsCard slot
         // displayNames from bound health values so the Format pane shows
         // actual data values ("Production symbol" not "Slot 1 symbol").
         // Hide unused slots so the Format pane stays tidy and only exposes
@@ -1352,7 +1352,7 @@ export class Visual implements IVisual {
         this.svg.selectAll(".no-data").remove();
 
         // ── Inner-content dimensions ─────────────────────────────────────────
-        // INF-3736 — transient drag preview overrides settings if active.
+        // transient drag preview overrides settings if active.
         const leftRailPct = (this.transientSwimLanePercent ?? this.settings.swimlanes.swimLaneWidthPercent.value) / 100;
         const labelAreaPct = (this.transientActivityLabelPercent ?? this.settings.activityLabels.activityLabelWidthPercent.value) / 100;
 
@@ -1370,7 +1370,7 @@ export class Visual implements IVisual {
         );
         const axisH = axisLayout.totalH;
 
-        // INF-3736 — when the activity label column is narrow enough that
+        // when the activity label column is narrow enough that
         // any label will wrap to 2 lines, lift the row-height floor so the
         // wrapped lines (cy ± LINE_OFFSET_PX) clear adjacent rows. Detected
         // per render so the chart breathes cleanly as the user drags narrower.
@@ -1491,11 +1491,11 @@ export class Visual implements IVisual {
         this.railG.attr("transform", `translate(${leftMarginPx}, ${bodyY})`);
         renderSwimlanes(this.railG, vm.areaGroups, rowHeight, colors, leftRailWidth, {
             show: this.settings.swimlanes.show.value,
-            // INF-3736 — wrap is always on; the format-pane toggle was
+            // wrap is always on; the format-pane toggle was
             // removed since wrap is required for drag-to-resize to produce
             // useful sizing as the column narrows.
             wrapText: true,
-            // INF-3821 — operator-set truncation; 0 = off (preserves prior behavior).
+            // operator-set truncation; 0 = off (preserves prior behavior).
             labelMaxChars: this.settings.swimlanes.labelMaxChars.value,
             useAreaColor: this.settings.swimlanes.useAreaColor.value,
             labelColor: this.settings.swimlanes.labelColor.value.value,
@@ -1514,7 +1514,7 @@ export class Visual implements IVisual {
             areaStartX: leftMarginPx + leftRailWidth + 8,
         };
         this.activityLabelsG.attr("transform", `translate(0, ${bodyY})`);
-        // INF-3787 Phase 5 re-spec — EARNED-escalation principle.
+        // Phase 5 re-spec — EARNED-escalation principle.
         // Build a per-activity slip-derived bullet color map BEFORE
         // renderActivityLabels so the bullet's resolution chain can
         // fall through to slip color when an explicit health value
@@ -1563,11 +1563,11 @@ export class Visual implements IVisual {
                 red:      this.settings.milestoneHealthColors.red.value.value,
                 fallback: "#888888",
             },
-            // v2.2 INF-3738 — per-value icon binding (primary path when bound).
+            // v2.2 per-value icon binding (primary path when bound).
             // Maps activity.health -> { symbol, color, size } per the
             // Activity Health Icons Format-pane card.
             healthIconMap,
-            // INF-3787 — slip-derived bullet color override (tier-3
+            // slip-derived bullet color override (tier-3
             // fallback, after healthIconMap + healthPalette+health).
             slipBulletColorByActivity,
         }, colors);
@@ -1595,7 +1595,7 @@ export class Visual implements IVisual {
             font: labelFont,
             overflowBehavior: labelOverflow,
         });
-        // INF-3787 — bullet-chart variance vocabulary: single dark
+        // bullet-chart variance vocabulary: single dark
         // vertical tick at xScale(baselineEnd) inside each shifted bar.
         // Position relative to bar's right edge encodes magnitude +
         // direction implicitly. Fires automatically for non-negligible
@@ -1608,7 +1608,7 @@ export class Visual implements IVisual {
         // Gantt convention.
         renderMilestoneBaselineGhosts(this.bodyG, vm.milestones, xScale, rowHeight, colors);
 
-        // INF-3736 — invisible column-boundary drag handles. Two 8px-wide
+        // invisible column-boundary drag handles. Two 8px-wide
         // <rect> overlays spanning the full body height, positioned in the
         // gap BETWEEN columns where no other content paints. col-resize
         // cursor on hover; no visible chrome at rest. Optimistic-UI pattern:
@@ -1620,12 +1620,12 @@ export class Visual implements IVisual {
         const onResizeSwimLane = (newPercent: number, isCommit: boolean): void => {
             this.transientSwimLanePercent = newPercent;
             if (isCommit) {
-                // INF-3736 — drop the drag-mode CSS override so subsequent
+                // drop the drag-mode CSS override so subsequent
                 // hover/leave fades resume normal 120ms behavior.
                 this.dragHandlesG.classed("dragging", false);
                 this.persistColumnWidth("swimlanes", "swimLaneWidthPercent", newPercent);
             } else {
-                // INF-3736 — first pointermove of a drag. Class persists on
+                // first pointermove of a drag. Class persists on
                 // the parent <g> across re-renders, so newly-appended grips
                 // inherit the no-transition / opacity:1 rule and don't
                 // flicker as the cursor sweeps along.
@@ -1644,7 +1644,7 @@ export class Visual implements IVisual {
             }
         };
 
-        // INF-3736 — swim-lane right-edge handle. <g class="resize-grip">
+        // swim-lane right-edge handle. <g class="resize-grip">
         // wraps the invisible hit-rect + 3 grey grip dots. CSS in visual.less
         // hides the dots at rest and fades them in on group :hover.
         const swimGroup = this.dragHandlesG.append("g").attr("class", "resize-grip");
@@ -1669,7 +1669,7 @@ export class Visual implements IVisual {
             attachWidthDrag(swimHandle, leftMarginPx, options.viewport.width, 3, 70, onResizeSwimLane);
         }
 
-        // INF-3736 — activity-label right-edge handle. Same grip pattern.
+        // activity-label right-edge handle. Same grip pattern.
         const labelGroup = this.dragHandlesG.append("g").attr("class", "resize-grip");
         const labelHandle = labelGroup.append("rect")
             .attr("class", "activity-label-resize-handle")
@@ -1704,7 +1704,7 @@ export class Visual implements IVisual {
                 : "(no note recorded)",
             areaLabel:     bindingDisplayName("area",     dataView, "Swim Lane"),
             activityLabel: bindingDisplayName("activity", dataView, "Activity"),
-            // INF-3787 — slip thresholds threaded so tooltip narrative uses
+            // slip thresholds threaded so tooltip narrative uses
             // the same magnitude bands as the bullet + I-beam render path.
             slipThresholds,
         };
@@ -1819,7 +1819,7 @@ export class Visual implements IVisual {
             });
     }
 
-    // INF-3736 — persist a slider window state into PBI's objects bag so it
+    // persist a slider window state into PBI's objects bag so it
     // survives report reload / page nav. Wrapped here so onChange callbacks
     // don't need to know the persistProperties shape. PBI fires a fresh
     // update() asynchronously after this — the top-of-update read picks the
@@ -1834,7 +1834,7 @@ export class Visual implements IVisual {
         });
     }
 
-    // INF-3736 — persist a column-width percent (e.g. swimLaneWidthPercent or
+    // persist a column-width percent (e.g. swimLaneWidthPercent or
     // activityLabelWidthPercent) into the matching settings object. Called on
     // pointerup; PBI fires a fresh update() asynchronously so the persisted
     // value flows back through populateFormattingSettingsModel.
@@ -1852,7 +1852,7 @@ export class Visual implements IVisual {
         });
     }
 
-    // INF-3736 — persist master slider scope booleans (filtersGantt / filtersTable).
+    // persist master slider scope booleans (filtersGantt / filtersTable).
     private persistMasterScope(scope: MasterScope): void {
         this.host.persistProperties({
             merge: [{
@@ -1863,7 +1863,7 @@ export class Visual implements IVisual {
         });
     }
 
-    // INF-3819 — persist the splitter hidden-mode so the upper-right Roadmap/Table
+    // persist the splitter hidden-mode so the upper-right Roadmap/Table
     // toggle survives reload + publish. Before this fix, splitter.setHidden()
     // mutated in-memory state only; on PBI Service reload the splitter snapped
     // back to "none" and operators who hid the Table region saw it reappear.
@@ -1914,7 +1914,7 @@ export class Visual implements IVisual {
         const ganttHiddenChromePush =
             this.splitter.hiddenMode() === "gantt" ? MASTER_SLIDER_CHROME_PX : 0;
 
-        // Splitter bar — top is below gantt wrapper (INF-3772 anchor).
+        // Splitter bar — top is below gantt wrapper ( anchor).
         if (tableRowsPresent) {
             this.splitter.layout({
                 leftPx: panelWidthPx,
@@ -1924,7 +1924,7 @@ export class Visual implements IVisual {
         }
 
         // Matrix top moves with drag; bottom stays anchored at 0
-        // (INF-3768 followup). Height auto-derives in CSS.
+        // ( followup). Height auto-derives in CSS.
         if (tableRowsPresent) {
             this.matrixDiv.style.top = (topSlicerHeightPx + ganttHeightPx + splitterBarHeightPx + ganttHiddenHeaderPx + ganttHiddenChromePush) + "px";
         }
@@ -1936,7 +1936,7 @@ export class Visual implements IVisual {
         const wrapperHeight = Math.max(0, ganttHeightPx - wrapperHeightSubtract);
         this.ganttScrollWrapper.style.top = wrapperChromeOffset + "px";
         this.ganttScrollWrapper.style.height = wrapperHeight + "px";
-        // INF-3781 followup — DO NOT mutate SVG width/height during drag.
+        // followup — DO NOT mutate SVG width/height during drag.
         // The SVG's content (axes, bars, swimlanes) was laid out at the
         // pre-drag dimensions by the last full update(); shrinking the
         // SVG attr would clip the content INSIDE the SVG (no scroll bar)
@@ -1949,7 +1949,7 @@ export class Visual implements IVisual {
         // update() path.
     }
 
-    /** INF-3770 — flush any debounced filter-pane persistence writes
+    /** flush any debounced filter-pane persistence writes
      *  before the visual is torn down. PBI calls destroy() on tab close /
      *  visual removal; without this flush, the last debounce window of
      *  user state (up to 300ms of pending persistSelections, 50ms of
@@ -1967,7 +1967,7 @@ export class Visual implements IVisual {
 
 }
 
-// v2.2 INF-3739 — narrow a dataView's rows by an active-filters map.
+// v2.2 narrow a dataView's rows by an active-filters map.
 // When no filters are active, returns the original dataView unchanged
 // (no allocation). When active, returns a shallow clone with a filtered
 // rows array; metadata + column descriptors stay reference-equal. Filter

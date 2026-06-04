@@ -133,29 +133,7 @@ table Milestones
 				            {"3PL Renegotiation", #date(2027, 1, 15), "Minor", "Initial terms", "R", null},
 				            {"3PL Renegotiation", #date(2027, 5, 1), "Major", "Contracts signed", "R", null},
 				            {"Warehouse Move", #date(2026, 1, 1), "__phantom", null, "none", null},
-				            {"Inventory Audit Cycle", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Engineering Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Operations Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Finance Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Marketing Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Sales Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Quality Assurance Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Logistics Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Customer Success Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"HR Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Procurement Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"IT Infrastructure Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Compliance Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Research Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Field Services Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Training Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Facilities Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Security Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Legal Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Risk Management Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Analytics Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Strategy Initiative", #date(2026, 1, 1), "__phantom", null, "none", null},
-                            {"Innovation Initiative", #date(2026, 1, 1), "__phantom", null, "none", null}
+				            {"Inventory Audit Cycle", #date(2026, 1, 1), "__phantom", null, "none", null}
 				        }
 				    )
 				

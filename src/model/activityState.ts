@@ -3,14 +3,14 @@
 import { Activity } from "../viewmodel";
 import { HealthColorPalette } from "../utils/healthColor";
 
-// INF-3787 Phase 3 — glide-path model layer.
+// Phase 3 — glide-path model layer.
 //
 // Pure functions for deriving slip semantics + activity state. No
 // rendering concerns (colors, geometry); render verbs map magnitude/
 // direction to their own visual encoding. No d3, no DOM, no PBI runtime
 // — testable in isolation.
 //
-// Decision #3 (INF-3791 build brief) default thresholds (days):
+// Decision #3 default thresholds (days):
 //   |slip| <= 2  → negligible (on-track)
 //   |slip| <= 7  → minor
 //   |slip| <= 30 → major
@@ -133,7 +133,7 @@ export function deriveState(
 }
 
 /**
- * INF-3787 Phase 5 re-spec — "EARNED escalation" principle.
+ * Phase 5 re-spec — "EARNED escalation" principle.
  *
  * Maps a SlipResult to a color from the Milestone Health palette, so
  * slip-driven bullet escalation reuses the SAME vocabulary the viewer
