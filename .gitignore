@@ -1,0 +1,105 @@
+# ╔════════════════════════════════════════════════════════════════════╗
+# ║ Reporting Gantt — Public Distribution Repo .gitignore              ║
+# ║                                                                    ║
+# ║ This is a BINARY-DISTRIBUTION repo. The TypeScript source, build   ║
+# ║ tooling, and internal artifacts must NEVER be published here.      ║
+# ║ The deny-list below is the structural defense against accidents.   ║
+# ║                                                                    ║
+# ║ What IS allowed (verify before each commit):                       ║
+# ║   - README.md, LICENSE.md, EULA.md, CHANGELOG.md, SECURITY.md      ║
+# ║   - dist/*.pbiviz (the shipping binary)                            ║
+# ║   - docs/**/*.{png,jpg,jpeg,svg,gif}  (screenshots, format-pane)   ║
+# ║   - assets/**/*.{png,jpg,jpeg,svg,gif} (visual icon)               ║
+# ║   - capabilities.json (schema; extracted from .pbiviz anyway)      ║
+# ║   - Demo-Roadmap.pbix (anonymized demo report file)                ║
+# ╚════════════════════════════════════════════════════════════════════╝
+
+# ───── Source code (the primary defense) ─────
+*.ts
+*.tsx
+*.d.ts
+*.js
+*.jsx
+*.mjs
+*.cjs
+*.map
+src/
+
+# ───── Build configuration (reveals deps + tooling) ─────
+package.json
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+tsconfig*.json
+# pbiviz.json INTENTIONALLY ALLOWED — its content (author email, GUID,
+# supportUrl, version) is already embedded in every .pbiviz binary that
+# ships, so blocking it on the repo doesn't actually protect anything.
+eslint.config.*
+.eslintrc*
+.prettierrc*
+.editorconfig
+.husky/
+
+# ───── Internal gate artifacts (CORTEX) ─────
+.dead-exports-baseline.txt
+.file-size-ratchet-baseline.txt
+.eslint-baseline.json
+.madge-baseline.json
+.cortex-gates.yaml
+
+# ───── Dependencies + build output ─────
+node_modules/
+.tmp/
+tmp/
+.pbiviz/
+.cache/
+coverage/
+out/
+build/
+
+# ───── Internal directories ─────
+fixtures/
+test/
+tests/
+__tests__/
+.github/workflows/
+.vscode/
+.idea/
+.cursor/
+.devcontainer/
+
+# ───── Internal docs / process ─────
+CLAUDE.md
+*.local.md
+INF-*.md
+SANDBOX/
+
+# ───── Internal tooling formats (CORTEX-specific) ─────
+*.cor
+*.sdd
+*.ddd
+*.pbixray
+
+# ───── Secrets (must NEVER reach a public repo) ─────
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+*credentials*
+*token*
+*secret*
+.aws/
+.azure/
+.gcloud/
+.npmrc
+
+# ───── OS / editor cruft ─────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+*.log
