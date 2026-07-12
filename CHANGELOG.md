@@ -5,7 +5,31 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.0.0 — 2026-06-07 (current release)
+## v3.0.2.0 — 2026-07-12 (current release)
+
+**Fix release.**
+
+### Fixed
+- Large datasets now render: the previous 5,000-row cap could blank
+  reports over that limit; data now loads progressively and
+  automatically (30k-row windowing).
+- Milestone icons no longer disappear intermittently after slicer
+  changes (time-window state could be corrupted by a filter round-trip).
+- The Activity Inspector check mark reflects Milestone Status when the
+  "Milestone Status" field well is bound; the previous date-based
+  behavior is preserved when unbound.
+- Swim-lane labels now display for lanes containing a single activity.
+- The detail table no longer shows the activity name twice.
+- Fixed a crash that blanked the visual with 9 or more swim lanes;
+  lanes 9+ receive automatic palette colors.
+
+### Changed
+- Visualizations-pane name is now "Reporting Gantt" (was
+  "Reporting Roadmap").
+
+---
+
+## v3.0.0.0 — 2026-06-07
 
 **Major release.** Unlimited per-area swim lane colors via Format Pane;
 filter dimensions raised from 8 to 256; activity health icons with
