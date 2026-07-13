@@ -5,7 +5,27 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.2.0 — 2026-07-12 (current release)
+## v3.0.3.0 — 2026-07-12 (current release)
+
+**Fix release.**
+
+### Fixed
+- Fixed a crash that could blank the visual on very large datasets
+  (roughly 500,000+ rows / ~1M date values): the date-range computation
+  exceeded an engine argument limit. Ranges are now computed with a
+  single-pass scan at any scale.
+
+### New features
+- **Data-limit notice** — when Power BI itself stops delivering data at
+  its per-visual memory ceiling (~1,048,576 rows or 100 MB, whichever
+  comes first), the visual now shows a dismissible in-canvas notice
+  with the exact number of rows delivered. The visual imposes no data
+  limits of its own; this notice makes the platform's limit visible
+  instead of silent.
+
+---
+
+## v3.0.2.0 — 2026-07-12
 
 **Fix release.**
 
@@ -93,7 +113,7 @@ color theming; baseline/actual glide-path with variance escalation.
 
 - areaColor data role for per-row color overrides.
 - 25-lane stress fixture for past-cap testing.
-- Operator feedback round (INF-3815/3816/3817/3818/3820/3821) bundled.
+- Operator feedback round (six usability fixes) bundled.
 
 ## v2.2.0.3 — 2026-04-XX
 

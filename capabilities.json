@@ -1128,7 +1128,7 @@
                 },
                 "color": {
                     "displayName": "Color",
-                    "description": "INF-3975 — per-area color property for $instances. PBI persists one entry per bound area when the visual writes via host.persistProperties with selector { metadata: areaName }. Reads via readPerInstance(view, SWIMLANES, …). Replaces the slot1Color..slot8Color cap-8 path; slot[1-8]Color stay declared for v2.x backward-compat read.",
+                    "description": "Per-area color property for $instances. PBI persists one entry per bound area when the visual writes via host.persistProperties with selector { metadata: areaName }. Reads via readPerInstance(view, SWIMLANES, …). Replaces the slot1Color..slot8Color cap-8 path; slot[1-8]Color stay declared for v2.x backward-compat read.",
                     "type": {
                         "fill": {
                             "solid": {
@@ -1483,7 +1483,7 @@
                 },
                 "ganttHeightPct": {
                     "displayName": "Gantt Region Height %",
-                    "description": "Fraction of vertical space allocated to the Roadmap (Gantt) region vs the Table region. Range 0.10-0.90. Persists across reload+publish; mirrors the in-visual splitter drag (INF-3967).",
+                    "description": "Fraction of vertical space allocated to the Roadmap (Gantt) region vs the Table region. Range 0.10-0.90. Persists across reload+publish; mirrors the in-visual splitter drag.",
                     "type": {
                         "numeric": true
                     }
@@ -1492,7 +1492,7 @@
         },
         "appearance": {
             "displayName": "Appearance",
-            "description": "Chrome accent color and theme controls. INF-3972 — drives the filter panel's active-pin icon, drag drop indicator, and carried-card border so all chrome surfaces stay coherent.",
+            "description": "Chrome accent color and theme controls. Drives the filter panel's active-pin icon, drag drop indicator, and carried-card border so all chrome surfaces stay coherent.",
             "properties": {
                 "accent": {
                     "displayName": "Accent color",
@@ -1509,7 +1509,7 @@
         },
         "studioMode": {
             "displayName": "Studio Mode",
-            "description": "Studio Mode controls — INF-3872. Read-only toggle disables Pillar 2 gestures (drag-to-reschedule, resize handles, inline edit) so the visual renders as a static report surface. Inverse of advancedEditMode (INF-3862).",
+            "description": "Studio Mode controls. Read-only toggle disables Pillar 2 gestures (drag-to-reschedule, resize handles, inline edit) so the visual renders as a static report surface. Inverse of advancedEditMode.",
             "properties": {
                 "readOnly": {
                     "displayName": "Read-only mode",
@@ -1709,8 +1709,8 @@
                         }
                     ],
                     "dataReductionAlgorithm": {
-                        "top": {
-                            "count": 5000
+                        "window": {
+                            "count": 30000
                         }
                     }
                 }
