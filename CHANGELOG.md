@@ -5,7 +5,33 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.3.0 — 2026-07-12 (current release)
+## v3.0.4.0 — 2026-07-13 (current release)
+
+**Fix release.**
+
+### Fixed
+- **Milestones could disappear from the chart while remaining visible in
+  the detail table**, depending on how Power BI delivered date values to
+  the visual (numeric or regional string formats). Date handling is now
+  a single, tolerant parser shared by every part of the visual: native
+  dates, numeric timestamps, ISO strings, and regional day-first /
+  month-first strings (following the report locale) all render
+  identically everywhere. Reported by users as intermittent missing
+  milestone markers that a browser refresh appeared to fix.
+- Regional date strings could previously land on the wrong month
+  (day/month transposed) in edge cases; dates with an unambiguous
+  day (13 or higher) are now always read correctly, and ambiguous
+  dates follow the report's locale.
+
+### Reliability
+- The visual now continuously reconciles the number of milestones
+  delivered, processed, and drawn on every update, and reports any
+  discrepancy to the developer console — data can no longer go
+  missing silently.
+
+---
+
+## v3.0.3.0 — 2026-07-12
 
 **Fix release.**
 
