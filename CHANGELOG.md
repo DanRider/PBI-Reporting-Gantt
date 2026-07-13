@@ -5,7 +5,29 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.4.0 — 2026-07-13 (current release)
+## v3.0.5.0 — 2026-07-13 (current release)
+
+**Fix release.**
+
+### Fixed
+- **Milestone markers could intermittently disappear from the chart while
+  remaining in the detail table** when the time-window slider was applied to
+  the chart only. The window could be silently narrowed by an unrelated slicer
+  interaction, hiding markers until a refresh. The time window now changes
+  only in response to direct user action.
+- Milestones of every type now render on the chart. Previously, three or more
+  distinct milestone types dropped the extra types' markers from the chart
+  while still listing them in the table.
+
+### New
+- **Up to 10 milestone types** can be styled individually (color, symbol,
+  size, markers). Types beyond 10 render with a default marker, never hidden.
+- The visual reconciles delivered vs. drawn markers every update and surfaces
+  any data it could not read, so records can no longer go missing silently.
+
+---
+
+## v3.0.4.0 — 2026-07-13
 
 **Fix release.**
 
@@ -30,6 +52,29 @@ follow a four-part scheme: **major.minor.patch.build**.
   missing silently.
 
 ---
+
+---
+
+## v3.0.5.0 — 2026-07-13 (current release)
+
+**Fix release.**
+
+### Fixed
+- **Milestone markers could intermittently disappear from the chart while
+  remaining in the detail table** when the time-window slider was applied to
+  the chart only. The window could be silently narrowed by an unrelated
+  slicer interaction, hiding markers until a refresh. The time window now
+  changes only in response to direct user action.
+- Milestones of every type now render on the chart. Previously, with three or
+  more distinct milestone types, markers of the extra types were dropped from
+  the chart while still listed in the table.
+
+### New
+- **Up to 10 milestone types** can be styled individually (color, symbol,
+  size, markers). Types beyond 10 render with a default marker, never hidden.
+- The visual reconciles delivered vs. drawn markers every update and surfaces
+  any data it could not read, so records can no longer go missing silently.
+
 
 ## v3.0.3.0 — 2026-07-12
 

@@ -1,1725 +1,2769 @@
 {
-    "dataRoles": [
-        {
-            "name": "activity",
-            "displayName": "Activity",
-            "kind": "Grouping",
-            "description": "The bar's identity. Each unique value renders as one horizontal bar (e.g., a project task, a campaign phase, a product release, an audit cycle)."
-        },
-        {
-            "name": "area",
-            "displayName": "Swim Lane",
-            "kind": "Grouping",
-            "description": "Optional grouping that segments bars into swim lanes (e.g., team, department, workstream, portfolio area)."
-        },
-        {
-            "name": "startDate",
-            "displayName": "Start Date",
-            "kind": "Grouping",
-            "description": "When the bar starts. Date column."
-        },
-        {
-            "name": "endDate",
-            "displayName": "End Date",
-            "kind": "Grouping",
-            "description": "When the bar ends. Date column."
-        },
-        {
-            "name": "baselineStart",
-            "displayName": "Baseline Start",
-            "kind": "Grouping",
-            "description": "(Optional) The activity's committed (baseline) start date — what was originally planned. When bound alongside Baseline End, the glide-path layer renders a dashed baseline-bar outline on the activity row. Unbound = single-bar render unchanged from v2.2."
-        },
-        {
-            "name": "baselineEnd",
-            "displayName": "Baseline End",
-            "kind": "Grouping",
-            "description": "(Optional) The activity's committed (baseline) end date. When bound, drives slip computation (current End minus Baseline End) and renders the baseline-bar layer + slip-chevron indicator showing drift direction and magnitude."
-        },
-        {
-            "name": "actualStart",
-            "displayName": "Actual Start",
-            "kind": "Grouping",
-            "description": "(Optional) The activity's actual (recorded) start date — when real work began. When bound alongside Actual End, the glide-path layer renders a solid actual-segment showing real completed work."
-        },
-        {
-            "name": "actualEnd",
-            "displayName": "Actual End",
-            "kind": "Grouping",
-            "description": "(Optional) The activity's actual (recorded) end date — typically the report-as-of date for in-progress work, or the true completion date for finished work. When bound, defines the actual-segment endpoint."
-        },
-        {
-            "name": "milestoneActivity",
-            "displayName": "Milestone Activity",
-            "kind": "Grouping",
-            "description": "FK to the parent activity name. Each milestone attaches to the bar with the matching name."
-        },
-        {
-            "name": "milestoneDate",
-            "displayName": "Milestone Date",
-            "kind": "Grouping",
-            "description": "When the milestone marker is placed on its parent bar."
-        },
-        {
-            "name": "milestoneBaselineDate",
-            "displayName": "Milestone Baseline Date",
-            "kind": "Grouping",
-            "description": "(Optional) The originally-committed date for this milestone. When bound, the milestone renders with an additional hollow outline marker at the baseline x-position plus a thin connector line to the current solid marker (MS Project Tracking Gantt convention). Hides invisibly when baseline matches current date."
-        },
-        {
-            "name": "milestoneType",
-            "displayName": "Milestone Type",
-            "kind": "Grouping",
-            "description": "Marker classifier \u2014 distinct values appear as one slice each in the Format pane (color/symbol/size/visibility per type)."
-        },
-        {
-            "name": "milestoneLabel",
-            "displayName": "Milestone Label",
-            "kind": "Grouping",
-            "description": "Optional milestone text (nullable). Shown next to the marker per Label Position."
-        },
-        {
-            "name": "labelPosition",
-            "displayName": "Label Position",
-            "kind": "Grouping",
-            "description": "L | R | none. Author-controlled position of the label relative to the marker. Use 'none' to hide a single milestone's label without affecting others (per-row hide mechanism)."
-        },
-        {
-            "name": "activityNote",
-            "displayName": "Activity Note",
-            "kind": "Grouping",
-            "description": "Optional per-activity status note (free text). Shown in the activity tooltip on hover. Source: a text column on the Activities table \u2014 typically a 'Status' or 'Notes' column."
-        },
-        {
-            "name": "milestoneNote",
-            "displayName": "Milestone Note",
-            "kind": "Grouping",
-            "description": "Optional per-milestone status note (free text). Shown in the milestone tooltip on hover. Source: a text column on the Milestones table."
-        },
-        {
-            "name": "milestoneOwner",
-            "displayName": "Milestone Owner",
-            "kind": "Grouping",
-            "description": "(Optional) Person or team accountable for the milestone. Surfaced in the milestone Inspector when bound."
-        },
-        {
-            "name": "milestoneStatus",
-            "displayName": "Milestone Status",
-            "kind": "Grouping",
-            "description": "(Optional) Current state — e.g. Planned / In Progress / Complete / Blocked / Skipped. Surfaced in the milestone Inspector when bound."
-        },
-        {
-            "name": "milestoneExternalUrl",
-            "displayName": "Milestone External URL",
-            "kind": "Grouping",
-            "description": "(Optional) Clickable link surfaced in the milestone Inspector when bound."
-        },
-        {
-            "name": "milestoneHealth",
-            "displayName": "Milestone Health",
-            "kind": "Grouping",
-            "description": "(Optional) Status indicator — e.g. Green / Yellow / Red. Surfaced in the milestone Inspector when bound."
-        },
-        {
-            "name": "activityHealth",
-            "displayName": "Activity Health",
-            "kind": "Grouping",
-            "description": "(Optional) Per-activity status/alert indicator — e.g. Green / Yellow / Red, or semantic values like 'On Track' / 'At Risk' / 'Off Track' / 'Blocked'. When bound, the activity's left bullet renders in the alert color (via Milestone Health Colors palette); when unbound, the bullet falls back to the swim-lane color."
-        },
-        {
-            "name": "filterDimensions",
-            "displayName": "Filter Dimensions",
-            "kind": "Grouping",
-            "description": "Bind columns here to surface them as in-visual filters. Up to 8 dimensions. Each binding occupies one slot (1..8) in the Filter Slots card — set its tier (Featured tab strip / Comprehensive sidebar / Both / Hidden), selection mode, and optional label override. Bindings beyond 8 are dropped with an in-panel warning chip."
-        },
-        {
-            "name": "percentComplete",
-            "displayName": "Percent Complete",
-            "kind": "Measure",
-            "description": "(Optional) Operator-supplied 0-100 percent completion per activity. When bound AND the Activity Inspector's progress-bar source is set to 'User field', the slide-out drawer's % complete bar reads this column instead of computing elapsed-time / total-time. Unbound = the auto elapsed-time behavior is preserved."
-        },
-        {
-            "name": "areaColor",
-            "displayName": "Swim Lane Color",
-            "kind": "Grouping",
-            "description": "(Optional) Hex color string per row (format '#RRGGBB'). When bound, overrides the Format Pane slot colors and the hash-wrap fallback for the swim-lane's bars/glyphs. First non-null hex per area wins. Invalid hex values silently drop and fall through to the existing slot/hash resolution. Use this to drive brand or category colors from a dimension column (or a DAX CASE expression) — scales to any cardinality, no Format Pane edits required."
-        }
-    ],
-    "objects": {
-        "masterTimeSlider": {
-            "displayName": "Master Time Slider",
-            "description": "Persisted state of the top master time slider — window (JSON-stringified SliderRange) plus scope booleans selecting which regions the filter applies to.",
-            "properties": {
-                "windowJson": {
-                    "displayName": "Window (JSON)",
-                    "type": {
-                        "text": true
-                    }
-                },
-                "filtersGantt": {
-                    "displayName": "Filter applies to Roadmap chart",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "filtersTable": {
-                    "displayName": "Filter applies to detail table",
-                    "type": {
-                        "bool": true
-                    }
-                }
-            }
-        },
-        "title": {
-            "displayName": "Title",
-            "description": "Power BI's built-in platform title. Off by default \u2014 use the Chart Title card below instead for richer styling. Turning this on shows the title as a separate text element above the visual viewport (PBI platform handles rendering).",
-            "properties": {
-                "show": {
-                    "displayName": "Show",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "text": {
-                    "displayName": "Title text",
-                    "type": {
-                        "text": true
-                    }
-                },
-                "fontColor": {
-                    "displayName": "Color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "background": {
-                    "displayName": "Background",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "alignment": {
-                    "displayName": "Alignment",
-                    "type": {
-                        "enumeration": [
-                            {
-                                "value": "left",
-                                "displayName": "Left"
-                            },
-                            {
-                                "value": "center",
-                                "displayName": "Center"
-                            },
-                            {
-                                "value": "right",
-                                "displayName": "Right"
-                            }
-                        ]
-                    }
-                }
-            }
-        },
-        "chartTitle": {
-            "displayName": "Chart Title",
-            "description": "Custom title rendered inside the visual at the top \u2014 independent from Power BI's built-in 'Title' card. Use this for a styled, presentation-quality title. To avoid two titles, turn the built-in Title card OFF when using Chart Title.",
-            "properties": {
-                "show": {
-                    "displayName": "Show",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "text": {
-                    "displayName": "Title text",
-                    "type": {
-                        "text": true
-                    }
-                },
-                "fontColor": {
-                    "displayName": "Color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "fontFamily": {
-                    "displayName": "Font",
-                    "type": {
-                        "formatting": {
-                            "fontFamily": true
-                        }
-                    }
-                },
-                "fontSize": {
-                    "displayName": "Size",
-                    "type": {
-                        "formatting": {
-                            "fontSize": true
-                        }
-                    }
-                },
-                "bold": {
-                    "displayName": "Bold",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "italic": {
-                    "displayName": "Italic",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "underline": {
-                    "displayName": "Underline",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "alignment": {
-                    "displayName": "Alignment",
-                    "type": {
-                        "enumeration": [
-                            {
-                                "value": "left",
-                                "displayName": "Left"
-                            },
-                            {
-                                "value": "center",
-                                "displayName": "Center"
-                            },
-                            {
-                                "value": "right",
-                                "displayName": "Right"
-                            }
-                        ]
-                    }
-                }
-            }
-        },
-        "tooltip": {
-            "displayName": "Tooltip",
-            "description": "Controls hover-tooltip behavior. The Note row appears in both activity and milestone tooltips; this card decides whether to show it and how to handle rows where the Note field is unbound or empty.",
-            "properties": {
-                "showNote": {
-                    "displayName": "Show Note row",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "hideRowWhenEmpty": {
-                    "displayName": "Hide row when no note",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "emptyPlaceholder": {
-                    "displayName": "Placeholder for empty notes",
-                    "type": {
-                        "text": true
-                    }
-                }
-            }
-        },
-        "milestones": {
-            "displayName": "Milestones",
-            "description": "Marker + label controls. Max 2 milestone types (cap-2). First 2 distinct values from data bind to slots 1 and 2; displayNames in Format pane show actual type names. Data with 3+ types drops the extras.",
-            "properties": {
-                "hoverExpansion": {
-                    "displayName": "Hover target expansion (%)",
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "labelOverflow": {
-                    "displayName": "Label overflow",
-                    "type": {
-                        "enumeration": [
-                            {
-                                "value": "truncate",
-                                "displayName": "Truncate with \u2026"
-                            },
-                            {
-                                "value": "hide",
-                                "displayName": "Hide colliding"
-                            },
-                            {
-                                "value": "overflow",
-                                "displayName": "Show all (may overlap)"
-                            }
-                        ]
-                    }
-                },
-                "labelColor": {
-                    "displayName": "Label color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "labelFontFamily": {
-                    "displayName": "Label font",
-                    "type": {
-                        "formatting": {
-                            "fontFamily": true
-                        }
-                    }
-                },
-                "labelFontSize": {
-                    "displayName": "Label size",
-                    "type": {
-                        "formatting": {
-                            "fontSize": true
-                        }
-                    }
-                },
-                "labelBold": {
-                    "displayName": "Label bold",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "labelItalic": {
-                    "displayName": "Label italic",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "labelUnderline": {
-                    "displayName": "Label underline",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "type1Color": {
-                    "displayName": "Type 1 color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "type1Symbol": {
-                    "displayName": "Type 1 symbol",
-                    "type": {
-                        "enumeration": [
-                            {
-                                "value": "star",
-                                "displayName": "Star"
-                            },
-                            {
-                                "value": "circle",
-                                "displayName": "Circle"
-                            },
-                            {
-                                "value": "triangle",
-                                "displayName": "Triangle"
-                            },
-                            {
-                                "value": "square",
-                                "displayName": "Square"
-                            },
-                            {
-                                "value": "diamond",
-                                "displayName": "Diamond"
-                            }
-                        ]
-                    }
-                },
-                "type1Size": {
-                    "displayName": "Type 1 size (px)",
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "type1ShowMarker": {
-                    "displayName": "Type 1 show markers",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "type2Color": {
-                    "displayName": "Type 2 color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "type2Symbol": {
-                    "displayName": "Type 2 symbol",
-                    "type": {
-                        "enumeration": [
-                            {
-                                "value": "star",
-                                "displayName": "Star"
-                            },
-                            {
-                                "value": "circle",
-                                "displayName": "Circle"
-                            },
-                            {
-                                "value": "triangle",
-                                "displayName": "Triangle"
-                            },
-                            {
-                                "value": "square",
-                                "displayName": "Square"
-                            },
-                            {
-                                "value": "diamond",
-                                "displayName": "Diamond"
-                            }
-                        ]
-                    }
-                },
-                "type2Size": {
-                    "displayName": "Type 2 size (px)",
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "type2ShowMarker": {
-                    "displayName": "Type 2 show markers",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "legendShow": {
-                    "displayName": "Show legend",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "legendLabelColor": {
-                    "displayName": "Legend label color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "legendFontFamily": {
-                    "displayName": "Legend font",
-                    "type": {
-                        "formatting": {
-                            "fontFamily": true
-                        }
-                    }
-                },
-                "legendFontSize": {
-                    "displayName": "Legend size",
-                    "type": {
-                        "formatting": {
-                            "fontSize": true
-                        }
-                    }
-                },
-                "legendBold": {
-                    "displayName": "Legend bold",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "legendItalic": {
-                    "displayName": "Legend italic",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "legendUnderline": {
-                    "displayName": "Legend underline",
-                    "type": {
-                        "bool": true
-                    }
-                }
-            }
-        },
-        "activityHealthIcons": {
-            "displayName": "Activity Health Icons",
-            "description": "Bind each slot's icon+color to a specific value from your bound Activity Health column. Type the value to match in each slot's 'Value to match' field. Up to 5 slots; rows whose health value doesn't match any slot fall back to the swim-lane color.",
-            "properties": {
-"slot1Symbol": {
-                    "displayName": "Slot 1 symbol",
-                    "type": { "enumeration": [
-                        { "value": "warning", "displayName": "Warning" },
-                        { "value": "block",   "displayName": "Blocked" },
-                        { "value": "pause",   "displayName": "Paused" },
-                        { "value": "x",       "displayName": "Off Track" },
-                        { "value": "circle",  "displayName": "Dot" }
-                    ] }
-                },
-                "slot1Color": { "displayName": "Slot 1 color", "type": { "fill": { "solid": { "color": true } } } },
-                "slot1Size":  { "displayName": "Slot 1 size (px)", "type": { "numeric": true } },
-
-"slot2Symbol": {
-                    "displayName": "Slot 2 symbol",
-                    "type": { "enumeration": [
-                        { "value": "warning", "displayName": "Warning" },
-                        { "value": "block",   "displayName": "Blocked" },
-                        { "value": "pause",   "displayName": "Paused" },
-                        { "value": "x",       "displayName": "Off Track" },
-                        { "value": "circle",  "displayName": "Dot" }
-                    ] }
-                },
-                "slot2Color": { "displayName": "Slot 2 color", "type": { "fill": { "solid": { "color": true } } } },
-                "slot2Size":  { "displayName": "Slot 2 size (px)", "type": { "numeric": true } },
-
-"slot3Symbol": {
-                    "displayName": "Slot 3 symbol",
-                    "type": { "enumeration": [
-                        { "value": "warning", "displayName": "Warning" },
-                        { "value": "block",   "displayName": "Blocked" },
-                        { "value": "pause",   "displayName": "Paused" },
-                        { "value": "x",       "displayName": "Off Track" },
-                        { "value": "circle",  "displayName": "Dot" }
-                    ] }
-                },
-                "slot3Color": { "displayName": "Slot 3 color", "type": { "fill": { "solid": { "color": true } } } },
-                "slot3Size":  { "displayName": "Slot 3 size (px)", "type": { "numeric": true } },
-
-"slot4Symbol": {
-                    "displayName": "Slot 4 symbol",
-                    "type": { "enumeration": [
-                        { "value": "warning", "displayName": "Warning" },
-                        { "value": "block",   "displayName": "Blocked" },
-                        { "value": "pause",   "displayName": "Paused" },
-                        { "value": "x",       "displayName": "Off Track" },
-                        { "value": "circle",  "displayName": "Dot" }
-                    ] }
-                },
-                "slot4Color": { "displayName": "Slot 4 color", "type": { "fill": { "solid": { "color": true } } } },
-                "slot4Size":  { "displayName": "Slot 4 size (px)", "type": { "numeric": true } },
-
-"slot5Symbol": {
-                    "displayName": "Slot 5 symbol",
-                    "type": { "enumeration": [
-                        { "value": "warning", "displayName": "Warning" },
-                        { "value": "block",   "displayName": "Blocked" },
-                        { "value": "pause",   "displayName": "Paused" },
-                        { "value": "x",       "displayName": "Off Track" },
-                        { "value": "circle",  "displayName": "Dot" }
-                    ] }
-                },
-                "slot5Color": { "displayName": "Slot 5 color", "type": { "fill": { "solid": { "color": true } } } },
-                "slot5Size":  { "displayName": "Slot 5 size (px)", "type": { "numeric": true } }
-            }
-        },
-        "filterSlots": {
-            "displayName": "Filter Slots",
-            "description": "Per-slot controls for each column bound to Filter Dimensions. Slot N tracks the Nth binding in role-order. Set tier (Featured tab strip / Comprehensive sidebar / Both / Hidden), selection mode (Single / Multi / Search), and optional label override per slot. Slot displayNames are overridden at runtime from the bound column's name.",
-            "properties": {
-                "slot1Pinned": { "displayName": "Slot 1 pinned as top slicer", "type": { "bool": true } },
-                "slot1Tier": { "displayName": "Slot 1 tier", "type": { "enumeration": [
-                    { "value": "comprehensive", "displayName": "Visible in sidebar" },
-                    { "value": "hidden", "displayName": "Hidden" }
-                ] } },
-                "slot1Mode": { "displayName": "Slot 1 mode (deprecated)", "type": { "enumeration": [
-                    { "value": "single", "displayName": "Single-select" },
-                    { "value": "multi", "displayName": "Multi-select" },
-                    { "value": "search", "displayName": "Search" }
-                ] } },
-                "slot1Widget": { "displayName": "Slot 1 widget", "type": { "enumeration": [
-                    { "value": "auto", "displayName": "Auto" },
-                    { "value": "pills-multi", "displayName": "Pills (multi)" },
-                    { "value": "pills-single", "displayName": "Pills (single)" },
-                    { "value": "dropdown-multi", "displayName": "Dropdown" },
-                    { "value": "search-chips", "displayName": "Search" },
-                    { "value": "range-slider", "displayName": "Range slider" }
-                ] } },
-                "slot1Label": { "displayName": "Slot 1 label override", "type": { "text": true } },
-
-                "slot2Pinned": { "displayName": "Slot 2 pinned as top slicer", "type": { "bool": true } },
-                "slot2Tier": { "displayName": "Slot 2 tier", "type": { "enumeration": [
-                    { "value": "comprehensive", "displayName": "Visible in sidebar" },
-                    { "value": "hidden", "displayName": "Hidden" }
-                ] } },
-                "slot2Mode": { "displayName": "Slot 2 mode (deprecated)", "type": { "enumeration": [
-                    { "value": "single", "displayName": "Single-select" },
-                    { "value": "multi", "displayName": "Multi-select" },
-                    { "value": "search", "displayName": "Search" }
-                ] } },
-                "slot2Widget": { "displayName": "Slot 2 widget", "type": { "enumeration": [
-                    { "value": "auto", "displayName": "Auto" },
-                    { "value": "pills-multi", "displayName": "Pills (multi)" },
-                    { "value": "pills-single", "displayName": "Pills (single)" },
-                    { "value": "dropdown-multi", "displayName": "Dropdown" },
-                    { "value": "search-chips", "displayName": "Search" },
-                    { "value": "range-slider", "displayName": "Range slider" }
-                ] } },
-                "slot2Label": { "displayName": "Slot 2 label override", "type": { "text": true } },
-
-                "slot3Pinned": { "displayName": "Slot 3 pinned as top slicer", "type": { "bool": true } },
-                "slot3Tier": { "displayName": "Slot 3 tier", "type": { "enumeration": [
-                    { "value": "comprehensive", "displayName": "Visible in sidebar" },
-                    { "value": "hidden", "displayName": "Hidden" }
-                ] } },
-                "slot3Mode": { "displayName": "Slot 3 mode (deprecated)", "type": { "enumeration": [
-                    { "value": "single", "displayName": "Single-select" },
-                    { "value": "multi", "displayName": "Multi-select" },
-                    { "value": "search", "displayName": "Search" }
-                ] } },
-                "slot3Widget": { "displayName": "Slot 3 widget", "type": { "enumeration": [
-                    { "value": "auto", "displayName": "Auto" },
-                    { "value": "pills-multi", "displayName": "Pills (multi)" },
-                    { "value": "pills-single", "displayName": "Pills (single)" },
-                    { "value": "dropdown-multi", "displayName": "Dropdown" },
-                    { "value": "search-chips", "displayName": "Search" },
-                    { "value": "range-slider", "displayName": "Range slider" }
-                ] } },
-                "slot3Label": { "displayName": "Slot 3 label override", "type": { "text": true } },
-
-                "slot4Pinned": { "displayName": "Slot 4 pinned as top slicer", "type": { "bool": true } },
-                "slot4Tier": { "displayName": "Slot 4 tier", "type": { "enumeration": [
-                    { "value": "comprehensive", "displayName": "Visible in sidebar" },
-                    { "value": "hidden", "displayName": "Hidden" }
-                ] } },
-                "slot4Mode": { "displayName": "Slot 4 mode (deprecated)", "type": { "enumeration": [
-                    { "value": "single", "displayName": "Single-select" },
-                    { "value": "multi", "displayName": "Multi-select" },
-                    { "value": "search", "displayName": "Search" }
-                ] } },
-                "slot4Widget": { "displayName": "Slot 4 widget", "type": { "enumeration": [
-                    { "value": "auto", "displayName": "Auto" },
-                    { "value": "pills-multi", "displayName": "Pills (multi)" },
-                    { "value": "pills-single", "displayName": "Pills (single)" },
-                    { "value": "dropdown-multi", "displayName": "Dropdown" },
-                    { "value": "search-chips", "displayName": "Search" },
-                    { "value": "range-slider", "displayName": "Range slider" }
-                ] } },
-                "slot4Label": { "displayName": "Slot 4 label override", "type": { "text": true } },
-
-                "slot5Pinned": { "displayName": "Slot 5 pinned as top slicer", "type": { "bool": true } },
-                "slot5Tier": { "displayName": "Slot 5 tier", "type": { "enumeration": [
-                    { "value": "comprehensive", "displayName": "Visible in sidebar" },
-                    { "value": "hidden", "displayName": "Hidden" }
-                ] } },
-                "slot5Mode": { "displayName": "Slot 5 mode (deprecated)", "type": { "enumeration": [
-                    { "value": "single", "displayName": "Single-select" },
-                    { "value": "multi", "displayName": "Multi-select" },
-                    { "value": "search", "displayName": "Search" }
-                ] } },
-                "slot5Widget": { "displayName": "Slot 5 widget", "type": { "enumeration": [
-                    { "value": "auto", "displayName": "Auto" },
-                    { "value": "pills-multi", "displayName": "Pills (multi)" },
-                    { "value": "pills-single", "displayName": "Pills (single)" },
-                    { "value": "dropdown-multi", "displayName": "Dropdown" },
-                    { "value": "search-chips", "displayName": "Search" },
-                    { "value": "range-slider", "displayName": "Range slider" }
-                ] } },
-                "slot5Label": { "displayName": "Slot 5 label override", "type": { "text": true } },
-
-                "slot6Pinned": { "displayName": "Slot 6 pinned as top slicer", "type": { "bool": true } },
-                "slot6Tier": { "displayName": "Slot 6 tier", "type": { "enumeration": [
-                    { "value": "comprehensive", "displayName": "Visible in sidebar" },
-                    { "value": "hidden", "displayName": "Hidden" }
-                ] } },
-                "slot6Mode": { "displayName": "Slot 6 mode (deprecated)", "type": { "enumeration": [
-                    { "value": "single", "displayName": "Single-select" },
-                    { "value": "multi", "displayName": "Multi-select" },
-                    { "value": "search", "displayName": "Search" }
-                ] } },
-                "slot6Widget": { "displayName": "Slot 6 widget", "type": { "enumeration": [
-                    { "value": "auto", "displayName": "Auto" },
-                    { "value": "pills-multi", "displayName": "Pills (multi)" },
-                    { "value": "pills-single", "displayName": "Pills (single)" },
-                    { "value": "dropdown-multi", "displayName": "Dropdown" },
-                    { "value": "search-chips", "displayName": "Search" },
-                    { "value": "range-slider", "displayName": "Range slider" }
-                ] } },
-                "slot6Label": { "displayName": "Slot 6 label override", "type": { "text": true } },
-
-                "slot7Pinned": { "displayName": "Slot 7 pinned as top slicer", "type": { "bool": true } },
-                "slot7Tier": { "displayName": "Slot 7 tier", "type": { "enumeration": [
-                    { "value": "comprehensive", "displayName": "Visible in sidebar" },
-                    { "value": "hidden", "displayName": "Hidden" }
-                ] } },
-                "slot7Mode": { "displayName": "Slot 7 mode (deprecated)", "type": { "enumeration": [
-                    { "value": "single", "displayName": "Single-select" },
-                    { "value": "multi", "displayName": "Multi-select" },
-                    { "value": "search", "displayName": "Search" }
-                ] } },
-                "slot7Widget": { "displayName": "Slot 7 widget", "type": { "enumeration": [
-                    { "value": "auto", "displayName": "Auto" },
-                    { "value": "pills-multi", "displayName": "Pills (multi)" },
-                    { "value": "pills-single", "displayName": "Pills (single)" },
-                    { "value": "dropdown-multi", "displayName": "Dropdown" },
-                    { "value": "search-chips", "displayName": "Search" },
-                    { "value": "range-slider", "displayName": "Range slider" }
-                ] } },
-                "slot7Label": { "displayName": "Slot 7 label override", "type": { "text": true } },
-
-                "slot8Pinned": { "displayName": "Slot 8 pinned as top slicer", "type": { "bool": true } },
-                "slot8Tier": { "displayName": "Slot 8 tier", "type": { "enumeration": [
-                    { "value": "comprehensive", "displayName": "Visible in sidebar" },
-                    { "value": "hidden", "displayName": "Hidden" }
-                ] } },
-                "slot8Mode": { "displayName": "Slot 8 mode (deprecated)", "type": { "enumeration": [
-                    { "value": "single", "displayName": "Single-select" },
-                    { "value": "multi", "displayName": "Multi-select" },
-                    { "value": "search", "displayName": "Search" }
-                ] } },
-                "slot8Widget": { "displayName": "Slot 8 widget", "type": { "enumeration": [
-                    { "value": "auto", "displayName": "Auto" },
-                    { "value": "pills-multi", "displayName": "Pills (multi)" },
-                    { "value": "pills-single", "displayName": "Pills (single)" },
-                    { "value": "dropdown-multi", "displayName": "Dropdown" },
-                    { "value": "search-chips", "displayName": "Search" },
-                    { "value": "range-slider", "displayName": "Range slider" }
-                ] } },
-                "slot8Label": { "displayName": "Slot 8 label override", "type": { "text": true } }
-            }
-        },
-        "filterPanelLayout": {
-            "displayName": "Filter Panel Layout",
-            "description": "Panel-level layout for the in-visual filter chrome. Pinned dims render at the top of the visual; the comprehensive sidebar mounts on the right. selectionsJson persists user-selected values across .pbix save/reopen.",
-            "properties": {
-                "showFeatured": { "displayName": "Show Featured strip", "type": { "bool": true } },
-                "showComprehensive": { "displayName": "Show Comprehensive sidebar", "type": { "bool": true } },
-                "comprehensiveSizePx": { "displayName": "Comprehensive sidebar width (px)", "type": { "numeric": true } },
-                "selectionsJson": { "displayName": "Persisted selections (JSON)", "type": { "text": true } },
-                "pinnedDensity": {
-                    "displayName": "Pinned slicer density",
-                    "description": "Vertical compactness of the pinned slicer strip at the top of the visual. Comfortable = larger pills + more padding; Compact = balanced default; Dense = minimal vertical footprint for many pinned dims.",
-                    "type": {
-                        "enumeration": [
-                            { "value": "comfortable", "displayName": "Comfortable" },
-                            { "value": "compact", "displayName": "Compact" },
-                            { "value": "dense", "displayName": "Dense" }
-                        ]
-                    }
-                }
-            }
-        },
-        "milestoneHealthColors": {
-            "displayName": "Milestone Health Colors",
-            "description": "Color palette for the milestone Inspector's Health dot. The visual matches the bound Milestone Health value against literal color names (Green/Yellow/Red) AND common semantic-status strings (On Track / At Risk / Off Track / Blocked / Complete / Done) — change these colors to align the palette to your domain's status taxonomy.",
-            "properties": {
-                "green": {
-                    "displayName": "Green (on-track)",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "yellow": {
-                    "displayName": "Yellow (at-risk)",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "red": {
-                    "displayName": "Red (off-track)",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "activityLabels": {
-            "displayName": "Activity Labels",
-            "properties": {
-                "show": {
-                    "displayName": "Show",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "activityLabelWidthPercent": {
-                    "displayName": "Label column width (%)",
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "wrapText": {
-                    "displayName": "Wrap (2 lines)",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "overflowBehavior": {
-                    "displayName": "When text doesn't fit",
-                    "type": {
-                        "enumeration": [
-                            {
-                                "value": "truncate",
-                                "displayName": "Truncate with \u2026"
-                            },
-                            {
-                                "value": "hide",
-                                "displayName": "Hide"
-                            },
-                            {
-                                "value": "overflow",
-                                "displayName": "Show (may overflow)"
-                            }
-                        ]
-                    }
-                },
-                "fillMode": {
-                    "displayName": "Color mode",
-                    "type": {
-                        "enumeration": [
-                            {
-                                "value": "grey",
-                                "displayName": "Dark grey"
-                            },
-                            {
-                                "value": "area",
-                                "displayName": "Swim lane color"
-                            }
-                        ]
-                    }
-                },
-                "customColor": {
-                    "displayName": "Custom color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "fontFamily": {
-                    "displayName": "Font",
-                    "type": {
-                        "formatting": {
-                            "fontFamily": true
-                        }
-                    }
-                },
-                "fontSize": {
-                    "displayName": "Size",
-                    "type": {
-                        "formatting": {
-                            "fontSize": true
-                        }
-                    }
-                },
-                "bold": {
-                    "displayName": "Bold",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "italic": {
-                    "displayName": "Italic",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "underline": {
-                    "displayName": "Underline",
-                    "type": {
-                        "bool": true
-                    }
-                }
-            }
-        },
-        "swimlanes": {
-            "displayName": "Swim Lanes",
-            "description": "Width, label styling, and per-swim-lane color overrides \u2014 all consolidated here. One color picker appears per distinct Swim Lane value found in your data.",
-            "properties": {
-                "show": {
-                    "displayName": "Show",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "swimLaneWidthPercent": {
-                    "displayName": "Swim lane width (%)",
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "railAlignment": {
-                    "displayName": "Rail alignment relative to label",
-                    "type": {
-                        "enumeration": [
-                            {
-                                "value": "left",
-                                "displayName": "Left of label"
-                            },
-                            {
-                                "value": "center",
-                                "displayName": "Bisect label (center)"
-                            },
-                            {
-                                "value": "right",
-                                "displayName": "Right of label"
-                            }
-                        ]
-                    }
-                },
-                "wrapText": {
-                    "displayName": "Wrap labels",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "labelMaxChars": {
-                    "displayName": "Truncate label at",
-                    "description": "Max characters before truncation + ellipsis on swim-lane names. 0 disables. Codepoint-safe (no truncation mid-emoji). Hover the truncated label to see the full original name via SVG <title>.",
-                    "type": {
-                        "integer": true
-                    }
-                },
-                "labelColor": {
-                    "displayName": "Label color (default = swim lane color)",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "useAreaColor": {
-                    "displayName": "Use swim lane color for label",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "fontFamily": {
-                    "displayName": "Font",
-                    "type": {
-                        "formatting": {
-                            "fontFamily": true
-                        }
-                    }
-                },
-                "fontSize": {
-                    "displayName": "Size",
-                    "type": {
-                        "formatting": {
-                            "fontSize": true
-                        }
-                    }
-                },
-                "bold": {
-                    "displayName": "Bold",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "italic": {
-                    "displayName": "Italic",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "underline": {
-                    "displayName": "Underline",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "slot1Color": {
-                    "displayName": "Slot 1 color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "slot2Color": {
-                    "displayName": "Slot 2 color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "slot3Color": {
-                    "displayName": "Slot 3 color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "slot4Color": {
-                    "displayName": "Slot 4 color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "slot5Color": {
-                    "displayName": "Slot 5 color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "slot6Color": {
-                    "displayName": "Slot 6 color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "slot7Color": {
-                    "displayName": "Slot 7 color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "slot8Color": {
-                    "displayName": "Slot 8 color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "color": {
-                    "displayName": "Color",
-                    "description": "Per-area color property for $instances. PBI persists one entry per bound area when the visual writes via host.persistProperties with selector { metadata: areaName }. Reads via readPerInstance(view, SWIMLANES, …). Replaces the slot1Color..slot8Color cap-8 path; slot[1-8]Color stay declared for v2.x backward-compat read.",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "glidePath": {
-            "displayName": "Glide Path",
-            "description": "Variance escalation thresholds. When a baseline date is bound, the activity bullet color derives from slip magnitude (Green pulled-in / Yellow minor / Red major-or-critical) and a thin grey reference tick renders below the bar at the baseline-end date (Smartsheet + Tufte convention). Slip-magnitude thresholds (days) drive bullet color categorization — override these to match your portfolio's drift tolerance.",
-            "properties": {
-                "slipNegligibleDays": {
-                    "displayName": "Negligible threshold (days)",
-                    "description": "Absolute slip days at or below which an activity is considered on-track (no chevron renders).",
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "slipMinorDays": {
-                    "displayName": "Minor threshold (days)",
-                    "description": "Absolute slip days at or below which slip is classified minor (yellow chevron).",
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "slipMajorDays": {
-                    "displayName": "Major threshold (days)",
-                    "description": "Absolute slip days at or below which slip is classified major (orange chevron). Beyond this is critical (red).",
-                    "type": {
-                        "numeric": true
-                    }
-                }
-            }
-        },
-        "timeAxis": {
-            "displayName": "Time Axis",
-            "description": "Three hierarchy levels \u2014 Year, Quarter, Month. Each level can be toggled on/off. Quarter and Month tick boundaries can also render vertical gridlines through the chart body with their own color, opacity, and line style.",
-            "properties": {
-                "chevronStyle": {
-                    "displayName": "Chevron style",
-                    "type": {
-                        "enumeration": [
-                            {
-                                "value": "nested",
-                                "displayName": "Nested arrow"
-                            },
-                            {
-                                "value": "pentagon",
-                                "displayName": "Pentagon"
-                            },
-                            {
-                                "value": "rectangle",
-                                "displayName": "Rectangle"
-                            }
-                        ]
-                    }
-                },
-                "showYear": {
-                    "displayName": "Show Year",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "yearFill": {
-                    "displayName": "Year chevron color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "showQuarter": {
-                    "displayName": "Show Quarter",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "quarterFill": {
-                    "displayName": "Quarter chevron color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "showMonth": {
-                    "displayName": "Show Month",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "monthFill": {
-                    "displayName": "Month chevron color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "showQuarterGridlines": {
-                    "displayName": "Show quarter gridlines",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "quarterGridlineColor": {
-                    "displayName": "Quarter gridline color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "quarterGridlineOpacityPct": {
-                    "displayName": "Quarter gridline opacity (%)",
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "quarterGridlineStyle": {
-                    "displayName": "Quarter gridline style",
-                    "type": {
-                        "enumeration": [
-                            {
-                                "value": "solid",
-                                "displayName": "Solid"
-                            },
-                            {
-                                "value": "dashed",
-                                "displayName": "Dashed"
-                            },
-                            {
-                                "value": "dotted",
-                                "displayName": "Dotted"
-                            }
-                        ]
-                    }
-                },
-                "showMonthGridlines": {
-                    "displayName": "Show month gridlines",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "monthGridlineColor": {
-                    "displayName": "Month gridline color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "monthGridlineOpacityPct": {
-                    "displayName": "Month gridline opacity (%)",
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "monthGridlineStyle": {
-                    "displayName": "Month gridline style",
-                    "type": {
-                        "enumeration": [
-                            {
-                                "value": "solid",
-                                "displayName": "Solid"
-                            },
-                            {
-                                "value": "dashed",
-                                "displayName": "Dashed"
-                            },
-                            {
-                                "value": "dotted",
-                                "displayName": "Dotted"
-                            }
-                        ]
-                    }
-                },
-                "showTodayLine": {
-                    "displayName": "TODAY line",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "showTodayLabel": {
-                    "displayName": "TODAY label",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "todayLabelColor": {
-                    "displayName": "TODAY color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "showPastShading": {
-                    "displayName": "Past shading",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "pastShadingColor": {
-                    "displayName": "Past shading color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "pastShadingOpacityPct": {
-                    "displayName": "Past shading opacity (%)",
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "showFutureShading": {
-                    "displayName": "Future shading",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "futureShadingColor": {
-                    "displayName": "Future shading color",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "futureShadingOpacityPct": {
-                    "displayName": "Future shading opacity (%)",
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "fontFamily": {
-                    "displayName": "Font",
-                    "type": {
-                        "formatting": {
-                            "fontFamily": true
-                        }
-                    }
-                },
-                "fontSize": {
-                    "displayName": "Size",
-                    "type": {
-                        "formatting": {
-                            "fontSize": true
-                        }
-                    }
-                },
-                "bold": {
-                    "displayName": "Bold",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "italic": {
-                    "displayName": "Italic",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "underline": {
-                    "displayName": "Underline",
-                    "type": {
-                        "bool": true
-                    }
-                }
-            }
-        },
-        "activityInspector": {
-            "displayName": "Activity Inspector",
-            "description": "Controls the Activities slide-out drawer. Lets the operator hide the % complete bar entirely OR switch its source from auto elapsed-time to a user-bound `percentComplete` column.",
-            "properties": {
-                "showProgressBar": {
-                    "displayName": "Show % complete bar",
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "progressBarSource": {
-                    "displayName": "% complete source",
-                    "type": {
-                        "enumeration": [
-                            { "value": "auto", "displayName": "Auto (elapsed time)" },
-                            { "value": "userField", "displayName": "User field (Percent Complete column)" }
-                        ]
-                    }
-                }
-            }
-        },
-        "ganttLayout": {
-            "displayName": "Roadmap Layout",
-            "description": "Outer margins around the Roadmap chart region. Percentages of viewport.",
-            "properties": {
-                "topMarginPercent": {
-                    "displayName": "Top margin (%)",
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "bottomMarginPercent": {
-                    "displayName": "Bottom margin (%)",
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "leftMarginPercent": {
-                    "displayName": "Left margin (%)",
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "rightMarginPercent": {
-                    "displayName": "Right margin (%)",
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "hiddenMode": {
-                    "displayName": "Hidden region",
-                    "description": "Which region of the composed Roadmap+Table layout starts collapsed on report load. Mirrors the upper-right chrome Roadmap/Table toggles; the toggle state is wired through host.persistProperties so the operator's choice survives reload + publish.",
-                    "type": {
-                        "enumeration": [
-                            { "value": "none", "displayName": "Show both" },
-                            { "value": "gantt", "displayName": "Hide Roadmap" },
-                            { "value": "table", "displayName": "Hide Table" }
-                        ]
-                    }
-                },
-                "ganttHeightPct": {
-                    "displayName": "Gantt Region Height %",
-                    "description": "Fraction of vertical space allocated to the Roadmap (Gantt) region vs the Table region. Range 0.10-0.90. Persists across reload+publish; mirrors the in-visual splitter drag.",
-                    "type": {
-                        "numeric": true
-                    }
-                }
-            }
-        },
-        "appearance": {
-            "displayName": "Appearance",
-            "description": "Chrome accent color and theme controls. Drives the filter panel's active-pin icon, drag drop indicator, and carried-card border so all chrome surfaces stay coherent.",
-            "properties": {
-                "accent": {
-                    "displayName": "Accent color",
-                    "description": "Color used for the active-pin icon, drag drop indicator, and carried-card border in the filter panel. Default #1F77B4 (D3 blue) preserves v2.3 visuals.",
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "studioMode": {
-            "displayName": "Studio Mode",
-            "description": "Studio Mode controls. Read-only toggle disables Pillar 2 gestures (drag-to-reschedule, resize handles, inline edit) so the visual renders as a static report surface. Inverse of advancedEditMode.",
-            "properties": {
-                "readOnly": {
-                    "displayName": "Read-only mode",
-                    "description": "When on, all interactive editing is disabled regardless of advancedEditMode state. Default off (interactive).",
-                    "type": {
-                        "bool": true
-                    }
-                }
-            }
-        }
+  "dataRoles": [
+    {
+      "name": "activity",
+      "displayName": "Activity",
+      "kind": "Grouping",
+      "description": "The bar's identity. Each unique value renders as one horizontal bar (e.g., a project task, a campaign phase, a product release, an audit cycle)."
     },
-    "dataViewMappings": [
-        {
-            "conditions": [
-                {
-                    "activity": {
-                        "max": 1
-                    },
-                    "area": {
-                        "max": 1
-                    },
-                    "startDate": {
-                        "max": 1
-                    },
-                    "endDate": {
-                        "max": 1
-                    },
-                    "baselineStart": {
-                        "max": 1
-                    },
-                    "baselineEnd": {
-                        "max": 1
-                    },
-                    "actualStart": {
-                        "max": 1
-                    },
-                    "actualEnd": {
-                        "max": 1
-                    },
-                    "milestoneActivity": {
-                        "max": 1
-                    },
-                    "milestoneDate": {
-                        "max": 1
-                    },
-                    "milestoneBaselineDate": {
-                        "max": 1
-                    },
-                    "milestoneType": {
-                        "max": 1
-                    },
-                    "milestoneLabel": {
-                        "max": 1
-                    },
-                    "labelPosition": {
-                        "max": 1
-                    },
-                    "activityNote": {
-                        "max": 1
-                    },
-                    "milestoneNote": {
-                        "max": 1
-                    },
-                    "filterDimensions": {
-                        "max": 256
-                    },
-                    "percentComplete": {
-                        "max": 1
-                    },
-                    "areaColor": {
-                        "max": 1
-                    }
-                }
-            ],
-            "table": {
-                "rows": {
-                    "select": [
-                        {
-                            "for": {
-                                "in": "activity"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "area"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "startDate"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "endDate"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "baselineStart"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "baselineEnd"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "actualStart"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "actualEnd"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "milestoneActivity"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "milestoneDate"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "milestoneBaselineDate"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "milestoneType"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "milestoneLabel"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "labelPosition"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "activityNote"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "milestoneNote"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "milestoneOwner"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "milestoneStatus"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "milestoneExternalUrl"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "milestoneHealth"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "activityHealth"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "percentComplete"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "areaColor"
-                            }
-                        },
-                        {
-                            "for": {
-                                "in": "filterDimensions"
-                            }
-                        }
-                    ],
-                    "dataReductionAlgorithm": {
-                        "window": {
-                            "count": 30000
-                        }
-                    }
-                }
-            }
+    {
+      "name": "area",
+      "displayName": "Swim Lane",
+      "kind": "Grouping",
+      "description": "Optional grouping that segments bars into swim lanes (e.g., team, department, workstream, portfolio area)."
+    },
+    {
+      "name": "startDate",
+      "displayName": "Start Date",
+      "kind": "Grouping",
+      "description": "When the bar starts. Date column."
+    },
+    {
+      "name": "endDate",
+      "displayName": "End Date",
+      "kind": "Grouping",
+      "description": "When the bar ends. Date column."
+    },
+    {
+      "name": "baselineStart",
+      "displayName": "Baseline Start",
+      "kind": "Grouping",
+      "description": "(Optional) The activity's committed (baseline) start date \u2014 what was originally planned. When bound alongside Baseline End, the glide-path layer renders a dashed baseline-bar outline on the activity row. Unbound = single-bar render unchanged from v2.2."
+    },
+    {
+      "name": "baselineEnd",
+      "displayName": "Baseline End",
+      "kind": "Grouping",
+      "description": "(Optional) The activity's committed (baseline) end date. When bound, drives slip computation (current End minus Baseline End) and renders the baseline-bar layer + slip-chevron indicator showing drift direction and magnitude."
+    },
+    {
+      "name": "actualStart",
+      "displayName": "Actual Start",
+      "kind": "Grouping",
+      "description": "(Optional) The activity's actual (recorded) start date \u2014 when real work began. When bound alongside Actual End, the glide-path layer renders a solid actual-segment showing real completed work."
+    },
+    {
+      "name": "actualEnd",
+      "displayName": "Actual End",
+      "kind": "Grouping",
+      "description": "(Optional) The activity's actual (recorded) end date \u2014 typically the report-as-of date for in-progress work, or the true completion date for finished work. When bound, defines the actual-segment endpoint."
+    },
+    {
+      "name": "milestoneActivity",
+      "displayName": "Milestone Activity",
+      "kind": "Grouping",
+      "description": "FK to the parent activity name. Each milestone attaches to the bar with the matching name."
+    },
+    {
+      "name": "milestoneDate",
+      "displayName": "Milestone Date",
+      "kind": "Grouping",
+      "description": "When the milestone marker is placed on its parent bar."
+    },
+    {
+      "name": "milestoneBaselineDate",
+      "displayName": "Milestone Baseline Date",
+      "kind": "Grouping",
+      "description": "(Optional) The originally-committed date for this milestone. When bound, the milestone renders with an additional hollow outline marker at the baseline x-position plus a thin connector line to the current solid marker (MS Project Tracking Gantt convention). Hides invisibly when baseline matches current date."
+    },
+    {
+      "name": "milestoneType",
+      "displayName": "Milestone Type",
+      "kind": "Grouping",
+      "description": "Marker classifier \u2014 distinct values appear as one slice each in the Format pane (color/symbol/size/visibility per type)."
+    },
+    {
+      "name": "milestoneLabel",
+      "displayName": "Milestone Label",
+      "kind": "Grouping",
+      "description": "Optional milestone text (nullable). Shown next to the marker per Label Position."
+    },
+    {
+      "name": "labelPosition",
+      "displayName": "Label Position",
+      "kind": "Grouping",
+      "description": "L | R | none. Author-controlled position of the label relative to the marker. Use 'none' to hide a single milestone's label without affecting others (per-row hide mechanism)."
+    },
+    {
+      "name": "activityNote",
+      "displayName": "Activity Note",
+      "kind": "Grouping",
+      "description": "Optional per-activity status note (free text). Shown in the activity tooltip on hover. Source: a text column on the Activities table \u2014 typically a 'Status' or 'Notes' column."
+    },
+    {
+      "name": "milestoneNote",
+      "displayName": "Milestone Note",
+      "kind": "Grouping",
+      "description": "Optional per-milestone status note (free text). Shown in the milestone tooltip on hover. Source: a text column on the Milestones table."
+    },
+    {
+      "name": "milestoneOwner",
+      "displayName": "Milestone Owner",
+      "kind": "Grouping",
+      "description": "(Optional) Person or team accountable for the milestone. Surfaced in the milestone Inspector when bound."
+    },
+    {
+      "name": "milestoneStatus",
+      "displayName": "Milestone Status",
+      "kind": "Grouping",
+      "description": "(Optional) Current state \u2014 e.g. Planned / In Progress / Complete / Blocked / Skipped. Surfaced in the milestone Inspector when bound."
+    },
+    {
+      "name": "milestoneExternalUrl",
+      "displayName": "Milestone External URL",
+      "kind": "Grouping",
+      "description": "(Optional) Clickable link surfaced in the milestone Inspector when bound."
+    },
+    {
+      "name": "milestoneHealth",
+      "displayName": "Milestone Health",
+      "kind": "Grouping",
+      "description": "(Optional) Status indicator \u2014 e.g. Green / Yellow / Red. Surfaced in the milestone Inspector when bound."
+    },
+    {
+      "name": "activityHealth",
+      "displayName": "Activity Health",
+      "kind": "Grouping",
+      "description": "(Optional) Per-activity status/alert indicator \u2014 e.g. Green / Yellow / Red, or semantic values like 'On Track' / 'At Risk' / 'Off Track' / 'Blocked'. When bound, the activity's left bullet renders in the alert color (via Milestone Health Colors palette); when unbound, the bullet falls back to the swim-lane color."
+    },
+    {
+      "name": "filterDimensions",
+      "displayName": "Filter Dimensions",
+      "kind": "Grouping",
+      "description": "Bind columns here to surface them as in-visual filters. Up to 8 dimensions. Each binding occupies one slot (1..8) in the Filter Slots card \u2014 set its tier (Featured tab strip / Comprehensive sidebar / Both / Hidden), selection mode, and optional label override. Bindings beyond 8 are dropped with an in-panel warning chip."
+    },
+    {
+      "name": "percentComplete",
+      "displayName": "Percent Complete",
+      "kind": "Measure",
+      "description": "(Optional) Operator-supplied 0-100 percent completion per activity. When bound AND the Activity Inspector's progress-bar source is set to 'User field', the slide-out drawer's % complete bar reads this column instead of computing elapsed-time / total-time. Unbound = the auto elapsed-time behavior is preserved."
+    },
+    {
+      "name": "areaColor",
+      "displayName": "Swim Lane Color",
+      "kind": "Grouping",
+      "description": "(Optional) Hex color string per row (format '#RRGGBB'). When bound, overrides the Format Pane slot colors and the hash-wrap fallback for the swim-lane's bars/glyphs. First non-null hex per area wins. Invalid hex values silently drop and fall through to the existing slot/hash resolution. Use this to drive brand or category colors from a dimension column (or a DAX CASE expression) \u2014 scales to any cardinality, no Format Pane edits required."
+    }
+  ],
+  "objects": {
+    "masterTimeSlider": {
+      "displayName": "Master Time Slider",
+      "description": "Persisted state of the top master time slider \u2014 window (JSON-stringified SliderRange) plus scope booleans selecting which regions the filter applies to.",
+      "properties": {
+        "windowJson": {
+          "displayName": "Window (JSON)",
+          "type": {
+            "text": true
+          }
+        },
+        "filtersGantt": {
+          "displayName": "Filter applies to Roadmap chart",
+          "type": {
+            "bool": true
+          }
+        },
+        "filtersTable": {
+          "displayName": "Filter applies to detail table",
+          "type": {
+            "bool": true
+          }
         }
-    ],
-    "supportsHighlight": true,
-    "supportsLandingPage": false,
-    "supportsMultiVisualSelection": true,
-    "advancedEditModeSupport": 1,
-    "privileges": []
+      }
+    },
+    "title": {
+      "displayName": "Title",
+      "description": "Power BI's built-in platform title. Off by default \u2014 use the Chart Title card below instead for richer styling. Turning this on shows the title as a separate text element above the visual viewport (PBI platform handles rendering).",
+      "properties": {
+        "show": {
+          "displayName": "Show",
+          "type": {
+            "bool": true
+          }
+        },
+        "text": {
+          "displayName": "Title text",
+          "type": {
+            "text": true
+          }
+        },
+        "fontColor": {
+          "displayName": "Color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "background": {
+          "displayName": "Background",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "alignment": {
+          "displayName": "Alignment",
+          "type": {
+            "enumeration": [
+              {
+                "value": "left",
+                "displayName": "Left"
+              },
+              {
+                "value": "center",
+                "displayName": "Center"
+              },
+              {
+                "value": "right",
+                "displayName": "Right"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "chartTitle": {
+      "displayName": "Chart Title",
+      "description": "Custom title rendered inside the visual at the top \u2014 independent from Power BI's built-in 'Title' card. Use this for a styled, presentation-quality title. To avoid two titles, turn the built-in Title card OFF when using Chart Title.",
+      "properties": {
+        "show": {
+          "displayName": "Show",
+          "type": {
+            "bool": true
+          }
+        },
+        "text": {
+          "displayName": "Title text",
+          "type": {
+            "text": true
+          }
+        },
+        "fontColor": {
+          "displayName": "Color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "fontFamily": {
+          "displayName": "Font",
+          "type": {
+            "formatting": {
+              "fontFamily": true
+            }
+          }
+        },
+        "fontSize": {
+          "displayName": "Size",
+          "type": {
+            "formatting": {
+              "fontSize": true
+            }
+          }
+        },
+        "bold": {
+          "displayName": "Bold",
+          "type": {
+            "bool": true
+          }
+        },
+        "italic": {
+          "displayName": "Italic",
+          "type": {
+            "bool": true
+          }
+        },
+        "underline": {
+          "displayName": "Underline",
+          "type": {
+            "bool": true
+          }
+        },
+        "alignment": {
+          "displayName": "Alignment",
+          "type": {
+            "enumeration": [
+              {
+                "value": "left",
+                "displayName": "Left"
+              },
+              {
+                "value": "center",
+                "displayName": "Center"
+              },
+              {
+                "value": "right",
+                "displayName": "Right"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "tooltip": {
+      "displayName": "Tooltip",
+      "description": "Controls hover-tooltip behavior. The Note row appears in both activity and milestone tooltips; this card decides whether to show it and how to handle rows where the Note field is unbound or empty.",
+      "properties": {
+        "showNote": {
+          "displayName": "Show Note row",
+          "type": {
+            "bool": true
+          }
+        },
+        "hideRowWhenEmpty": {
+          "displayName": "Hide row when no note",
+          "type": {
+            "bool": true
+          }
+        },
+        "emptyPlaceholder": {
+          "displayName": "Placeholder for empty notes",
+          "type": {
+            "text": true
+          }
+        }
+      }
+    },
+    "milestones": {
+      "displayName": "Milestones",
+      "description": "Marker + label controls. Max 2 milestone types (cap-2). First 2 distinct values from data bind to slots 1 and 2; displayNames in Format pane show actual type names. Data with 3+ types drops the extras.",
+      "properties": {
+        "hoverExpansion": {
+          "displayName": "Hover target expansion (%)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "labelOverflow": {
+          "displayName": "Label overflow",
+          "type": {
+            "enumeration": [
+              {
+                "value": "truncate",
+                "displayName": "Truncate with \u2026"
+              },
+              {
+                "value": "hide",
+                "displayName": "Hide colliding"
+              },
+              {
+                "value": "overflow",
+                "displayName": "Show all (may overlap)"
+              }
+            ]
+          }
+        },
+        "labelColor": {
+          "displayName": "Label color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "labelFontFamily": {
+          "displayName": "Label font",
+          "type": {
+            "formatting": {
+              "fontFamily": true
+            }
+          }
+        },
+        "labelFontSize": {
+          "displayName": "Label size",
+          "type": {
+            "formatting": {
+              "fontSize": true
+            }
+          }
+        },
+        "labelBold": {
+          "displayName": "Label bold",
+          "type": {
+            "bool": true
+          }
+        },
+        "labelItalic": {
+          "displayName": "Label italic",
+          "type": {
+            "bool": true
+          }
+        },
+        "labelUnderline": {
+          "displayName": "Label underline",
+          "type": {
+            "bool": true
+          }
+        },
+        "type1Color": {
+          "displayName": "Type 1 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "type1Symbol": {
+          "displayName": "Type 1 symbol",
+          "type": {
+            "enumeration": [
+              {
+                "value": "star",
+                "displayName": "Star"
+              },
+              {
+                "value": "circle",
+                "displayName": "Circle"
+              },
+              {
+                "value": "triangle",
+                "displayName": "Triangle"
+              },
+              {
+                "value": "square",
+                "displayName": "Square"
+              },
+              {
+                "value": "diamond",
+                "displayName": "Diamond"
+              }
+            ]
+          }
+        },
+        "type1Size": {
+          "displayName": "Type 1 size (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "type1ShowMarker": {
+          "displayName": "Type 1 show markers",
+          "type": {
+            "bool": true
+          }
+        },
+        "type2Color": {
+          "displayName": "Type 2 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "type2Symbol": {
+          "displayName": "Type 2 symbol",
+          "type": {
+            "enumeration": [
+              {
+                "value": "star",
+                "displayName": "Star"
+              },
+              {
+                "value": "circle",
+                "displayName": "Circle"
+              },
+              {
+                "value": "triangle",
+                "displayName": "Triangle"
+              },
+              {
+                "value": "square",
+                "displayName": "Square"
+              },
+              {
+                "value": "diamond",
+                "displayName": "Diamond"
+              }
+            ]
+          }
+        },
+        "type2Size": {
+          "displayName": "Type 2 size (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "type2ShowMarker": {
+          "displayName": "Type 2 show markers",
+          "type": {
+            "bool": true
+          }
+        },
+        "legendShow": {
+          "displayName": "Show legend",
+          "type": {
+            "bool": true
+          }
+        },
+        "legendLabelColor": {
+          "displayName": "Legend label color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "legendFontFamily": {
+          "displayName": "Legend font",
+          "type": {
+            "formatting": {
+              "fontFamily": true
+            }
+          }
+        },
+        "legendFontSize": {
+          "displayName": "Legend size",
+          "type": {
+            "formatting": {
+              "fontSize": true
+            }
+          }
+        },
+        "legendBold": {
+          "displayName": "Legend bold",
+          "type": {
+            "bool": true
+          }
+        },
+        "legendItalic": {
+          "displayName": "Legend italic",
+          "type": {
+            "bool": true
+          }
+        },
+        "legendUnderline": {
+          "displayName": "Legend underline",
+          "type": {
+            "bool": true
+          }
+        },
+        "type3Color": {
+          "displayName": "Type 3 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "type3Symbol": {
+          "displayName": "Type 3 symbol",
+          "type": {
+            "enumeration": [
+              {
+                "value": "star",
+                "displayName": "Star"
+              },
+              {
+                "value": "circle",
+                "displayName": "Circle"
+              },
+              {
+                "value": "triangle",
+                "displayName": "Triangle"
+              },
+              {
+                "value": "square",
+                "displayName": "Square"
+              },
+              {
+                "value": "diamond",
+                "displayName": "Diamond"
+              }
+            ]
+          }
+        },
+        "type3Size": {
+          "displayName": "Type 3 size (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "type3ShowMarker": {
+          "displayName": "Type 3 show markers",
+          "type": {
+            "bool": true
+          }
+        },
+        "type4Color": {
+          "displayName": "Type 4 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "type4Symbol": {
+          "displayName": "Type 4 symbol",
+          "type": {
+            "enumeration": [
+              {
+                "value": "star",
+                "displayName": "Star"
+              },
+              {
+                "value": "circle",
+                "displayName": "Circle"
+              },
+              {
+                "value": "triangle",
+                "displayName": "Triangle"
+              },
+              {
+                "value": "square",
+                "displayName": "Square"
+              },
+              {
+                "value": "diamond",
+                "displayName": "Diamond"
+              }
+            ]
+          }
+        },
+        "type4Size": {
+          "displayName": "Type 4 size (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "type4ShowMarker": {
+          "displayName": "Type 4 show markers",
+          "type": {
+            "bool": true
+          }
+        },
+        "type5Color": {
+          "displayName": "Type 5 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "type5Symbol": {
+          "displayName": "Type 5 symbol",
+          "type": {
+            "enumeration": [
+              {
+                "value": "star",
+                "displayName": "Star"
+              },
+              {
+                "value": "circle",
+                "displayName": "Circle"
+              },
+              {
+                "value": "triangle",
+                "displayName": "Triangle"
+              },
+              {
+                "value": "square",
+                "displayName": "Square"
+              },
+              {
+                "value": "diamond",
+                "displayName": "Diamond"
+              }
+            ]
+          }
+        },
+        "type5Size": {
+          "displayName": "Type 5 size (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "type5ShowMarker": {
+          "displayName": "Type 5 show markers",
+          "type": {
+            "bool": true
+          }
+        },
+        "type6Color": {
+          "displayName": "Type 6 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "type6Symbol": {
+          "displayName": "Type 6 symbol",
+          "type": {
+            "enumeration": [
+              {
+                "value": "star",
+                "displayName": "Star"
+              },
+              {
+                "value": "circle",
+                "displayName": "Circle"
+              },
+              {
+                "value": "triangle",
+                "displayName": "Triangle"
+              },
+              {
+                "value": "square",
+                "displayName": "Square"
+              },
+              {
+                "value": "diamond",
+                "displayName": "Diamond"
+              }
+            ]
+          }
+        },
+        "type6Size": {
+          "displayName": "Type 6 size (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "type6ShowMarker": {
+          "displayName": "Type 6 show markers",
+          "type": {
+            "bool": true
+          }
+        },
+        "type7Color": {
+          "displayName": "Type 7 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "type7Symbol": {
+          "displayName": "Type 7 symbol",
+          "type": {
+            "enumeration": [
+              {
+                "value": "star",
+                "displayName": "Star"
+              },
+              {
+                "value": "circle",
+                "displayName": "Circle"
+              },
+              {
+                "value": "triangle",
+                "displayName": "Triangle"
+              },
+              {
+                "value": "square",
+                "displayName": "Square"
+              },
+              {
+                "value": "diamond",
+                "displayName": "Diamond"
+              }
+            ]
+          }
+        },
+        "type7Size": {
+          "displayName": "Type 7 size (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "type7ShowMarker": {
+          "displayName": "Type 7 show markers",
+          "type": {
+            "bool": true
+          }
+        },
+        "type8Color": {
+          "displayName": "Type 8 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "type8Symbol": {
+          "displayName": "Type 8 symbol",
+          "type": {
+            "enumeration": [
+              {
+                "value": "star",
+                "displayName": "Star"
+              },
+              {
+                "value": "circle",
+                "displayName": "Circle"
+              },
+              {
+                "value": "triangle",
+                "displayName": "Triangle"
+              },
+              {
+                "value": "square",
+                "displayName": "Square"
+              },
+              {
+                "value": "diamond",
+                "displayName": "Diamond"
+              }
+            ]
+          }
+        },
+        "type8Size": {
+          "displayName": "Type 8 size (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "type8ShowMarker": {
+          "displayName": "Type 8 show markers",
+          "type": {
+            "bool": true
+          }
+        },
+        "type9Color": {
+          "displayName": "Type 9 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "type9Symbol": {
+          "displayName": "Type 9 symbol",
+          "type": {
+            "enumeration": [
+              {
+                "value": "star",
+                "displayName": "Star"
+              },
+              {
+                "value": "circle",
+                "displayName": "Circle"
+              },
+              {
+                "value": "triangle",
+                "displayName": "Triangle"
+              },
+              {
+                "value": "square",
+                "displayName": "Square"
+              },
+              {
+                "value": "diamond",
+                "displayName": "Diamond"
+              }
+            ]
+          }
+        },
+        "type9Size": {
+          "displayName": "Type 9 size (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "type9ShowMarker": {
+          "displayName": "Type 9 show markers",
+          "type": {
+            "bool": true
+          }
+        },
+        "type10Color": {
+          "displayName": "Type 10 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "type10Symbol": {
+          "displayName": "Type 10 symbol",
+          "type": {
+            "enumeration": [
+              {
+                "value": "star",
+                "displayName": "Star"
+              },
+              {
+                "value": "circle",
+                "displayName": "Circle"
+              },
+              {
+                "value": "triangle",
+                "displayName": "Triangle"
+              },
+              {
+                "value": "square",
+                "displayName": "Square"
+              },
+              {
+                "value": "diamond",
+                "displayName": "Diamond"
+              }
+            ]
+          }
+        },
+        "type10Size": {
+          "displayName": "Type 10 size (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "type10ShowMarker": {
+          "displayName": "Type 10 show markers",
+          "type": {
+            "bool": true
+          }
+        }
+      }
+    },
+    "activityHealthIcons": {
+      "displayName": "Activity Health Icons",
+      "description": "Bind each slot's icon+color to a specific value from your bound Activity Health column. Type the value to match in each slot's 'Value to match' field. Up to 5 slots; rows whose health value doesn't match any slot fall back to the swim-lane color.",
+      "properties": {
+        "slot1Symbol": {
+          "displayName": "Slot 1 symbol",
+          "type": {
+            "enumeration": [
+              {
+                "value": "warning",
+                "displayName": "Warning"
+              },
+              {
+                "value": "block",
+                "displayName": "Blocked"
+              },
+              {
+                "value": "pause",
+                "displayName": "Paused"
+              },
+              {
+                "value": "x",
+                "displayName": "Off Track"
+              },
+              {
+                "value": "circle",
+                "displayName": "Dot"
+              }
+            ]
+          }
+        },
+        "slot1Color": {
+          "displayName": "Slot 1 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "slot1Size": {
+          "displayName": "Slot 1 size (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "slot2Symbol": {
+          "displayName": "Slot 2 symbol",
+          "type": {
+            "enumeration": [
+              {
+                "value": "warning",
+                "displayName": "Warning"
+              },
+              {
+                "value": "block",
+                "displayName": "Blocked"
+              },
+              {
+                "value": "pause",
+                "displayName": "Paused"
+              },
+              {
+                "value": "x",
+                "displayName": "Off Track"
+              },
+              {
+                "value": "circle",
+                "displayName": "Dot"
+              }
+            ]
+          }
+        },
+        "slot2Color": {
+          "displayName": "Slot 2 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "slot2Size": {
+          "displayName": "Slot 2 size (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "slot3Symbol": {
+          "displayName": "Slot 3 symbol",
+          "type": {
+            "enumeration": [
+              {
+                "value": "warning",
+                "displayName": "Warning"
+              },
+              {
+                "value": "block",
+                "displayName": "Blocked"
+              },
+              {
+                "value": "pause",
+                "displayName": "Paused"
+              },
+              {
+                "value": "x",
+                "displayName": "Off Track"
+              },
+              {
+                "value": "circle",
+                "displayName": "Dot"
+              }
+            ]
+          }
+        },
+        "slot3Color": {
+          "displayName": "Slot 3 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "slot3Size": {
+          "displayName": "Slot 3 size (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "slot4Symbol": {
+          "displayName": "Slot 4 symbol",
+          "type": {
+            "enumeration": [
+              {
+                "value": "warning",
+                "displayName": "Warning"
+              },
+              {
+                "value": "block",
+                "displayName": "Blocked"
+              },
+              {
+                "value": "pause",
+                "displayName": "Paused"
+              },
+              {
+                "value": "x",
+                "displayName": "Off Track"
+              },
+              {
+                "value": "circle",
+                "displayName": "Dot"
+              }
+            ]
+          }
+        },
+        "slot4Color": {
+          "displayName": "Slot 4 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "slot4Size": {
+          "displayName": "Slot 4 size (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "slot5Symbol": {
+          "displayName": "Slot 5 symbol",
+          "type": {
+            "enumeration": [
+              {
+                "value": "warning",
+                "displayName": "Warning"
+              },
+              {
+                "value": "block",
+                "displayName": "Blocked"
+              },
+              {
+                "value": "pause",
+                "displayName": "Paused"
+              },
+              {
+                "value": "x",
+                "displayName": "Off Track"
+              },
+              {
+                "value": "circle",
+                "displayName": "Dot"
+              }
+            ]
+          }
+        },
+        "slot5Color": {
+          "displayName": "Slot 5 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "slot5Size": {
+          "displayName": "Slot 5 size (px)",
+          "type": {
+            "numeric": true
+          }
+        }
+      }
+    },
+    "filterSlots": {
+      "displayName": "Filter Slots",
+      "description": "Per-slot controls for each column bound to Filter Dimensions. Slot N tracks the Nth binding in role-order. Set tier (Featured tab strip / Comprehensive sidebar / Both / Hidden), selection mode (Single / Multi / Search), and optional label override per slot. Slot displayNames are overridden at runtime from the bound column's name.",
+      "properties": {
+        "slot1Pinned": {
+          "displayName": "Slot 1 pinned as top slicer",
+          "type": {
+            "bool": true
+          }
+        },
+        "slot1Tier": {
+          "displayName": "Slot 1 tier",
+          "type": {
+            "enumeration": [
+              {
+                "value": "comprehensive",
+                "displayName": "Visible in sidebar"
+              },
+              {
+                "value": "hidden",
+                "displayName": "Hidden"
+              }
+            ]
+          }
+        },
+        "slot1Mode": {
+          "displayName": "Slot 1 mode (deprecated)",
+          "type": {
+            "enumeration": [
+              {
+                "value": "single",
+                "displayName": "Single-select"
+              },
+              {
+                "value": "multi",
+                "displayName": "Multi-select"
+              },
+              {
+                "value": "search",
+                "displayName": "Search"
+              }
+            ]
+          }
+        },
+        "slot1Widget": {
+          "displayName": "Slot 1 widget",
+          "type": {
+            "enumeration": [
+              {
+                "value": "auto",
+                "displayName": "Auto"
+              },
+              {
+                "value": "pills-multi",
+                "displayName": "Pills (multi)"
+              },
+              {
+                "value": "pills-single",
+                "displayName": "Pills (single)"
+              },
+              {
+                "value": "dropdown-multi",
+                "displayName": "Dropdown"
+              },
+              {
+                "value": "search-chips",
+                "displayName": "Search"
+              },
+              {
+                "value": "range-slider",
+                "displayName": "Range slider"
+              }
+            ]
+          }
+        },
+        "slot1Label": {
+          "displayName": "Slot 1 label override",
+          "type": {
+            "text": true
+          }
+        },
+        "slot2Pinned": {
+          "displayName": "Slot 2 pinned as top slicer",
+          "type": {
+            "bool": true
+          }
+        },
+        "slot2Tier": {
+          "displayName": "Slot 2 tier",
+          "type": {
+            "enumeration": [
+              {
+                "value": "comprehensive",
+                "displayName": "Visible in sidebar"
+              },
+              {
+                "value": "hidden",
+                "displayName": "Hidden"
+              }
+            ]
+          }
+        },
+        "slot2Mode": {
+          "displayName": "Slot 2 mode (deprecated)",
+          "type": {
+            "enumeration": [
+              {
+                "value": "single",
+                "displayName": "Single-select"
+              },
+              {
+                "value": "multi",
+                "displayName": "Multi-select"
+              },
+              {
+                "value": "search",
+                "displayName": "Search"
+              }
+            ]
+          }
+        },
+        "slot2Widget": {
+          "displayName": "Slot 2 widget",
+          "type": {
+            "enumeration": [
+              {
+                "value": "auto",
+                "displayName": "Auto"
+              },
+              {
+                "value": "pills-multi",
+                "displayName": "Pills (multi)"
+              },
+              {
+                "value": "pills-single",
+                "displayName": "Pills (single)"
+              },
+              {
+                "value": "dropdown-multi",
+                "displayName": "Dropdown"
+              },
+              {
+                "value": "search-chips",
+                "displayName": "Search"
+              },
+              {
+                "value": "range-slider",
+                "displayName": "Range slider"
+              }
+            ]
+          }
+        },
+        "slot2Label": {
+          "displayName": "Slot 2 label override",
+          "type": {
+            "text": true
+          }
+        },
+        "slot3Pinned": {
+          "displayName": "Slot 3 pinned as top slicer",
+          "type": {
+            "bool": true
+          }
+        },
+        "slot3Tier": {
+          "displayName": "Slot 3 tier",
+          "type": {
+            "enumeration": [
+              {
+                "value": "comprehensive",
+                "displayName": "Visible in sidebar"
+              },
+              {
+                "value": "hidden",
+                "displayName": "Hidden"
+              }
+            ]
+          }
+        },
+        "slot3Mode": {
+          "displayName": "Slot 3 mode (deprecated)",
+          "type": {
+            "enumeration": [
+              {
+                "value": "single",
+                "displayName": "Single-select"
+              },
+              {
+                "value": "multi",
+                "displayName": "Multi-select"
+              },
+              {
+                "value": "search",
+                "displayName": "Search"
+              }
+            ]
+          }
+        },
+        "slot3Widget": {
+          "displayName": "Slot 3 widget",
+          "type": {
+            "enumeration": [
+              {
+                "value": "auto",
+                "displayName": "Auto"
+              },
+              {
+                "value": "pills-multi",
+                "displayName": "Pills (multi)"
+              },
+              {
+                "value": "pills-single",
+                "displayName": "Pills (single)"
+              },
+              {
+                "value": "dropdown-multi",
+                "displayName": "Dropdown"
+              },
+              {
+                "value": "search-chips",
+                "displayName": "Search"
+              },
+              {
+                "value": "range-slider",
+                "displayName": "Range slider"
+              }
+            ]
+          }
+        },
+        "slot3Label": {
+          "displayName": "Slot 3 label override",
+          "type": {
+            "text": true
+          }
+        },
+        "slot4Pinned": {
+          "displayName": "Slot 4 pinned as top slicer",
+          "type": {
+            "bool": true
+          }
+        },
+        "slot4Tier": {
+          "displayName": "Slot 4 tier",
+          "type": {
+            "enumeration": [
+              {
+                "value": "comprehensive",
+                "displayName": "Visible in sidebar"
+              },
+              {
+                "value": "hidden",
+                "displayName": "Hidden"
+              }
+            ]
+          }
+        },
+        "slot4Mode": {
+          "displayName": "Slot 4 mode (deprecated)",
+          "type": {
+            "enumeration": [
+              {
+                "value": "single",
+                "displayName": "Single-select"
+              },
+              {
+                "value": "multi",
+                "displayName": "Multi-select"
+              },
+              {
+                "value": "search",
+                "displayName": "Search"
+              }
+            ]
+          }
+        },
+        "slot4Widget": {
+          "displayName": "Slot 4 widget",
+          "type": {
+            "enumeration": [
+              {
+                "value": "auto",
+                "displayName": "Auto"
+              },
+              {
+                "value": "pills-multi",
+                "displayName": "Pills (multi)"
+              },
+              {
+                "value": "pills-single",
+                "displayName": "Pills (single)"
+              },
+              {
+                "value": "dropdown-multi",
+                "displayName": "Dropdown"
+              },
+              {
+                "value": "search-chips",
+                "displayName": "Search"
+              },
+              {
+                "value": "range-slider",
+                "displayName": "Range slider"
+              }
+            ]
+          }
+        },
+        "slot4Label": {
+          "displayName": "Slot 4 label override",
+          "type": {
+            "text": true
+          }
+        },
+        "slot5Pinned": {
+          "displayName": "Slot 5 pinned as top slicer",
+          "type": {
+            "bool": true
+          }
+        },
+        "slot5Tier": {
+          "displayName": "Slot 5 tier",
+          "type": {
+            "enumeration": [
+              {
+                "value": "comprehensive",
+                "displayName": "Visible in sidebar"
+              },
+              {
+                "value": "hidden",
+                "displayName": "Hidden"
+              }
+            ]
+          }
+        },
+        "slot5Mode": {
+          "displayName": "Slot 5 mode (deprecated)",
+          "type": {
+            "enumeration": [
+              {
+                "value": "single",
+                "displayName": "Single-select"
+              },
+              {
+                "value": "multi",
+                "displayName": "Multi-select"
+              },
+              {
+                "value": "search",
+                "displayName": "Search"
+              }
+            ]
+          }
+        },
+        "slot5Widget": {
+          "displayName": "Slot 5 widget",
+          "type": {
+            "enumeration": [
+              {
+                "value": "auto",
+                "displayName": "Auto"
+              },
+              {
+                "value": "pills-multi",
+                "displayName": "Pills (multi)"
+              },
+              {
+                "value": "pills-single",
+                "displayName": "Pills (single)"
+              },
+              {
+                "value": "dropdown-multi",
+                "displayName": "Dropdown"
+              },
+              {
+                "value": "search-chips",
+                "displayName": "Search"
+              },
+              {
+                "value": "range-slider",
+                "displayName": "Range slider"
+              }
+            ]
+          }
+        },
+        "slot5Label": {
+          "displayName": "Slot 5 label override",
+          "type": {
+            "text": true
+          }
+        },
+        "slot6Pinned": {
+          "displayName": "Slot 6 pinned as top slicer",
+          "type": {
+            "bool": true
+          }
+        },
+        "slot6Tier": {
+          "displayName": "Slot 6 tier",
+          "type": {
+            "enumeration": [
+              {
+                "value": "comprehensive",
+                "displayName": "Visible in sidebar"
+              },
+              {
+                "value": "hidden",
+                "displayName": "Hidden"
+              }
+            ]
+          }
+        },
+        "slot6Mode": {
+          "displayName": "Slot 6 mode (deprecated)",
+          "type": {
+            "enumeration": [
+              {
+                "value": "single",
+                "displayName": "Single-select"
+              },
+              {
+                "value": "multi",
+                "displayName": "Multi-select"
+              },
+              {
+                "value": "search",
+                "displayName": "Search"
+              }
+            ]
+          }
+        },
+        "slot6Widget": {
+          "displayName": "Slot 6 widget",
+          "type": {
+            "enumeration": [
+              {
+                "value": "auto",
+                "displayName": "Auto"
+              },
+              {
+                "value": "pills-multi",
+                "displayName": "Pills (multi)"
+              },
+              {
+                "value": "pills-single",
+                "displayName": "Pills (single)"
+              },
+              {
+                "value": "dropdown-multi",
+                "displayName": "Dropdown"
+              },
+              {
+                "value": "search-chips",
+                "displayName": "Search"
+              },
+              {
+                "value": "range-slider",
+                "displayName": "Range slider"
+              }
+            ]
+          }
+        },
+        "slot6Label": {
+          "displayName": "Slot 6 label override",
+          "type": {
+            "text": true
+          }
+        },
+        "slot7Pinned": {
+          "displayName": "Slot 7 pinned as top slicer",
+          "type": {
+            "bool": true
+          }
+        },
+        "slot7Tier": {
+          "displayName": "Slot 7 tier",
+          "type": {
+            "enumeration": [
+              {
+                "value": "comprehensive",
+                "displayName": "Visible in sidebar"
+              },
+              {
+                "value": "hidden",
+                "displayName": "Hidden"
+              }
+            ]
+          }
+        },
+        "slot7Mode": {
+          "displayName": "Slot 7 mode (deprecated)",
+          "type": {
+            "enumeration": [
+              {
+                "value": "single",
+                "displayName": "Single-select"
+              },
+              {
+                "value": "multi",
+                "displayName": "Multi-select"
+              },
+              {
+                "value": "search",
+                "displayName": "Search"
+              }
+            ]
+          }
+        },
+        "slot7Widget": {
+          "displayName": "Slot 7 widget",
+          "type": {
+            "enumeration": [
+              {
+                "value": "auto",
+                "displayName": "Auto"
+              },
+              {
+                "value": "pills-multi",
+                "displayName": "Pills (multi)"
+              },
+              {
+                "value": "pills-single",
+                "displayName": "Pills (single)"
+              },
+              {
+                "value": "dropdown-multi",
+                "displayName": "Dropdown"
+              },
+              {
+                "value": "search-chips",
+                "displayName": "Search"
+              },
+              {
+                "value": "range-slider",
+                "displayName": "Range slider"
+              }
+            ]
+          }
+        },
+        "slot7Label": {
+          "displayName": "Slot 7 label override",
+          "type": {
+            "text": true
+          }
+        },
+        "slot8Pinned": {
+          "displayName": "Slot 8 pinned as top slicer",
+          "type": {
+            "bool": true
+          }
+        },
+        "slot8Tier": {
+          "displayName": "Slot 8 tier",
+          "type": {
+            "enumeration": [
+              {
+                "value": "comprehensive",
+                "displayName": "Visible in sidebar"
+              },
+              {
+                "value": "hidden",
+                "displayName": "Hidden"
+              }
+            ]
+          }
+        },
+        "slot8Mode": {
+          "displayName": "Slot 8 mode (deprecated)",
+          "type": {
+            "enumeration": [
+              {
+                "value": "single",
+                "displayName": "Single-select"
+              },
+              {
+                "value": "multi",
+                "displayName": "Multi-select"
+              },
+              {
+                "value": "search",
+                "displayName": "Search"
+              }
+            ]
+          }
+        },
+        "slot8Widget": {
+          "displayName": "Slot 8 widget",
+          "type": {
+            "enumeration": [
+              {
+                "value": "auto",
+                "displayName": "Auto"
+              },
+              {
+                "value": "pills-multi",
+                "displayName": "Pills (multi)"
+              },
+              {
+                "value": "pills-single",
+                "displayName": "Pills (single)"
+              },
+              {
+                "value": "dropdown-multi",
+                "displayName": "Dropdown"
+              },
+              {
+                "value": "search-chips",
+                "displayName": "Search"
+              },
+              {
+                "value": "range-slider",
+                "displayName": "Range slider"
+              }
+            ]
+          }
+        },
+        "slot8Label": {
+          "displayName": "Slot 8 label override",
+          "type": {
+            "text": true
+          }
+        }
+      }
+    },
+    "filterPanelLayout": {
+      "displayName": "Filter Panel Layout",
+      "description": "Panel-level layout for the in-visual filter chrome. Pinned dims render at the top of the visual; the comprehensive sidebar mounts on the right. selectionsJson persists user-selected values across .pbix save/reopen.",
+      "properties": {
+        "showFeatured": {
+          "displayName": "Show Featured strip",
+          "type": {
+            "bool": true
+          }
+        },
+        "showComprehensive": {
+          "displayName": "Show Comprehensive sidebar",
+          "type": {
+            "bool": true
+          }
+        },
+        "comprehensiveSizePx": {
+          "displayName": "Comprehensive sidebar width (px)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "selectionsJson": {
+          "displayName": "Persisted selections (JSON)",
+          "type": {
+            "text": true
+          }
+        },
+        "pinnedDensity": {
+          "displayName": "Pinned slicer density",
+          "description": "Vertical compactness of the pinned slicer strip at the top of the visual. Comfortable = larger pills + more padding; Compact = balanced default; Dense = minimal vertical footprint for many pinned dims.",
+          "type": {
+            "enumeration": [
+              {
+                "value": "comfortable",
+                "displayName": "Comfortable"
+              },
+              {
+                "value": "compact",
+                "displayName": "Compact"
+              },
+              {
+                "value": "dense",
+                "displayName": "Dense"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "milestoneHealthColors": {
+      "displayName": "Milestone Health Colors",
+      "description": "Color palette for the milestone Inspector's Health dot. The visual matches the bound Milestone Health value against literal color names (Green/Yellow/Red) AND common semantic-status strings (On Track / At Risk / Off Track / Blocked / Complete / Done) \u2014 change these colors to align the palette to your domain's status taxonomy.",
+      "properties": {
+        "green": {
+          "displayName": "Green (on-track)",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "yellow": {
+          "displayName": "Yellow (at-risk)",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "red": {
+          "displayName": "Red (off-track)",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "activityLabels": {
+      "displayName": "Activity Labels",
+      "properties": {
+        "show": {
+          "displayName": "Show",
+          "type": {
+            "bool": true
+          }
+        },
+        "activityLabelWidthPercent": {
+          "displayName": "Label column width (%)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "wrapText": {
+          "displayName": "Wrap (2 lines)",
+          "type": {
+            "bool": true
+          }
+        },
+        "overflowBehavior": {
+          "displayName": "When text doesn't fit",
+          "type": {
+            "enumeration": [
+              {
+                "value": "truncate",
+                "displayName": "Truncate with \u2026"
+              },
+              {
+                "value": "hide",
+                "displayName": "Hide"
+              },
+              {
+                "value": "overflow",
+                "displayName": "Show (may overflow)"
+              }
+            ]
+          }
+        },
+        "fillMode": {
+          "displayName": "Color mode",
+          "type": {
+            "enumeration": [
+              {
+                "value": "grey",
+                "displayName": "Dark grey"
+              },
+              {
+                "value": "area",
+                "displayName": "Swim lane color"
+              }
+            ]
+          }
+        },
+        "customColor": {
+          "displayName": "Custom color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "fontFamily": {
+          "displayName": "Font",
+          "type": {
+            "formatting": {
+              "fontFamily": true
+            }
+          }
+        },
+        "fontSize": {
+          "displayName": "Size",
+          "type": {
+            "formatting": {
+              "fontSize": true
+            }
+          }
+        },
+        "bold": {
+          "displayName": "Bold",
+          "type": {
+            "bool": true
+          }
+        },
+        "italic": {
+          "displayName": "Italic",
+          "type": {
+            "bool": true
+          }
+        },
+        "underline": {
+          "displayName": "Underline",
+          "type": {
+            "bool": true
+          }
+        }
+      }
+    },
+    "swimlanes": {
+      "displayName": "Swim Lanes",
+      "description": "Width, label styling, and per-swim-lane color overrides \u2014 all consolidated here. One color picker appears per distinct Swim Lane value found in your data.",
+      "properties": {
+        "show": {
+          "displayName": "Show",
+          "type": {
+            "bool": true
+          }
+        },
+        "swimLaneWidthPercent": {
+          "displayName": "Swim lane width (%)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "railAlignment": {
+          "displayName": "Rail alignment relative to label",
+          "type": {
+            "enumeration": [
+              {
+                "value": "left",
+                "displayName": "Left of label"
+              },
+              {
+                "value": "center",
+                "displayName": "Bisect label (center)"
+              },
+              {
+                "value": "right",
+                "displayName": "Right of label"
+              }
+            ]
+          }
+        },
+        "wrapText": {
+          "displayName": "Wrap labels",
+          "type": {
+            "bool": true
+          }
+        },
+        "labelMaxChars": {
+          "displayName": "Truncate label at",
+          "description": "Max characters before truncation + ellipsis on swim-lane names. 0 disables. Codepoint-safe (no truncation mid-emoji). Hover the truncated label to see the full original name via SVG <title>.",
+          "type": {
+            "integer": true
+          }
+        },
+        "labelColor": {
+          "displayName": "Label color (default = swim lane color)",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "useAreaColor": {
+          "displayName": "Use swim lane color for label",
+          "type": {
+            "bool": true
+          }
+        },
+        "fontFamily": {
+          "displayName": "Font",
+          "type": {
+            "formatting": {
+              "fontFamily": true
+            }
+          }
+        },
+        "fontSize": {
+          "displayName": "Size",
+          "type": {
+            "formatting": {
+              "fontSize": true
+            }
+          }
+        },
+        "bold": {
+          "displayName": "Bold",
+          "type": {
+            "bool": true
+          }
+        },
+        "italic": {
+          "displayName": "Italic",
+          "type": {
+            "bool": true
+          }
+        },
+        "underline": {
+          "displayName": "Underline",
+          "type": {
+            "bool": true
+          }
+        },
+        "slot1Color": {
+          "displayName": "Slot 1 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "slot2Color": {
+          "displayName": "Slot 2 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "slot3Color": {
+          "displayName": "Slot 3 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "slot4Color": {
+          "displayName": "Slot 4 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "slot5Color": {
+          "displayName": "Slot 5 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "slot6Color": {
+          "displayName": "Slot 6 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "slot7Color": {
+          "displayName": "Slot 7 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "slot8Color": {
+          "displayName": "Slot 8 color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "color": {
+          "displayName": "Color",
+          "description": "Per-area color property for $instances. PBI persists one entry per bound area when the visual writes via host.persistProperties with selector { metadata: areaName }. Reads via readPerInstance(view, SWIMLANES, \u2026). Replaces the slot1Color..slot8Color cap-8 path; slot[1-8]Color stay declared for v2.x backward-compat read.",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "glidePath": {
+      "displayName": "Glide Path",
+      "description": "Variance escalation thresholds. When a baseline date is bound, the activity bullet color derives from slip magnitude (Green pulled-in / Yellow minor / Red major-or-critical) and a thin grey reference tick renders below the bar at the baseline-end date (Smartsheet + Tufte convention). Slip-magnitude thresholds (days) drive bullet color categorization \u2014 override these to match your portfolio's drift tolerance.",
+      "properties": {
+        "slipNegligibleDays": {
+          "displayName": "Negligible threshold (days)",
+          "description": "Absolute slip days at or below which an activity is considered on-track (no chevron renders).",
+          "type": {
+            "numeric": true
+          }
+        },
+        "slipMinorDays": {
+          "displayName": "Minor threshold (days)",
+          "description": "Absolute slip days at or below which slip is classified minor (yellow chevron).",
+          "type": {
+            "numeric": true
+          }
+        },
+        "slipMajorDays": {
+          "displayName": "Major threshold (days)",
+          "description": "Absolute slip days at or below which slip is classified major (orange chevron). Beyond this is critical (red).",
+          "type": {
+            "numeric": true
+          }
+        }
+      }
+    },
+    "timeAxis": {
+      "displayName": "Time Axis",
+      "description": "Three hierarchy levels \u2014 Year, Quarter, Month. Each level can be toggled on/off. Quarter and Month tick boundaries can also render vertical gridlines through the chart body with their own color, opacity, and line style.",
+      "properties": {
+        "chevronStyle": {
+          "displayName": "Chevron style",
+          "type": {
+            "enumeration": [
+              {
+                "value": "nested",
+                "displayName": "Nested arrow"
+              },
+              {
+                "value": "pentagon",
+                "displayName": "Pentagon"
+              },
+              {
+                "value": "rectangle",
+                "displayName": "Rectangle"
+              }
+            ]
+          }
+        },
+        "showYear": {
+          "displayName": "Show Year",
+          "type": {
+            "bool": true
+          }
+        },
+        "yearFill": {
+          "displayName": "Year chevron color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "showQuarter": {
+          "displayName": "Show Quarter",
+          "type": {
+            "bool": true
+          }
+        },
+        "quarterFill": {
+          "displayName": "Quarter chevron color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "showMonth": {
+          "displayName": "Show Month",
+          "type": {
+            "bool": true
+          }
+        },
+        "monthFill": {
+          "displayName": "Month chevron color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "showQuarterGridlines": {
+          "displayName": "Show quarter gridlines",
+          "type": {
+            "bool": true
+          }
+        },
+        "quarterGridlineColor": {
+          "displayName": "Quarter gridline color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "quarterGridlineOpacityPct": {
+          "displayName": "Quarter gridline opacity (%)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "quarterGridlineStyle": {
+          "displayName": "Quarter gridline style",
+          "type": {
+            "enumeration": [
+              {
+                "value": "solid",
+                "displayName": "Solid"
+              },
+              {
+                "value": "dashed",
+                "displayName": "Dashed"
+              },
+              {
+                "value": "dotted",
+                "displayName": "Dotted"
+              }
+            ]
+          }
+        },
+        "showMonthGridlines": {
+          "displayName": "Show month gridlines",
+          "type": {
+            "bool": true
+          }
+        },
+        "monthGridlineColor": {
+          "displayName": "Month gridline color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "monthGridlineOpacityPct": {
+          "displayName": "Month gridline opacity (%)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "monthGridlineStyle": {
+          "displayName": "Month gridline style",
+          "type": {
+            "enumeration": [
+              {
+                "value": "solid",
+                "displayName": "Solid"
+              },
+              {
+                "value": "dashed",
+                "displayName": "Dashed"
+              },
+              {
+                "value": "dotted",
+                "displayName": "Dotted"
+              }
+            ]
+          }
+        },
+        "showTodayLine": {
+          "displayName": "TODAY line",
+          "type": {
+            "bool": true
+          }
+        },
+        "showTodayLabel": {
+          "displayName": "TODAY label",
+          "type": {
+            "bool": true
+          }
+        },
+        "todayLabelColor": {
+          "displayName": "TODAY color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "showPastShading": {
+          "displayName": "Past shading",
+          "type": {
+            "bool": true
+          }
+        },
+        "pastShadingColor": {
+          "displayName": "Past shading color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "pastShadingOpacityPct": {
+          "displayName": "Past shading opacity (%)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "showFutureShading": {
+          "displayName": "Future shading",
+          "type": {
+            "bool": true
+          }
+        },
+        "futureShadingColor": {
+          "displayName": "Future shading color",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "futureShadingOpacityPct": {
+          "displayName": "Future shading opacity (%)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "fontFamily": {
+          "displayName": "Font",
+          "type": {
+            "formatting": {
+              "fontFamily": true
+            }
+          }
+        },
+        "fontSize": {
+          "displayName": "Size",
+          "type": {
+            "formatting": {
+              "fontSize": true
+            }
+          }
+        },
+        "bold": {
+          "displayName": "Bold",
+          "type": {
+            "bool": true
+          }
+        },
+        "italic": {
+          "displayName": "Italic",
+          "type": {
+            "bool": true
+          }
+        },
+        "underline": {
+          "displayName": "Underline",
+          "type": {
+            "bool": true
+          }
+        }
+      }
+    },
+    "activityInspector": {
+      "displayName": "Activity Inspector",
+      "description": "Controls the Activities slide-out drawer. Lets the operator hide the % complete bar entirely OR switch its source from auto elapsed-time to a user-bound `percentComplete` column.",
+      "properties": {
+        "showProgressBar": {
+          "displayName": "Show % complete bar",
+          "type": {
+            "bool": true
+          }
+        },
+        "progressBarSource": {
+          "displayName": "% complete source",
+          "type": {
+            "enumeration": [
+              {
+                "value": "auto",
+                "displayName": "Auto (elapsed time)"
+              },
+              {
+                "value": "userField",
+                "displayName": "User field (Percent Complete column)"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "ganttLayout": {
+      "displayName": "Roadmap Layout",
+      "description": "Outer margins around the Roadmap chart region. Percentages of viewport.",
+      "properties": {
+        "topMarginPercent": {
+          "displayName": "Top margin (%)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "bottomMarginPercent": {
+          "displayName": "Bottom margin (%)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "leftMarginPercent": {
+          "displayName": "Left margin (%)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "rightMarginPercent": {
+          "displayName": "Right margin (%)",
+          "type": {
+            "numeric": true
+          }
+        },
+        "hiddenMode": {
+          "displayName": "Hidden region",
+          "description": "Which region of the composed Roadmap+Table layout starts collapsed on report load. Mirrors the upper-right chrome Roadmap/Table toggles; the toggle state is wired through host.persistProperties so the operator's choice survives reload + publish.",
+          "type": {
+            "enumeration": [
+              {
+                "value": "none",
+                "displayName": "Show both"
+              },
+              {
+                "value": "gantt",
+                "displayName": "Hide Roadmap"
+              },
+              {
+                "value": "table",
+                "displayName": "Hide Table"
+              }
+            ]
+          }
+        },
+        "ganttHeightPct": {
+          "displayName": "Gantt Region Height %",
+          "description": "Fraction of vertical space allocated to the Roadmap (Gantt) region vs the Table region. Range 0.10-0.90. Persists across reload+publish; mirrors the in-visual splitter drag.",
+          "type": {
+            "numeric": true
+          }
+        }
+      }
+    },
+    "appearance": {
+      "displayName": "Appearance",
+      "description": "Chrome accent color and theme controls. Drives the filter panel's active-pin icon, drag drop indicator, and carried-card border so all chrome surfaces stay coherent.",
+      "properties": {
+        "accent": {
+          "displayName": "Accent color",
+          "description": "Color used for the active-pin icon, drag drop indicator, and carried-card border in the filter panel. Default #1F77B4 (D3 blue) preserves v2.3 visuals.",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "studioMode": {
+      "displayName": "Studio Mode",
+      "description": "Studio Mode controls. Read-only toggle disables Pillar 2 gestures (drag-to-reschedule, resize handles, inline edit) so the visual renders as a static report surface. Inverse of advancedEditMode.",
+      "properties": {
+        "readOnly": {
+          "displayName": "Read-only mode",
+          "description": "When on, all interactive editing is disabled regardless of advancedEditMode state. Default off (interactive).",
+          "type": {
+            "bool": true
+          }
+        }
+      }
+    }
+  },
+  "dataViewMappings": [
+    {
+      "conditions": [
+        {
+          "activity": {
+            "max": 1
+          },
+          "area": {
+            "max": 1
+          },
+          "startDate": {
+            "max": 1
+          },
+          "endDate": {
+            "max": 1
+          },
+          "baselineStart": {
+            "max": 1
+          },
+          "baselineEnd": {
+            "max": 1
+          },
+          "actualStart": {
+            "max": 1
+          },
+          "actualEnd": {
+            "max": 1
+          },
+          "milestoneActivity": {
+            "max": 1
+          },
+          "milestoneDate": {
+            "max": 1
+          },
+          "milestoneBaselineDate": {
+            "max": 1
+          },
+          "milestoneType": {
+            "max": 1
+          },
+          "milestoneLabel": {
+            "max": 1
+          },
+          "labelPosition": {
+            "max": 1
+          },
+          "activityNote": {
+            "max": 1
+          },
+          "milestoneNote": {
+            "max": 1
+          },
+          "filterDimensions": {
+            "max": 256
+          },
+          "percentComplete": {
+            "max": 1
+          },
+          "areaColor": {
+            "max": 1
+          }
+        }
+      ],
+      "table": {
+        "rows": {
+          "select": [
+            {
+              "for": {
+                "in": "activity"
+              }
+            },
+            {
+              "for": {
+                "in": "area"
+              }
+            },
+            {
+              "for": {
+                "in": "startDate"
+              }
+            },
+            {
+              "for": {
+                "in": "endDate"
+              }
+            },
+            {
+              "for": {
+                "in": "baselineStart"
+              }
+            },
+            {
+              "for": {
+                "in": "baselineEnd"
+              }
+            },
+            {
+              "for": {
+                "in": "actualStart"
+              }
+            },
+            {
+              "for": {
+                "in": "actualEnd"
+              }
+            },
+            {
+              "for": {
+                "in": "milestoneActivity"
+              }
+            },
+            {
+              "for": {
+                "in": "milestoneDate"
+              }
+            },
+            {
+              "for": {
+                "in": "milestoneBaselineDate"
+              }
+            },
+            {
+              "for": {
+                "in": "milestoneType"
+              }
+            },
+            {
+              "for": {
+                "in": "milestoneLabel"
+              }
+            },
+            {
+              "for": {
+                "in": "labelPosition"
+              }
+            },
+            {
+              "for": {
+                "in": "activityNote"
+              }
+            },
+            {
+              "for": {
+                "in": "milestoneNote"
+              }
+            },
+            {
+              "for": {
+                "in": "milestoneOwner"
+              }
+            },
+            {
+              "for": {
+                "in": "milestoneStatus"
+              }
+            },
+            {
+              "for": {
+                "in": "milestoneExternalUrl"
+              }
+            },
+            {
+              "for": {
+                "in": "milestoneHealth"
+              }
+            },
+            {
+              "for": {
+                "in": "activityHealth"
+              }
+            },
+            {
+              "for": {
+                "in": "percentComplete"
+              }
+            },
+            {
+              "for": {
+                "in": "areaColor"
+              }
+            },
+            {
+              "for": {
+                "in": "filterDimensions"
+              }
+            }
+          ],
+          "dataReductionAlgorithm": {
+            "window": {
+              "count": 30000
+            }
+          }
+        }
+      }
+    }
+  ],
+  "supportsHighlight": true,
+  "supportsLandingPage": false,
+  "supportsMultiVisualSelection": true,
+  "advancedEditModeSupport": 1,
+  "privileges": []
 }
