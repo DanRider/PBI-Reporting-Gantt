@@ -5,7 +5,31 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.2 — 2026-07-13 (current release)
+## v3.0.5.3 — 2026-07-14 (current release)
+
+**Resilience + diagnostics release.**
+
+### Fixed
+- **The chart could go blank until a page refresh after filtering in the
+  Power BI service** (via external slicers or the visual's built-in filters).
+  The service occasionally delivers a momentary empty data frame mid-filter;
+  the visual previously tore down the rendered chart on that frame and could
+  be left waiting for data that never arrived. The chart now keeps its last
+  rendered state through momentary empty frames, asks the host to re-send data
+  if it does not arrive within a few seconds (with retries, and again when the
+  window regains focus), and only shows the "bind fields" message when fields
+  are genuinely disconnected.
+
+### Added
+- **Diagnostics panel** (Format pane → Diagnostics, off by default): an
+  expandable panel showing a live log of the visual's data updates, with a
+  Download-log button that exports the log as a text file to attach to support
+  reports. Uses Power BI's export API (tenant export permissions apply); falls
+  back to an on-screen view where export is blocked.
+
+---
+
+## v3.0.5.2 — 2026-07-13
 
 **Fix release.**
 
@@ -85,7 +109,7 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.2 — 2026-07-13 (current release)
+## v3.0.5.2 — 2026-07-13
 
 **Fix release.**
 
