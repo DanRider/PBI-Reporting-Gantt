@@ -28,7 +28,7 @@
       "name": "baselineStart",
       "displayName": "Baseline Start",
       "kind": "Grouping",
-      "description": "(Optional) The activity's committed (baseline) start date \u2014 what was originally planned. When bound alongside Baseline End, the glide-path layer renders a dashed baseline-bar outline on the activity row. Unbound = single-bar render unchanged from v2.2."
+      "description": "(Optional) The activity's committed (baseline) start date — what was originally planned. When bound alongside Baseline End, the glide-path layer renders a dashed baseline-bar outline on the activity row. Unbound = single-bar render unchanged from v2.2."
     },
     {
       "name": "baselineEnd",
@@ -40,13 +40,13 @@
       "name": "actualStart",
       "displayName": "Actual Start",
       "kind": "Grouping",
-      "description": "(Optional) The activity's actual (recorded) start date \u2014 when real work began. When bound alongside Actual End, the glide-path layer renders a solid actual-segment showing real completed work."
+      "description": "(Optional) The activity's actual (recorded) start date — when real work began. When bound alongside Actual End, the glide-path layer renders a solid actual-segment showing real completed work."
     },
     {
       "name": "actualEnd",
       "displayName": "Actual End",
       "kind": "Grouping",
-      "description": "(Optional) The activity's actual (recorded) end date \u2014 typically the report-as-of date for in-progress work, or the true completion date for finished work. When bound, defines the actual-segment endpoint."
+      "description": "(Optional) The activity's actual (recorded) end date — typically the report-as-of date for in-progress work, or the true completion date for finished work. When bound, defines the actual-segment endpoint."
     },
     {
       "name": "milestoneActivity",
@@ -70,7 +70,7 @@
       "name": "milestoneType",
       "displayName": "Milestone Type",
       "kind": "Grouping",
-      "description": "Marker classifier \u2014 distinct values appear as one slice each in the Format pane (color/symbol/size/visibility per type)."
+      "description": "Marker classifier — distinct values appear as one slice each in the Format pane (color/symbol/size/visibility per type)."
     },
     {
       "name": "milestoneLabel",
@@ -88,7 +88,7 @@
       "name": "activityNote",
       "displayName": "Activity Note",
       "kind": "Grouping",
-      "description": "Optional per-activity status note (free text). Shown in the activity tooltip on hover. Source: a text column on the Activities table \u2014 typically a 'Status' or 'Notes' column."
+      "description": "Optional per-activity status note (free text). Shown in the activity tooltip on hover. Source: a text column on the Activities table — typically a 'Status' or 'Notes' column."
     },
     {
       "name": "milestoneNote",
@@ -106,7 +106,7 @@
       "name": "milestoneStatus",
       "displayName": "Milestone Status",
       "kind": "Grouping",
-      "description": "(Optional) Current state \u2014 e.g. Planned / In Progress / Complete / Blocked / Skipped. Surfaced in the milestone Inspector when bound."
+      "description": "(Optional) Current state — e.g. Planned / In Progress / Complete / Blocked / Skipped. Surfaced in the milestone Inspector when bound."
     },
     {
       "name": "milestoneExternalUrl",
@@ -118,19 +118,19 @@
       "name": "milestoneHealth",
       "displayName": "Milestone Health",
       "kind": "Grouping",
-      "description": "(Optional) Status indicator \u2014 e.g. Green / Yellow / Red. Surfaced in the milestone Inspector when bound."
+      "description": "(Optional) Status indicator — e.g. Green / Yellow / Red. Surfaced in the milestone Inspector when bound."
     },
     {
       "name": "activityHealth",
       "displayName": "Activity Health",
       "kind": "Grouping",
-      "description": "(Optional) Per-activity status/alert indicator \u2014 e.g. Green / Yellow / Red, or semantic values like 'On Track' / 'At Risk' / 'Off Track' / 'Blocked'. When bound, the activity's left bullet renders in the alert color (via Milestone Health Colors palette); when unbound, the bullet falls back to the swim-lane color."
+      "description": "(Optional) Per-activity status/alert indicator — e.g. Green / Yellow / Red, or semantic values like 'On Track' / 'At Risk' / 'Off Track' / 'Blocked'. When bound, the activity's left bullet renders in the alert color (via Milestone Health Colors palette); when unbound, the bullet falls back to the swim-lane color."
     },
     {
       "name": "filterDimensions",
       "displayName": "Filter Dimensions",
       "kind": "Grouping",
-      "description": "Bind columns here to surface them as in-visual filters. Up to 8 dimensions. Each binding occupies one slot (1..8) in the Filter Slots card \u2014 set its tier (Featured tab strip / Comprehensive sidebar / Both / Hidden), selection mode, and optional label override. Bindings beyond 8 are dropped with an in-panel warning chip."
+      "description": "Bind columns here to surface them as in-visual filters. Up to 8 dimensions. Each binding occupies one slot (1..8) in the Filter Slots card — set its tier (Featured tab strip / Comprehensive sidebar / Both / Hidden), selection mode, and optional label override. Bindings beyond 8 are dropped with an in-panel warning chip."
     },
     {
       "name": "percentComplete",
@@ -142,13 +142,13 @@
       "name": "areaColor",
       "displayName": "Swim Lane Color",
       "kind": "Grouping",
-      "description": "(Optional) Hex color string per row (format '#RRGGBB'). When bound, overrides the Format Pane slot colors and the hash-wrap fallback for the swim-lane's bars/glyphs. First non-null hex per area wins. Invalid hex values silently drop and fall through to the existing slot/hash resolution. Use this to drive brand or category colors from a dimension column (or a DAX CASE expression) \u2014 scales to any cardinality, no Format Pane edits required."
+      "description": "(Optional) Hex color string per row (format '#RRGGBB'). When bound, overrides the Format Pane slot colors and the hash-wrap fallback for the swim-lane's bars/glyphs. First non-null hex per area wins. Invalid hex values silently drop and fall through to the existing slot/hash resolution. Use this to drive brand or category colors from a dimension column (or a DAX CASE expression) — scales to any cardinality, no Format Pane edits required."
     }
   ],
   "objects": {
     "masterTimeSlider": {
       "displayName": "Master Time Slider",
-      "description": "Persisted state of the top master time slider \u2014 window (JSON-stringified SliderRange) plus scope booleans selecting which regions the filter applies to.",
+      "description": "Persisted state of the top master time slider — window (JSON-stringified SliderRange) plus scope booleans selecting which regions the filter applies to.",
       "properties": {
         "windowJson": {
           "displayName": "Window (JSON)",
@@ -172,7 +172,7 @@
     },
     "title": {
       "displayName": "Title",
-      "description": "Power BI's built-in platform title. Off by default \u2014 use the Chart Title card below instead for richer styling. Turning this on shows the title as a separate text element above the visual viewport (PBI platform handles rendering).",
+      "description": "Power BI's built-in platform title. Off by default — use the Chart Title card below instead for richer styling. Turning this on shows the title as a separate text element above the visual viewport (PBI platform handles rendering).",
       "properties": {
         "show": {
           "displayName": "Show",
@@ -229,7 +229,7 @@
     },
     "chartTitle": {
       "displayName": "Chart Title",
-      "description": "Custom title rendered inside the visual at the top \u2014 independent from Power BI's built-in 'Title' card. Use this for a styled, presentation-quality title. To avoid two titles, turn the built-in Title card OFF when using Chart Title.",
+      "description": "Custom title rendered inside the visual at the top — independent from Power BI's built-in 'Title' card. Use this for a styled, presentation-quality title. To avoid two titles, turn the built-in Title card OFF when using Chart Title.",
       "properties": {
         "show": {
           "displayName": "Show",
@@ -348,7 +348,7 @@
             "enumeration": [
               {
                 "value": "truncate",
-                "displayName": "Truncate with \u2026"
+                "displayName": "Truncate with …"
               },
               {
                 "value": "hide",
@@ -1842,7 +1842,7 @@
     },
     "milestoneHealthColors": {
       "displayName": "Milestone Health Colors",
-      "description": "Color palette for the milestone Inspector's Health dot. The visual matches the bound Milestone Health value against literal color names (Green/Yellow/Red) AND common semantic-status strings (On Track / At Risk / Off Track / Blocked / Complete / Done) \u2014 change these colors to align the palette to your domain's status taxonomy.",
+      "description": "Color palette for the milestone Inspector's Health dot. The visual matches the bound Milestone Health value against literal color names (Green/Yellow/Red) AND common semantic-status strings (On Track / At Risk / Off Track / Blocked / Complete / Done) — change these colors to align the palette to your domain's status taxonomy.",
       "properties": {
         "green": {
           "displayName": "Green (on-track)",
@@ -1903,7 +1903,7 @@
             "enumeration": [
               {
                 "value": "truncate",
-                "displayName": "Truncate with \u2026"
+                "displayName": "Truncate with …"
               },
               {
                 "value": "hide",
@@ -1979,7 +1979,7 @@
     },
     "swimlanes": {
       "displayName": "Swim Lanes",
-      "description": "Width, label styling, and per-swim-lane color overrides \u2014 all consolidated here. One color picker appears per distinct Swim Lane value found in your data.",
+      "description": "Width, label styling, and per-swim-lane color overrides — all consolidated here. One color picker appears per distinct Swim Lane value found in your data.",
       "properties": {
         "show": {
           "displayName": "Show",
@@ -2157,7 +2157,7 @@
         },
         "color": {
           "displayName": "Color",
-          "description": "Per-area color property for $instances. PBI persists one entry per bound area when the visual writes via host.persistProperties with selector { metadata: areaName }. Reads via readPerInstance(view, SWIMLANES, \u2026). Replaces the slot1Color..slot8Color cap-8 path; slot[1-8]Color stay declared for v2.x backward-compat read.",
+          "description": "Per-area color property for $instances. PBI persists one entry per bound area when the visual writes via host.persistProperties with selector { metadata: areaName }. Reads via readPerInstance(view, SWIMLANES, …). Replaces the slot1Color..slot8Color cap-8 path; slot[1-8]Color stay declared for v2.x backward-compat read.",
           "type": {
             "fill": {
               "solid": {
@@ -2170,7 +2170,7 @@
     },
     "glidePath": {
       "displayName": "Glide Path",
-      "description": "Variance escalation thresholds. When a baseline date is bound, the activity bullet color derives from slip magnitude (Green pulled-in / Yellow minor / Red major-or-critical) and a thin grey reference tick renders below the bar at the baseline-end date (Smartsheet + Tufte convention). Slip-magnitude thresholds (days) drive bullet color categorization \u2014 override these to match your portfolio's drift tolerance.",
+      "description": "Variance escalation thresholds. When a baseline date is bound, the activity bullet color derives from slip magnitude (Green pulled-in / Yellow minor / Red major-or-critical) and a thin grey reference tick renders below the bar at the baseline-end date (Smartsheet + Tufte convention). Slip-magnitude thresholds (days) drive bullet color categorization — override these to match your portfolio's drift tolerance.",
       "properties": {
         "slipNegligibleDays": {
           "displayName": "Negligible threshold (days)",
@@ -2197,7 +2197,7 @@
     },
     "timeAxis": {
       "displayName": "Time Axis",
-      "description": "Three hierarchy levels \u2014 Year, Quarter, Month. Each level can be toggled on/off. Quarter and Month tick boundaries can also render vertical gridlines through the chart body with their own color, opacity, and line style.",
+      "description": "Three hierarchy levels — Year, Quarter, Month. Each level can be toggled on/off. Quarter and Month tick boundaries can also render vertical gridlines through the chart body with their own color, opacity, and line style.",
       "properties": {
         "chevronStyle": {
           "displayName": "Chevron style",
@@ -2563,6 +2563,19 @@
           }
         }
       }
+    },
+    "diagnostics": {
+      "displayName": "Diagnostics",
+      "description": "In-visual flight recorder. When on, a collapsed 'Log' chip (bottom-right) expands a slide-out panel showing the live census/recovery/lifecycle trail with a Download-log button that exports the buffer as a .txt via the sanctioned downloadService (ExportContent privilege). The ring buffer always accumulates; this toggle only reveals the surface. Default off.",
+      "properties": {
+        "enable": {
+          "displayName": "Show diagnostics log",
+          "description": "When on, reveal the on-canvas diagnostics chip + expandable log panel with the Download-log button. Default off (zero footprint).",
+          "type": {
+            "bool": true
+          }
+        }
+      }
     }
   },
   "dataViewMappings": [
@@ -2765,5 +2778,10 @@
   "supportsLandingPage": false,
   "supportsMultiVisualSelection": true,
   "advancedEditModeSupport": 1,
-  "privileges": []
+  "privileges": [
+    {
+      "name": "ExportContent",
+      "essential": false
+    }
+  ]
 }
