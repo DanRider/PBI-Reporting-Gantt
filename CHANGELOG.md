@@ -5,7 +5,22 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.1 — 2026-07-13 (current release)
+## v3.0.5.2 — 2026-07-13 (current release)
+
+**Fix release.**
+
+### Fixed
+- **Milestone markers in the activity and swim-lane inspector panels now
+  match the legend.** Each marker uses its milestone type's configured
+  symbol shape and color (the same rendering the legend and chart use),
+  sized for the panel's compact layout — previously the panels showed a
+  generic star that ignored the type's configured symbol and, in the
+  swim-lane view, was tinted with the activity color instead of the
+  type color.
+
+---
+
+## v3.0.5.1 — 2026-07-13
 
 **Fix release.**
 
@@ -70,7 +85,22 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.1 — 2026-07-13 (current release)
+## v3.0.5.2 — 2026-07-13 (current release)
+
+**Fix release.**
+
+### Fixed
+- **Milestone markers in the activity and swim-lane inspector panels now
+  match the legend.** Each marker uses its milestone type's configured
+  symbol shape and color (the same rendering the legend and chart use),
+  sized for the panel's compact layout — previously the panels showed a
+  generic star that ignored the type's configured symbol and, in the
+  swim-lane view, was tinted with the activity color instead of the
+  type color.
+
+---
+
+## v3.0.5.1 — 2026-07-13
 
 **Fix release.**
 
