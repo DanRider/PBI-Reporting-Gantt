@@ -5,7 +5,22 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.0 — 2026-07-13 (current release)
+## v3.0.5.1 — 2026-07-13 (current release)
+
+**Fix release.**
+
+### Fixed
+- **The activity inspector panel could show a stale "in time window" milestone
+  count** after the time window was narrowed and then extended (or a window
+  scope toggle was changed) while the panel was open — e.g. the panel showing
+  "0 in time window" while the chart and the detail table showed the
+  milestones. The chart, the detail table, and the inspector panel now always
+  filter by the same time window on every update, so the three views can no
+  longer disagree.
+
+---
+
+## v3.0.5.0 — 2026-07-13
 
 **Fix release.**
 
@@ -55,7 +70,22 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.0 — 2026-07-13 (current release)
+## v3.0.5.1 — 2026-07-13 (current release)
+
+**Fix release.**
+
+### Fixed
+- **The activity inspector panel could show a stale "in time window" milestone
+  count** after the time window was narrowed and then extended (or a window
+  scope toggle was changed) while the panel was open — e.g. the panel showing
+  "0 in time window" while the chart and the detail table showed the
+  milestones. The chart, the detail table, and the inspector panel now always
+  filter by the same time window on every update, so the three views can no
+  longer disagree.
+
+---
+
+## v3.0.5.0 — 2026-07-13
 
 **Fix release.**
 
