@@ -5,7 +5,12 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.8 — 2026-07-15 (current release)
+## v3.0.5.9 — 2026-07-15 (current release)
+
+### Fixed
+- **Milestone markers that appeared in the detail table could be missing from the chart** when a milestone's activity value differed from the activity's name by only whitespace, letter case, or invisible characters. The chart matched milestones to their row by an exact text match, so a stray space or case difference dropped the marker from the chart while the table still showed it. The chart now matches tolerantly (ignoring surrounding/repeated spaces, case, and invisible characters), so any milestone shown in the table also renders on the chart; genuinely unmatched milestones are surfaced rather than silently removed, and the Diagnostics panel names the unmatched value and its closest activity.
+
+## v3.0.5.8 — 2026-07-15
 
 ### Fixed
 - **Milestones no longer disappear when their date is in a format the chart did not previously recognize.** The date reader now understands more formats commonly found in enterprise data — including spreadsheet serial numbers, fiscal-quarter text (e.g. "Q1 2026"), and date/time values — and treats explicit placeholders (e.g. "TBD", "N/A") as intentionally-undated rather than errors. Milestones that are genuinely undated are surfaced instead of silently removed, and the Diagnostics panel now shows the actual value of anything it still cannot read, so a data question is answerable at a glance.
