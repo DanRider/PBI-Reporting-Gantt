@@ -5,7 +5,11 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.4 — 2026-07-14 (current release)
+## v3.0.5.5 — 2026-07-14 (current release)
+
+Version restamp of v3.0.5.4 to ensure Power BI loads the updated visual; no functional changes.
+
+## v3.0.5.4 — 2026-07-14
 
 **Fix + diagnostics release.**
 
