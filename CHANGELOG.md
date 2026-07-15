@@ -5,7 +5,12 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.7 — 2026-07-14 (current release)
+## v3.0.5.8 — 2026-07-15 (current release)
+
+### Fixed
+- **Milestones no longer disappear when their date is in a format the chart did not previously recognize.** The date reader now understands more formats commonly found in enterprise data — including spreadsheet serial numbers, fiscal-quarter text (e.g. "Q1 2026"), and date/time values — and treats explicit placeholders (e.g. "TBD", "N/A") as intentionally-undated rather than errors. Milestones that are genuinely undated are surfaced instead of silently removed, and the Diagnostics panel now shows the actual value of anything it still cannot read, so a data question is answerable at a glance.
+
+## v3.0.5.7 — 2026-07-14
 
 Version restamp of v3.0.5.6 to ensure a clean download; no functional changes.
 
