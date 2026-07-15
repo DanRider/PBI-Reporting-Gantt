@@ -5,7 +5,12 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.11 — 2026-07-15 (current release)
+## v3.0.5.12 — 2026-07-15 (current release)
+
+### Fixed
+- **The chart now shows every milestone in the data — no milestone is ever left off the chart.** Records that previously could not be placed (an activity reference that matches no activity, or an unreadable date) are no longer dropped: they are matched to the closest activity when possible, otherwise shown in a clearly-marked "Unresolved" area, and flagged as a non-blocking warning. The Diagnostics panel shows the exact source rows behind any warning (every column, as delivered) with the problem highlighted, so the underlying data can be corrected — but the chart never waits on that and never hides a record.
+
+## v3.0.5.11 — 2026-07-15
 
 ### Fixed
 - **Milestone markers could disappear from the chart after repeatedly changing filters**, returning only after a full refresh. The chart matched markers to their data by a value that was reassigned on every refresh, so filter changes could make the chart rebuild markers instead of updating them in place and occasionally drop one. Markers are now matched by a stable identity, so they persist correctly across filter changes.
