@@ -5,7 +5,12 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.10 — 2026-07-15 (current release)
+## v3.0.5.11 — 2026-07-15 (current release)
+
+### Fixed
+- **Milestone markers could disappear from the chart after repeatedly changing filters**, returning only after a full refresh. The chart matched markers to their data by a value that was reassigned on every refresh, so filter changes could make the chart rebuild markers instead of updating them in place and occasionally drop one. Markers are now matched by a stable identity, so they persist correctly across filter changes.
+
+## v3.0.5.10 — 2026-07-15
 
 ### Improved
 - **The Diagnostics panel now names the exact records it could not use.** When a milestone is dropped, the panel and the downloadable log show that milestone's label, its raw activity reference, the reason, and the closest matching activity — so a data mismatch (for example a reference that points at an ID or a name that does not exist among the activities) is identifiable directly from the panel instead of only a category count.
