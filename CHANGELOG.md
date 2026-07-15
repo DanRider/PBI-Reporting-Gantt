@@ -5,7 +5,18 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.3 — 2026-07-14 (current release)
+## v3.0.5.4 — 2026-07-14 (current release)
+
+**Fix + diagnostics release.**
+
+### Fixed
+- **The first row's milestone markers could become invisible after filtering in the Power BI service** while the row's bar remained visible; a browser refresh restored them. Filter interactions in the service could leave the chart's scroll position slightly displaced, clipping the first row's markers at the chart's top edge. The chart now reserves headroom above the first row sized to the largest configured marker (with hover growth), and corrects any displaced scroll position on every update.
+
+### Improved
+- **Diagnostics panel** readability and utility: dark theme, larger monospace log text, a maximize control that expands the log to the full visual, selectable text, and the panel now renders above the time-slider controls.
+- **Diagnostics log detail:** per-row milestone accounting (data delivered vs markers rendered, per row) and rendered-geometry checks that report whether any markers sit outside the visible chart area — making layout issues diagnosable directly from a downloaded log.
+
+## v3.0.5.3 — 2026-07-14
 
 **Resilience + diagnostics release.**
 
