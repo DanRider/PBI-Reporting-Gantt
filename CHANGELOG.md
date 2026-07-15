@@ -5,7 +5,14 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.12 — 2026-07-15 (current release)
+## v3.0.5.13 — 2026-07-15 (current release)
+
+### Fixed
+- **Milestone markers are now always drawn on top of the bars and background bands, so a marker can never be hidden behind another element.** A build-time check and a runtime diagnostic now flag any marker that would be visually covered, and a new "Semi-transparent bars" option (Format pane, off by default) lets you see markers through the bars when checking a report.
+
+---
+
+## v3.0.5.12 — 2026-07-15
 
 ### Fixed
 - **The chart now shows every milestone in the data — no milestone is ever left off the chart.** Records that previously could not be placed (an activity reference that matches no activity, or an unreadable date) are no longer dropped: they are matched to the closest activity when possible, otherwise shown in a clearly-marked "Unresolved" area, and flagged as a non-blocking warning. The Diagnostics panel shows the exact source rows behind any warning (every column, as delivered) with the problem highlighted, so the underlying data can be corrected — but the chart never waits on that and never hides a record.
