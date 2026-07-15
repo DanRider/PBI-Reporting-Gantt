@@ -5,7 +5,14 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.13 — 2026-07-15 (current release)
+## v3.0.5.14 — 2026-07-15 (current release)
+
+### Improved
+- **Milestones in the activity and swim-lane inspector panels now use a compact single-line format:** the milestone's marker, its date, how far that date is from today (shown as "(9mo)" for past, "+9mo" for upcoming, or "Today"), then the milestone name. Major/Minor is conveyed by the marker itself. Long names are shrunk to fit and shortened only when necessary, with the full name on hover. Font size and minimum size are adjustable in the Format pane.
+
+---
+
+## v3.0.5.13 — 2026-07-15
 
 ### Fixed
 - **Milestone markers are now always drawn on top of the bars and background bands, so a marker can never be hidden behind another element.** A build-time check and a runtime diagnostic now flag any marker that would be visually covered, and a new "Semi-transparent bars" option (Format pane, off by default) lets you see markers through the bars when checking a report.
