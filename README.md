@@ -68,7 +68,7 @@ Coming soon (pending Microsoft AppSource certification).
 
 ## Quick start
 
-The repository includes a `demo/PBI-Reporting-Gantt-v3.0.5.11.pbix` file with sample data
+The repository includes a `demo/PBI-Reporting-Gantt-v3.0.5.12.pbix` file with sample data
 already bound to the visual's data roles. Open it to see Reporting
 Gantt in action with a populated roadmap.
 
