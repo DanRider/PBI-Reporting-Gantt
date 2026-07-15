@@ -5,7 +5,11 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.6 — 2026-07-14 (current release)
+## v3.0.5.7 — 2026-07-14 (current release)
+
+Version restamp of v3.0.5.6 to ensure a clean download; no functional changes.
+
+## v3.0.5.6 — 2026-07-14
 
 **Fix + diagnostics release.**
 
