@@ -5,7 +5,21 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.15 — 2026-07-15 (current release)
+## v3.0.6.0 — 2026-07-15 (current release)
+
+### Milestone — the 3.0.5.x line, consolidated
+**Resilience** — every milestone now always renders (a data problem becomes a visible warning + an Unresolved lane, never a silently dropped marker); bulletproof date parsing (Excel serials, fiscal, ISO, epoch); tolerant activity-to-milestone matching; three-surface window coherence.
+
+**Diagnostics** — an always-on flight recorder with typed fault codes, an offender log that names the exact source rows, occlusion/burial lint, and a live version badge.
+
+**Polish** — compact one-line inspector milestone cards; a branded loading screen with a custom logo; a "Show warnings" toggle to silence data-quality alerts for a clean report.
+
+### Improved (this release)
+- **The loading experience is sanitized** — while data loads the visual now shows your logo, or nothing at all, and never flashes the "bind fields" configuration screen once fields are connected.
+
+---
+
+## v3.0.5.15 — 2026-07-15
 
 ### Improved
 - **A branded loading state** replaces the momentary "bind fields" flash while data loads — shows a logo (set one in the Format pane) or a subtle spinner; the "bind fields" prompt now appears only when fields are genuinely not connected.
