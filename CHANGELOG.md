@@ -5,7 +5,15 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.14 — 2026-07-15 (current release)
+## v3.0.5.15 — 2026-07-15 (current release)
+
+### Improved
+- **A branded loading state** replaces the momentary "bind fields" flash while data loads — shows a logo (set one in the Format pane) or a subtle spinner; the "bind fields" prompt now appears only when fields are genuinely not connected.
+- **A "Show warnings" option** (Format pane → Diagnostics, on by default) lets you hide data-quality warnings and toasts for a clean report while the diagnostics log stays available to download.
+
+---
+
+## v3.0.5.14 — 2026-07-15
 
 ### Improved
 - **Milestones in the activity and swim-lane inspector panels now use a compact single-line format:** the milestone's marker, its date, how far that date is from today (shown as "(9mo)" for past, "+9mo" for upcoming, or "Today"), then the milestone name. Major/Minor is conveyed by the marker itself. Long names are shrunk to fit and shortened only when necessary, with the full name on hover. Font size and minimum size are adjustable in the Format pane.
