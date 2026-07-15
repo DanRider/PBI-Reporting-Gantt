@@ -5,7 +5,12 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.9 — 2026-07-15 (current release)
+## v3.0.5.10 — 2026-07-15 (current release)
+
+### Improved
+- **The Diagnostics panel now names the exact records it could not use.** When a milestone is dropped, the panel and the downloadable log show that milestone's label, its raw activity reference, the reason, and the closest matching activity — so a data mismatch (for example a reference that points at an ID or a name that does not exist among the activities) is identifiable directly from the panel instead of only a category count.
+
+## v3.0.5.9 — 2026-07-15
 
 ### Fixed
 - **Milestone markers that appeared in the detail table could be missing from the chart** when a milestone's activity value differed from the activity's name by only whitespace, letter case, or invisible characters. The chart matched milestones to their row by an exact text match, so a stray space or case difference dropped the marker from the chart while the table still showed it. The chart now matches tolerantly (ignoring surrounding/repeated spaces, case, and invisible characters), so any milestone shown in the table also renders on the chart; genuinely unmatched milestones are surfaced rather than silently removed, and the Diagnostics panel names the unmatched value and its closest activity.
