@@ -5,7 +5,17 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.5.5 — 2026-07-14 (current release)
+## v3.0.5.6 — 2026-07-14 (current release)
+
+**Fix + diagnostics release.**
+
+### Fixed
+- **A milestone could silently fail to appear on the chart when two milestones on the same activity shared the same label** — the chart's rendering keyed milestones by activity and label, so identically-labeled milestones collapsed into a single marker. Markers are now keyed by their full identity (activity, label, date, type), so every milestone renders.
+
+### Improved
+- **The Diagnostics panel now opens to a faults-only view**, like a vehicle fault-code readout: healthy updates collapse to a single heartbeat line, and problems appear as deduplicated fault cards (code, plain-English description, key numbers, occurrence count). The full raw trail remains one toggle away, and downloaded logs now begin with a fault summary.
+
+## v3.0.5.5 — 2026-07-14
 
 Version restamp of v3.0.5.4 to ensure Power BI loads the updated visual; no functional changes.
 
