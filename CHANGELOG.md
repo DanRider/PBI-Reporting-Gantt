@@ -5,7 +5,17 @@ follow a four-part scheme: **major.minor.patch.build**.
 
 ---
 
-## v3.0.6.0 — 2026-07-15 (current release)
+## v3.0.6.1 — 2026-07-17 (current release)
+
+### Fixed
+- **The roadmap could keep showing the previous selection when a filter or slicer combination matched no activities.** When a slicer combination returned zero rows, the chart kept displaying the bars from the prior selection instead of clearing — while the detail table correctly emptied — so the roadmap and the table could disagree. The visual now distinguishes a genuinely empty result from a brief mid-filter transient: a real empty result clears the roadmap to a **"No initiatives match the current filters."** message, while a momentary transient still retains the last view to avoid flicker.
+
+### Notes
+- The demo file is carried forward from v3.0.6.0; this patch affects an empty-filter edge case that the populated sample does not exercise.
+
+---
+
+## v3.0.6.0 — 2026-07-15
 
 ### Milestone — the 3.0.5.x line, consolidated
 **Resilience** — every milestone now always renders (a data problem becomes a visible warning + an Unresolved lane, never a silently dropped marker); bulletproof date parsing (Excel serials, fiscal, ISO, epoch); tolerant activity-to-milestone matching; three-surface window coherence.
